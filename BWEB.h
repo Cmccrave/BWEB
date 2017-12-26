@@ -23,7 +23,8 @@ public:
 class BWEB
 {
 	map<TilePosition, Block> blocks;	
-	set<TilePosition> smallPosition, mediumPosition, largePosition;
+	set<TilePosition> smallPosition, mediumPosition, largePosition, expoPosition;
+	set<TilePosition> sDefPosition, mDefPosition;
 	set<TilePosition> resourceCenter;
 
 	bool overlapsBlocks(TilePosition);
@@ -35,6 +36,8 @@ class BWEB
 	void insertSmallBlock(TilePosition, bool, bool);
 	void insertMediumBlock(TilePosition, bool, bool);
 	void insertLargeBlock(TilePosition, bool, bool);
+	void insertHExpoBlock(TilePosition, bool, bool);
+	void insertVExpoBlock(TilePosition, bool, bool);
 
 	static BWEB* bInstance;
 
@@ -46,4 +49,8 @@ public:
 	set<TilePosition> getSmallPosition() { return smallPosition; }
 	set<TilePosition> getMediumPosition() { return mediumPosition; }
 	set<TilePosition> getLargePosition() { return largePosition; }
+	set<TilePosition> getExpoPosition() { return expoPosition; }
+
+	set<TilePosition> getSDefPosition() { return sDefPosition; }
+	set<TilePosition> getMDefPosition() { return mDefPosition; }
 };

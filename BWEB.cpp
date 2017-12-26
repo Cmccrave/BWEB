@@ -8,20 +8,22 @@ void BWEB::draw()
 		Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
 	for (auto tile : largePosition)
 		Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
+	for (auto tile : sDefPosition)
+		Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
+	for (auto tile : mDefPosition)
+		Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
+	for (auto tile : expoPosition)
+		Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
 }
 
 void BWEB::onStart()
 {
 	// For reference: https://imgur.com/a/I6IwH
-	// Currently missing features:
-	// - Mirroring isn't fully implemented
+	// Currently missing features:	
 	// - Counting of how many of each type of block
-	// - Defensive blocks
+	// - Defensive blocks - cannons/turrets
 	// - Blocks for areas other than main
-	// - Low variations so usually unoptimized
 	// - Variations based on build order (bio build or mech build)
-	// - Expansion blocks
-	// - Resource avoidance
 	// - Smooth density
 
 	TilePosition tStart = Broodwar->self()->getStartLocation();
@@ -39,12 +41,19 @@ void BWEB::onStart()
 		}
 	}
 
+	// Mirror check, normally production above and left
+	bool mirrorHorizontal = false, mirrorVertical = false;
+	if (Map::Instance().Center().x > pStart.x) mirrorHorizontal = true;
+	if (Map::Instance().Center().y > pStart.y) mirrorVertical = true;
+
 	for (auto &area : Map::Instance().Areas())
 	{
 		for (auto &base : area.Bases())
 		{
 			TilePosition center;
 			int cnt = 0;
+			int hOffset = Broodwar->self()->getRace() == Races::Protoss ? 4 : 2;
+
 			for (auto &mineral : base.Minerals())
 				center += mineral->TopLeft(), cnt++;
 
@@ -53,40 +62,23 @@ void BWEB::onStart()
 
 			if (cnt > 0) center = center / cnt;
 			resourceCenter.insert(center);
+
+			if (abs(center.x - base.Location().x) > abs(center.y - base.Location().y))
+			{
+				if (center.x > base.Location().x)
+					insertHExpoBlock(base.Location() - TilePosition(hOffset, 0), false, mirrorVertical);
+				else
+					insertHExpoBlock(base.Location() - TilePosition(hOffset, 0), true, mirrorVertical);
+			}
+			else
+			{
+				if (center.y > base.Location().y)
+					insertVExpoBlock(base.Location() - TilePosition(0, 3), mirrorHorizontal, false);
+				else
+					insertVExpoBlock(base.Location(), mirrorHorizontal, true);
+			}
 		}
 	}
-
-	// Mirror? (Gate on right) -- removed due to McRave specific for now
-	bool mirrorHorizontal = false;
-	bool mirrorVertical = false;
-	//if (Position(Terrain().getFirstChoke()).x > Terrain().getPlayerStartingPosition().x) mirrorHorizontal = true;
-	//if (Position(Terrain().getFirstChoke()).y > Terrain().getPlayerStartingPosition().y) mirrorVertical = true;
-
-	double distA = DBL_MAX;
-	TilePosition best;
-	for (auto &tile : mainTiles)
-	{
-		Position blockCenter;
-		if (Broodwar->self()->getRace() == Races::Protoss)
-		{
-			if (!canAddBlock(tile, 6, 8)) continue;
-			blockCenter = Position(TilePosition(tile.x + 3, tile.y + 4));
-		}
-		else if (Broodwar->self()->getRace() == Races::Terran)
-		{
-			if (!canAddBlock(tile, 3, 4)) continue;
-			blockCenter = Position(TilePosition(tile.x + 3, tile.y + 2));
-		}
-
-		double distB = blockCenter.getDistance(pStart); //* blockCenter.getDistance(Position(Terrain().getFirstChoke()));
-		if (distB < distA)
-		{
-			distA = distB;
-			best = tile;
-		}
-	}
-	if (Broodwar->self()->getRace() == Races::Protoss) insertMediumBlock(best, mirrorHorizontal, mirrorVertical);
-	else if (Broodwar->self()->getRace() == Races::Terran) insertSmallBlock(best, mirrorHorizontal, mirrorVertical);
 
 	if (Broodwar->self()->getRace() == Races::Protoss)
 	{
@@ -102,7 +94,6 @@ void BWEB::onStart()
 		for (auto tile : mainTiles)
 			if (canAddBlock(tile, 3, 4)) insertSmallBlock(tile, mirrorHorizontal, mirrorVertical);
 	}
-
 }
 
 bool BWEB::canAddBlock(TilePosition here, int width, int height)
@@ -115,8 +106,8 @@ bool BWEB::canAddBlock(TilePosition here, int width, int height)
 			if (!TilePosition(x, y).isValid()) return false;
 			if (!Map::Instance().GetTile(TilePosition(x, y)).Buildable()) return false;
 			if (overlapsBlocks(TilePosition(x, y))) return false;
-			if (overlapsBases(TilePosition(x, y))) return false;					// Function that iterates all bases to see if they overlap
-			if (overlapsNeutrals(TilePosition(x, y))) return false;				// Function that iterates all minerals and geysers to see if they overlap
+			if (overlapsBases(TilePosition(x, y))) return false;
+			if (overlapsNeutrals(TilePosition(x, y))) return false;
 			if (overlapsMining(TilePosition(x, y))) return false;
 		}
 	}
@@ -128,7 +119,7 @@ void BWEB::insertSmallBlock(TilePosition here, bool mirrorHorizontal, bool mirro
 	if (Broodwar->self()->getRace() == Races::Protoss)
 	{
 		blocks[here] = Block(4, 5, here);
-		if (mirrorHorizontal)
+		if (mirrorVertical)
 		{
 			smallPosition.insert(here);
 			smallPosition.insert(here + TilePosition(2, 0));
@@ -154,24 +145,51 @@ void BWEB::insertMediumBlock(TilePosition here, bool mirrorHorizontal, bool mirr
 	if (Broodwar->self()->getRace() == Races::Protoss)
 	{
 		blocks[here] = Block(6, 8, here);
-		mediumPosition.insert(here + TilePosition(0, 6));
-		mediumPosition.insert(here + TilePosition(3, 6));
-
 		if (mirrorHorizontal)
 		{
-			smallPosition.insert(here);
-			smallPosition.insert(here + TilePosition(0, 2));
-			smallPosition.insert(here + TilePosition(0, 4));
-			largePosition.insert(here + TilePosition(2, 0));
-			largePosition.insert(here + TilePosition(2, 3));
+			if (mirrorVertical)
+			{
+				smallPosition.insert(here + TilePosition(0, 2));
+				smallPosition.insert(here + TilePosition(0, 4));
+				smallPosition.insert(here + TilePosition(0, 6));
+				mediumPosition.insert(here);
+				mediumPosition.insert(here + TilePosition(3, 0));
+				largePosition.insert(here + TilePosition(2, 2));
+				largePosition.insert(here + TilePosition(2, 5));
+			}
+			else
+			{
+				smallPosition.insert(here);
+				smallPosition.insert(here + TilePosition(0, 2));
+				smallPosition.insert(here + TilePosition(0, 4));
+				mediumPosition.insert(here + TilePosition(0, 6));
+				mediumPosition.insert(here + TilePosition(3, 6));
+				largePosition.insert(here + TilePosition(2, 0));
+				largePosition.insert(here + TilePosition(2, 3));
+			}
 		}
 		else
 		{
-			smallPosition.insert(here + TilePosition(4, 0));
-			smallPosition.insert(here + TilePosition(4, 2));
-			smallPosition.insert(here + TilePosition(4, 4));
-			largePosition.insert(here);
-			largePosition.insert(here + TilePosition(0, 3));
+			if (mirrorVertical)
+			{
+				smallPosition.insert(here + TilePosition(4, 2));
+				smallPosition.insert(here + TilePosition(4, 4));
+				smallPosition.insert(here + TilePosition(4, 6));
+				mediumPosition.insert(here);
+				mediumPosition.insert(here + TilePosition(3, 0));
+				largePosition.insert(here + TilePosition(0, 2));
+				largePosition.insert(here + TilePosition(0, 5));
+			}
+			else
+			{
+				smallPosition.insert(here + TilePosition(4, 0));
+				smallPosition.insert(here + TilePosition(4, 2));
+				smallPosition.insert(here + TilePosition(4, 4));
+				mediumPosition.insert(here + TilePosition(0, 6));
+				mediumPosition.insert(here + TilePosition(3, 6));
+				largePosition.insert(here);
+				largePosition.insert(here + TilePosition(0, 3));
+			}
 		}
 	}
 	else if (Broodwar->self()->getRace() == Races::Terran)
@@ -189,6 +207,72 @@ void BWEB::insertMediumBlock(TilePosition here, bool mirrorHorizontal, bool mirr
 void BWEB::insertLargeBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 {
 
+}
+
+void BWEB::insertHExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+{
+	// TODO -- mirror based on gas position	
+	if (Broodwar->self()->getRace() == Races::Protoss)
+	{
+		blocks[here] = Block(8, 5, here);
+		if (mirrorHorizontal)
+		{
+			expoPosition.insert(here);
+			largePosition.insert(here + TilePosition(4, 0));
+			mDefPosition.insert(here + TilePosition(0, 3));
+			mediumPosition.insert(here + TilePosition(5, 3));
+			smallPosition.insert(here + TilePosition(3, 3));
+		}
+		else
+		{
+			largePosition.insert(here);
+			expoPosition.insert(here + TilePosition(4, 0));
+			mediumPosition.insert(here + TilePosition(0, 3));
+			mDefPosition.insert(here + TilePosition(5, 3));
+			smallPosition.insert(here + TilePosition(3, 3));
+		}
+	}
+	else
+	{
+		blocks[here] = Block(6, 5, here);
+		if (mirrorHorizontal)
+		{
+			expoPosition.insert(here + TilePosition(2, 0));
+			mediumPosition.insert(here + TilePosition(5, 3));
+			mDefPosition.insert(here + TilePosition(2, 3));
+			smallPosition.insert(here + TilePosition(6, 1));
+			sDefPosition.insert(here + TilePosition(0, 1));
+		}
+		else
+		{
+			expoPosition.insert(here + TilePosition(2, 0));
+			mediumPosition.insert(here + TilePosition(0, 3));
+			mDefPosition.insert(here + TilePosition(3, 3));
+			smallPosition.insert(here + TilePosition(6, 1));
+			sDefPosition.insert(here + TilePosition(0, 1));
+		}
+	}
+}
+
+void BWEB::insertVExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+{
+	blocks[here] = Block(7, 6, here);
+	if (mirrorVertical)
+	{
+		expoPosition.insert(here);
+		largePosition.insert(here + TilePosition(0, 3));
+		mDefPosition.insert(here + TilePosition(4, 0));
+		mediumPosition.insert(here + TilePosition(4, 4));
+		smallPosition.insert(here + TilePosition(4, 2));
+	}
+	else
+	{
+		expoPosition.insert(here);
+		largePosition.insert(here + TilePosition(0, 3));
+		mDefPosition.insert(here + TilePosition(4, 0));
+		mediumPosition.insert(here + TilePosition(4, 4));
+		smallPosition.insert(here + TilePosition(4, 2));
+	}
 }
 
 bool BWEB::overlapsBases(TilePosition here)
@@ -217,9 +301,7 @@ bool BWEB::overlapsBlocks(TilePosition here)
 bool BWEB::overlapsMining(TilePosition here)
 {
 	for (auto &tile : resourceCenter)
-	{
 		if (tile.getDistance(here) < 5) return true;
-	}
 	return false;
 }
 
@@ -234,7 +316,7 @@ bool BWEB::overlapsNeutrals(TilePosition here)
 	for (auto &g : Map::Instance().Geysers())
 	{
 		TilePosition tile = g->TopLeft();
-		if (here.x >= tile.x && here.x < tile.x + 2 && here.y >= tile.y && here.y < tile.y + 1) return true;
+		if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 2) return true;
 	}
 	return false;
 }
@@ -244,6 +326,5 @@ BWEB* BWEB::bInstance = nullptr;
 BWEB & BWEB::Instance()
 {
 	if (!bInstance) bInstance = new BWEB();
-
 	return *bInstance;
 }
