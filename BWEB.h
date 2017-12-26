@@ -24,11 +24,12 @@ class BWEB
 {
 	map<TilePosition, Block> blocks;	
 	set<TilePosition> smallPosition, mediumPosition, largePosition;
-	void updateBlocks();
+	set<TilePosition> resourceCenter;
 
 	bool overlapsBlocks(TilePosition);
 	bool overlapsBases(TilePosition);
 	bool overlapsNeutrals(TilePosition);
+	bool overlapsMining(TilePosition);
 	bool canAddBlock(TilePosition, int, int);
 
 	void insertSmallBlock(TilePosition, bool, bool);
@@ -38,7 +39,8 @@ class BWEB
 	static BWEB* bInstance;
 
 public:
-	void update();	
+	void draw();	
+	void onStart();
 	static BWEB &Instance();
 	map<TilePosition, Block>& getBlocks() { return blocks; }
 	set<TilePosition> getSmallPosition() { return smallPosition; }
