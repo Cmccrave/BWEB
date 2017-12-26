@@ -223,7 +223,7 @@ BWEB* BWEB::bInstance = nullptr;
 
 BWEB & BWEB::Instance()
 {
-	if (bInstance) bInstance = new BWEB();
+	if (!bInstance) bInstance = new BWEB();
 
 	return *bInstance;
 }
