@@ -53,6 +53,7 @@ void BWEB::onStart()
 			TilePosition center;
 			int cnt = 0;
 			int hOffset = Broodwar->self()->getRace() == Races::Protoss ? 4 : 2;
+			int vOffset = Broodwar->self()->getRace() == Races::Protoss ? 3 : 2;
 
 			for (auto &mineral : base.Minerals())
 				center += mineral->TopLeft(), cnt++;
@@ -73,7 +74,7 @@ void BWEB::onStart()
 			else
 			{
 				if (center.y > base.Location().y)
-					insertVExpoBlock(base.Location() - TilePosition(0, 3), mirrorHorizontal, false);
+					insertVExpoBlock(base.Location() - TilePosition(0, vOffset), mirrorHorizontal, false);
 				else
 					insertVExpoBlock(base.Location(), mirrorHorizontal, true);
 			}
@@ -234,7 +235,7 @@ void BWEB::insertHExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirro
 	}
 	else
 	{
-		blocks[here] = Block(6, 5, here);
+		blocks[here] = Block(8, 5, here);
 		if (mirrorHorizontal)
 		{
 			expoPosition.insert(here + TilePosition(2, 0));
@@ -256,22 +257,43 @@ void BWEB::insertHExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirro
 
 void BWEB::insertVExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 {
-	blocks[here] = Block(7, 6, here);
-	if (mirrorVertical)
+	if (Broodwar->self()->getRace() == Races::Protoss)
 	{
-		expoPosition.insert(here);
-		largePosition.insert(here + TilePosition(0, 3));
-		mDefPosition.insert(here + TilePosition(4, 0));
-		mediumPosition.insert(here + TilePosition(4, 4));
-		smallPosition.insert(here + TilePosition(4, 2));
+		blocks[here] = Block(7, 6, here);
+		if (mirrorVertical)
+		{
+			expoPosition.insert(here);
+			largePosition.insert(here + TilePosition(0, 3));
+			mDefPosition.insert(here + TilePosition(4, 0));
+			mediumPosition.insert(here + TilePosition(4, 4));
+			smallPosition.insert(here + TilePosition(4, 2));
+		}
+		else
+		{
+			expoPosition.insert(here);
+			largePosition.insert(here + TilePosition(0, 3));
+			mDefPosition.insert(here + TilePosition(4, 0));
+			mediumPosition.insert(here + TilePosition(4, 4));
+			smallPosition.insert(here + TilePosition(4, 2));
+		}
 	}
 	else
 	{
-		expoPosition.insert(here);
-		largePosition.insert(here + TilePosition(0, 3));
-		mDefPosition.insert(here + TilePosition(4, 0));
-		mediumPosition.insert(here + TilePosition(4, 4));
-		smallPosition.insert(here + TilePosition(4, 2));
+		blocks[here] = Block(6, 5, here);
+		if (mirrorVertical)
+		{
+			expoPosition.insert(here);
+			mediumPosition.insert(here + TilePosition(0, 3));
+			mDefPosition.insert(here + TilePosition(3, 3));
+			smallPosition.insert(here + TilePosition(4, 1));			
+		}
+		else
+		{
+			expoPosition.insert(here + TilePosition(0, 2));
+			mediumPosition.insert(here);
+			mDefPosition.insert(here + TilePosition(3, 0));
+			smallPosition.insert(here + TilePosition(4, 3));
+		}
 	}
 }
 
