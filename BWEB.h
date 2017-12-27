@@ -45,6 +45,9 @@ public:
 	void draw();	
 	void onStart();
 	static BWEB &Instance();
+	TilePosition getBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
+	TilePosition getDefBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
+	TilePosition getAnyBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
 	map<TilePosition, Block>& getBlocks() { return blocks; }
 	set<TilePosition> getSmallPosition() { return smallPosition; }
 	set<TilePosition> getMediumPosition() { return mediumPosition; }

@@ -350,3 +350,271 @@ BWEB & BWEB::Instance()
 	if (!bInstance) bInstance = new BWEB();
 	return *bInstance;
 }
+
+TilePosition BWEB::getBuildPosition(UnitType build_type, const set<TilePosition> *used_positions, TilePosition search_center)
+{
+	int closest_distance = 0;
+	TilePosition return_position = TilePositions::Invalid;
+	switch (build_type.tileWidth())
+	{
+	case 4:
+		for (auto &position : largePosition)
+		{
+			int distance_to_check = position.getApproxDistance(search_center);
+			if (closest_distance == 0 ||
+				distance_to_check < closest_distance)
+			{
+				bool used = false;
+				for (auto &used_position : *used_positions)
+				{
+					if (position == used_position)
+					{
+						used = true;
+						break;
+					}
+				}
+				if (!used)
+				{
+					return_position = position;
+					closest_distance = distance_to_check;
+				}
+			}
+		}
+		break;
+	case 3:
+		for (auto &position : mediumPosition)
+		{
+			int distance_to_check = position.getApproxDistance(search_center);
+			if (closest_distance == 0 ||
+				distance_to_check < closest_distance)
+			{
+				bool used = false;
+				for (auto &used_position : *used_positions)
+				{
+					if (position == used_position)
+					{
+						used = true;
+						break;
+					}
+				}
+				if (!used)
+				{
+					return_position = position;
+					closest_distance = distance_to_check;
+				}
+			}
+		}
+		break;
+	case 2:
+		for (auto &position : smallPosition)
+		{
+			int distance_to_check = position.getApproxDistance(search_center);
+			if (closest_distance == 0 ||
+				distance_to_check < closest_distance)
+			{
+				bool used = false;
+				for (auto &used_position : *used_positions)
+				{
+					if (position == used_position)
+					{
+						used = true;
+						break;
+					}
+				}
+				if (!used)
+				{
+					return_position = position;
+					closest_distance = distance_to_check;
+				}
+			}
+		}
+		break;
+	}
+	return return_position;
+}
+
+TilePosition BWEB::getDefBuildPosition(UnitType build_type, const set<TilePosition> *used_positions, TilePosition search_center)
+{
+	int closest_distance = 0;
+	TilePosition return_position = TilePositions::Invalid;
+	switch (build_type.tileWidth())
+	{
+	case 4:
+		break;
+	case 3:
+		for (auto &position : mDefPosition)
+		{
+			int distance_to_check = position.getApproxDistance(search_center);
+			if (closest_distance == 0 ||
+				distance_to_check < closest_distance)
+			{
+				bool used = false;
+				for (auto &used_position : *used_positions)
+				{
+					if (position == used_position)
+					{
+						used = true;
+						break;
+					}
+				}
+				if (!used)
+				{
+					return_position = position;
+					closest_distance = distance_to_check;
+				}
+			}
+		}
+		break;
+	case 2:
+		for (auto &position : sDefPosition)
+		{
+			int distance_to_check = position.getApproxDistance(search_center);
+			if (closest_distance == 0 ||
+				distance_to_check < closest_distance)
+			{
+				bool used = false;
+				for (auto &used_position : *used_positions)
+				{
+					if (position == used_position)
+					{
+						used = true;
+						break;
+					}
+				}
+				if (!used)
+				{
+					return_position = position;
+					closest_distance = distance_to_check;
+				}
+			}
+		}
+		break;
+	}
+	return return_position;
+}
+
+TilePosition BWEB::getAnyBuildPosition(UnitType build_type, const set<TilePosition> *used_positions, TilePosition search_center)
+{
+	int closest_distance = 0;
+	TilePosition return_position = TilePositions::Invalid;
+	switch (build_type.tileWidth())
+	{
+	case 4:
+		for (auto &position : largePosition)
+		{
+			int distance_to_check = position.getApproxDistance(search_center);
+			if (closest_distance == 0 ||
+				distance_to_check < closest_distance)
+			{
+				bool used = false;
+				for (auto &used_position : *used_positions)
+				{
+					if (position == used_position)
+					{
+						used = true;
+						break;
+					}
+				}
+				if (!used)
+				{
+					return_position = position;
+					closest_distance = distance_to_check;
+				}
+			}
+		}
+		break;
+	case 3:
+		for (auto &position : mediumPosition)
+		{
+			int distance_to_check = position.getApproxDistance(search_center);
+			if (closest_distance == 0 ||
+				distance_to_check < closest_distance)
+			{
+				bool used = false;
+				for (auto &used_position : *used_positions)
+				{
+					if (position == used_position)
+					{
+						used = true;
+						break;
+					}
+				}
+				if (!used)
+				{
+					return_position = position;
+					closest_distance = distance_to_check;
+				}
+			}
+		}
+		for (auto &position : mDefPosition)
+		{
+			int distance_to_check = position.getApproxDistance(search_center);
+			if (closest_distance == 0 ||
+				distance_to_check < closest_distance)
+			{
+				bool used = false;
+				for (auto &used_position : *used_positions)
+				{
+					if (position == used_position)
+					{
+						used = true;
+						break;
+					}
+				}
+				if (!used)
+				{
+					return_position = position;
+					closest_distance = distance_to_check;
+				}
+			}
+		}
+		break;
+	case 2:
+		for (auto &position : smallPosition)
+		{
+			int distance_to_check = position.getApproxDistance(search_center);
+			if (closest_distance == 0 ||
+				distance_to_check < closest_distance)
+			{
+				bool used = false;
+				for (auto &used_position : *used_positions)
+				{
+					if (position == used_position)
+					{
+						used = true;
+						break;
+					}
+				}
+				if (!used)
+				{
+					return_position = position;
+					closest_distance = distance_to_check;
+				}
+			}
+		}
+		for (auto &position : sDefPosition)
+		{
+			int distance_to_check = position.getApproxDistance(search_center);
+			if (closest_distance == 0 ||
+				distance_to_check < closest_distance)
+			{
+				bool used = false;
+				for (auto &used_position : *used_positions)
+				{
+					if (position == used_position)
+					{
+						used = true;
+						break;
+					}
+				}
+				if (!used)
+				{
+					return_position = position;
+					closest_distance = distance_to_check;
+				}
+			}
+		}
+		break;
+	}
+	return return_position;
+}
