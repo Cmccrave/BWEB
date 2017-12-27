@@ -285,7 +285,7 @@ void BWEB::insertVExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirro
 			expoPosition.insert(here);
 			mediumPosition.insert(here + TilePosition(0, 3));
 			mDefPosition.insert(here + TilePosition(3, 3));
-			smallPosition.insert(here + TilePosition(4, 1));			
+			smallPosition.insert(here + TilePosition(4, 1));
 		}
 		else
 		{
@@ -351,270 +351,110 @@ BWEB & BWEB::Instance()
 	return *bInstance;
 }
 
-TilePosition BWEB::getBuildPosition(UnitType build_type, const set<TilePosition> *used_positions, TilePosition search_center)
+TilePosition BWEB::getBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
 {
-	int closest_distance = 0;
-	TilePosition return_position = TilePositions::Invalid;
-	switch (build_type.tileWidth())
+	int distBest = INT_MAX;
+	TilePosition tileBest = TilePositions::Invalid;
+	switch (building.tileWidth())
 	{
 	case 4:
 		for (auto &position : largePosition)
 		{
-			int distance_to_check = position.getApproxDistance(search_center);
-			if (closest_distance == 0 ||
-				distance_to_check < closest_distance)
-			{
-				bool used = false;
-				for (auto &used_position : *used_positions)
-				{
-					if (position == used_position)
-					{
-						used = true;
-						break;
-					}
-				}
-				if (!used)
-				{
-					return_position = position;
-					closest_distance = distance_to_check;
-				}
-			}
+			int distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+				distBest = distToPos, tileBest = position;
 		}
 		break;
 	case 3:
 		for (auto &position : mediumPosition)
 		{
-			int distance_to_check = position.getApproxDistance(search_center);
-			if (closest_distance == 0 ||
-				distance_to_check < closest_distance)
-			{
-				bool used = false;
-				for (auto &used_position : *used_positions)
-				{
-					if (position == used_position)
-					{
-						used = true;
-						break;
-					}
-				}
-				if (!used)
-				{
-					return_position = position;
-					closest_distance = distance_to_check;
-				}
-			}
+			int distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+				distBest = distToPos, tileBest = position;
 		}
 		break;
 	case 2:
 		for (auto &position : smallPosition)
 		{
-			int distance_to_check = position.getApproxDistance(search_center);
-			if (closest_distance == 0 ||
-				distance_to_check < closest_distance)
-			{
-				bool used = false;
-				for (auto &used_position : *used_positions)
-				{
-					if (position == used_position)
-					{
-						used = true;
-						break;
-					}
-				}
-				if (!used)
-				{
-					return_position = position;
-					closest_distance = distance_to_check;
-				}
-			}
+			int distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+				distBest = distToPos, tileBest = position;
 		}
 		break;
 	}
-	return return_position;
+	return tileBest;
 }
 
-TilePosition BWEB::getDefBuildPosition(UnitType build_type, const set<TilePosition> *used_positions, TilePosition search_center)
+TilePosition BWEB::getDefBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
 {
-	int closest_distance = 0;
-	TilePosition return_position = TilePositions::Invalid;
-	switch (build_type.tileWidth())
+	int distBest = INT_MAX;
+	TilePosition tileBest = TilePositions::Invalid;
+	switch (building.tileWidth())
 	{
 	case 4:
 		break;
 	case 3:
 		for (auto &position : mDefPosition)
 		{
-			int distance_to_check = position.getApproxDistance(search_center);
-			if (closest_distance == 0 ||
-				distance_to_check < closest_distance)
-			{
-				bool used = false;
-				for (auto &used_position : *used_positions)
-				{
-					if (position == used_position)
-					{
-						used = true;
-						break;
-					}
-				}
-				if (!used)
-				{
-					return_position = position;
-					closest_distance = distance_to_check;
-				}
-			}
+			int distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+				distBest = distToPos, tileBest = position;
 		}
 		break;
 	case 2:
 		for (auto &position : sDefPosition)
 		{
-			int distance_to_check = position.getApproxDistance(search_center);
-			if (closest_distance == 0 ||
-				distance_to_check < closest_distance)
-			{
-				bool used = false;
-				for (auto &used_position : *used_positions)
-				{
-					if (position == used_position)
-					{
-						used = true;
-						break;
-					}
-				}
-				if (!used)
-				{
-					return_position = position;
-					closest_distance = distance_to_check;
-				}
-			}
+			int distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+				distBest = distToPos, tileBest = position;
 		}
 		break;
 	}
-	return return_position;
+	return tileBest;
 }
 
-TilePosition BWEB::getAnyBuildPosition(UnitType build_type, const set<TilePosition> *used_positions, TilePosition search_center)
+TilePosition BWEB::getAnyBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
 {
-	int closest_distance = 0;
-	TilePosition return_position = TilePositions::Invalid;
-	switch (build_type.tileWidth())
+	int distBest = INT_MAX;
+	TilePosition tileBest = TilePositions::Invalid;
+	switch (building.tileWidth())
 	{
 	case 4:
 		for (auto &position : largePosition)
 		{
-			int distance_to_check = position.getApproxDistance(search_center);
-			if (closest_distance == 0 ||
-				distance_to_check < closest_distance)
-			{
-				bool used = false;
-				for (auto &used_position : *used_positions)
-				{
-					if (position == used_position)
-					{
-						used = true;
-						break;
-					}
-				}
-				if (!used)
-				{
-					return_position = position;
-					closest_distance = distance_to_check;
-				}
-			}
+			int distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+				distBest = distToPos, tileBest = position;
 		}
 		break;
 	case 3:
 		for (auto &position : mediumPosition)
 		{
-			int distance_to_check = position.getApproxDistance(search_center);
-			if (closest_distance == 0 ||
-				distance_to_check < closest_distance)
-			{
-				bool used = false;
-				for (auto &used_position : *used_positions)
-				{
-					if (position == used_position)
-					{
-						used = true;
-						break;
-					}
-				}
-				if (!used)
-				{
-					return_position = position;
-					closest_distance = distance_to_check;
-				}
-			}
+			int distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+				distBest = distToPos, tileBest = position;
 		}
 		for (auto &position : mDefPosition)
 		{
-			int distance_to_check = position.getApproxDistance(search_center);
-			if (closest_distance == 0 ||
-				distance_to_check < closest_distance)
-			{
-				bool used = false;
-				for (auto &used_position : *used_positions)
-				{
-					if (position == used_position)
-					{
-						used = true;
-						break;
-					}
-				}
-				if (!used)
-				{
-					return_position = position;
-					closest_distance = distance_to_check;
-				}
-			}
+			int distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+				distBest = distToPos, tileBest = position;
 		}
 		break;
 	case 2:
 		for (auto &position : smallPosition)
 		{
-			int distance_to_check = position.getApproxDistance(search_center);
-			if (closest_distance == 0 ||
-				distance_to_check < closest_distance)
-			{
-				bool used = false;
-				for (auto &used_position : *used_positions)
-				{
-					if (position == used_position)
-					{
-						used = true;
-						break;
-					}
-				}
-				if (!used)
-				{
-					return_position = position;
-					closest_distance = distance_to_check;
-				}
-			}
+			int distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+				distBest = distToPos, tileBest = position;
 		}
 		for (auto &position : sDefPosition)
 		{
-			int distance_to_check = position.getApproxDistance(search_center);
-			if (closest_distance == 0 ||
-				distance_to_check < closest_distance)
-			{
-				bool used = false;
-				for (auto &used_position : *used_positions)
-				{
-					if (position == used_position)
-					{
-						used = true;
-						break;
-					}
-				}
-				if (!used)
-				{
-					return_position = position;
-					closest_distance = distance_to_check;
-				}
-			}
+			int distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+				distBest = distToPos, tileBest = position;
 		}
 		break;
 	}
-	return return_position;
+	return tileBest;
 }

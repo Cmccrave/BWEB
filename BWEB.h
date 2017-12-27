@@ -6,8 +6,6 @@ using namespace BWAPI;
 using namespace BWEM;
 using namespace std;
 
-
-
 class Block
 {
 	int w, h;
