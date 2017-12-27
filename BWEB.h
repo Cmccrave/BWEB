@@ -43,8 +43,14 @@ public:
 	void draw();	
 	void onStart();
 	static BWEB &Instance();
+	
+	// Returns the closest build position possible for a building designed for anything except defenses, with optional parameters of what tiles are used already and where you want to build closest to
 	TilePosition getBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
+
+	// Returns the closest build position possible for a building designed for defenses, with optional parameters of what tiles are used already and where you want to build closest to
 	TilePosition getDefBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
+
+	// Returns the closest build position possible, with optional parameters of what tiles are used already and where you want to build closest to
 	TilePosition getAnyBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
 	map<TilePosition, Block>& getBlocks() { return blocks; }
 	set<TilePosition> getSmallPosition() { return smallPosition; }
