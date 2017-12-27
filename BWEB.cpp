@@ -25,6 +25,7 @@ void BWEB::onStart()
 	// - Blocks for areas other than main
 	// - Variations based on build order (bio build or mech build)
 	// - Smooth density
+	// - Optimize starting blocks
 
 	TilePosition tStart = Broodwar->self()->getStartLocation();
 	Position pStart = Position(tStart) + Position(64, 48);
@@ -365,9 +366,6 @@ TilePosition BWEB::getBuildPosition(UnitType building, const set<TilePosition> *
 		for (auto &position : largePosition)
 		{
 			double distToPos = position.getDistance(searchCenter);
-=======
-			int distToPos = position.getDistance(searchCenter);
->>>>>>> 715ffa3ee7d677e18faeae1b24c210c3075bbdc8
 			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
@@ -376,9 +374,6 @@ TilePosition BWEB::getBuildPosition(UnitType building, const set<TilePosition> *
 		for (auto &position : mediumPosition)
 		{
 			double distToPos = position.getDistance(searchCenter);
-=======
-			int distToPos = position.getDistance(searchCenter);
->>>>>>> 715ffa3ee7d677e18faeae1b24c210c3075bbdc8
 			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
@@ -387,9 +382,6 @@ TilePosition BWEB::getBuildPosition(UnitType building, const set<TilePosition> *
 		for (auto &position : smallPosition)
 		{
 			double distToPos = position.getDistance(searchCenter);
-=======
-			int distToPos = position.getDistance(searchCenter);
->>>>>>> 715ffa3ee7d677e18faeae1b24c210c3075bbdc8
 			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
@@ -410,9 +402,6 @@ TilePosition BWEB::getDefBuildPosition(UnitType building, const set<TilePosition
 		for (auto &position : mDefPosition)
 		{
 			double distToPos = position.getDistance(searchCenter);
-=======
-			int distToPos = position.getDistance(searchCenter);
->>>>>>> 715ffa3ee7d677e18faeae1b24c210c3075bbdc8
 			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
@@ -421,9 +410,6 @@ TilePosition BWEB::getDefBuildPosition(UnitType building, const set<TilePosition
 		for (auto &position : sDefPosition)
 		{
 			double distToPos = position.getDistance(searchCenter);
-=======
-			int distToPos = position.getDistance(searchCenter);
->>>>>>> 715ffa3ee7d677e18faeae1b24c210c3075bbdc8
 			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
@@ -442,9 +428,6 @@ TilePosition BWEB::getAnyBuildPosition(UnitType building, const set<TilePosition
 		for (auto &position : largePosition)
 		{
 			double distToPos = position.getDistance(searchCenter);
-=======
-			int distToPos = position.getDistance(searchCenter);
->>>>>>> 715ffa3ee7d677e18faeae1b24c210c3075bbdc8
 			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
@@ -453,18 +436,12 @@ TilePosition BWEB::getAnyBuildPosition(UnitType building, const set<TilePosition
 		for (auto &position : mediumPosition)
 		{
 			double distToPos = position.getDistance(searchCenter);
-=======
-			int distToPos = position.getDistance(searchCenter);
->>>>>>> 715ffa3ee7d677e18faeae1b24c210c3075bbdc8
 			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		for (auto &position : mDefPosition)
 		{
 			double distToPos = position.getDistance(searchCenter);
-=======
-			int distToPos = position.getDistance(searchCenter);
->>>>>>> 715ffa3ee7d677e18faeae1b24c210c3075bbdc8
 			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
@@ -473,18 +450,12 @@ TilePosition BWEB::getAnyBuildPosition(UnitType building, const set<TilePosition
 		for (auto &position : smallPosition)
 		{
 			double distToPos = position.getDistance(searchCenter);
-=======
-			int distToPos = position.getDistance(searchCenter);
->>>>>>> 715ffa3ee7d677e18faeae1b24c210c3075bbdc8
 			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		for (auto &position : sDefPosition)
 		{
 			double distToPos = position.getDistance(searchCenter);
-=======
-			int distToPos = position.getDistance(searchCenter);
->>>>>>> 715ffa3ee7d677e18faeae1b24c210c3075bbdc8
 			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
