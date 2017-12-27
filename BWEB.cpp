@@ -361,7 +361,7 @@ TilePosition BWEB::getBuildPosition(UnitType building, const set<TilePosition> *
 		for (auto &position : largePosition)
 		{
 			int distToPos = position.getDistance(searchCenter);
-			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		break;
@@ -369,7 +369,7 @@ TilePosition BWEB::getBuildPosition(UnitType building, const set<TilePosition> *
 		for (auto &position : mediumPosition)
 		{
 			int distToPos = position.getDistance(searchCenter);
-			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		break;
@@ -377,7 +377,7 @@ TilePosition BWEB::getBuildPosition(UnitType building, const set<TilePosition> *
 		for (auto &position : smallPosition)
 		{
 			int distToPos = position.getDistance(searchCenter);
-			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		break;
@@ -397,7 +397,7 @@ TilePosition BWEB::getDefBuildPosition(UnitType building, const set<TilePosition
 		for (auto &position : mDefPosition)
 		{
 			int distToPos = position.getDistance(searchCenter);
-			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		break;
@@ -405,7 +405,7 @@ TilePosition BWEB::getDefBuildPosition(UnitType building, const set<TilePosition
 		for (auto &position : sDefPosition)
 		{
 			int distToPos = position.getDistance(searchCenter);
-			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		break;
@@ -423,7 +423,7 @@ TilePosition BWEB::getAnyBuildPosition(UnitType building, const set<TilePosition
 		for (auto &position : largePosition)
 		{
 			int distToPos = position.getDistance(searchCenter);
-			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		break;
@@ -431,13 +431,13 @@ TilePosition BWEB::getAnyBuildPosition(UnitType building, const set<TilePosition
 		for (auto &position : mediumPosition)
 		{
 			int distToPos = position.getDistance(searchCenter);
-			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		for (auto &position : mDefPosition)
 		{
 			int distToPos = position.getDistance(searchCenter);
-			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		break;
@@ -445,13 +445,13 @@ TilePosition BWEB::getAnyBuildPosition(UnitType building, const set<TilePosition
 		for (auto &position : smallPosition)
 		{
 			int distToPos = position.getDistance(searchCenter);
-			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		for (auto &position : sDefPosition)
 		{
 			int distToPos = position.getDistance(searchCenter);
-			if (distToPos < distBest && usedTiles->find(position) != usedTiles->end())
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 				distBest = distToPos, tileBest = position;
 		}
 		break;
