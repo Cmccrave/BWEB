@@ -25,6 +25,7 @@ void BWEB::onStart()
 	// - Blocks for areas other than main
 	// - Variations based on build order (bio build or mech build)
 	// - Smooth density
+	// - Optimize starting blocks
 
 	TilePosition tStart = Broodwar->self()->getStartLocation();
 	Position pStart = Position(tStart) + Position(64, 48);
@@ -52,8 +53,10 @@ void BWEB::onStart()
 		{
 			TilePosition center;
 			int cnt = 0;
-			int hOffset = Broodwar->self()->getRace() == Races::Protoss ? 4 : 2;
-			int vOffset = Broodwar->self()->getRace() == Races::Protoss ? 3 : 2;
+			int h1 = Broodwar->self()->getRace() == Races::Protoss ? 4 : 2;
+			int h2 = Broodwar->self()->getRace() == Races::Protoss ? 0 : 2;
+			int v1 = Broodwar->self()->getRace() == Races::Protoss ? 3 : 2;
+			int v2 = Broodwar->self()->getRace() == Races::Protoss ? 3 : 2;
 
 			for (auto &mineral : base.Minerals())
 				center += mineral->TopLeft(), cnt++;
@@ -67,16 +70,16 @@ void BWEB::onStart()
 			if (abs(center.x - base.Location().x) > abs(center.y - base.Location().y))
 			{
 				if (center.x > base.Location().x)
-					insertHExpoBlock(base.Location() - TilePosition(hOffset, 0), false, mirrorVertical);
+					insertHExpoBlock(base.Location() - TilePosition(h1, 0), false, mirrorVertical);
 				else
-					insertHExpoBlock(base.Location() - TilePosition(hOffset, 0), true, mirrorVertical);
+					insertHExpoBlock(base.Location() - TilePosition(h2, 0), true, mirrorVertical);
 			}
 			else
 			{
 				if (center.y > base.Location().y)
-					insertVExpoBlock(base.Location() - TilePosition(0, vOffset), mirrorHorizontal, false);
+					insertVExpoBlock(base.Location() - TilePosition(0, v1), mirrorHorizontal, false);
 				else
-					insertVExpoBlock(base.Location(), mirrorHorizontal, true);
+					insertVExpoBlock(base.Location() - TilePosition(0, v2), mirrorHorizontal, true);
 			}
 		}
 	}
@@ -215,19 +218,21 @@ void BWEB::insertHExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirro
 	// TODO -- mirror based on gas position	
 	if (Broodwar->self()->getRace() == Races::Protoss)
 	{
-		blocks[here] = Block(8, 5, here);
+		blocks[here] = Block(8, 8, here);
 		if (mirrorHorizontal)
 		{
-			expoPosition.insert(here);
+			expoPosition.insert(here);			
 			largePosition.insert(here + TilePosition(4, 0));
+			largePosition.insert(here + TilePosition(4, 5));
 			mDefPosition.insert(here + TilePosition(0, 3));
 			mediumPosition.insert(here + TilePosition(5, 3));
 			smallPosition.insert(here + TilePosition(3, 3));
 		}
 		else
 		{
-			largePosition.insert(here);
 			expoPosition.insert(here + TilePosition(4, 0));
+			largePosition.insert(here);
+			largePosition.insert(here + TilePosition(0, 5));
 			mediumPosition.insert(here + TilePosition(0, 3));
 			mDefPosition.insert(here + TilePosition(5, 3));
 			smallPosition.insert(here + TilePosition(3, 3));
@@ -285,7 +290,7 @@ void BWEB::insertVExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirro
 			expoPosition.insert(here);
 			mediumPosition.insert(here + TilePosition(0, 3));
 			mDefPosition.insert(here + TilePosition(3, 3));
-			smallPosition.insert(here + TilePosition(4, 1));			
+			smallPosition.insert(here + TilePosition(4, 1));
 		}
 		else
 		{
@@ -349,4 +354,112 @@ BWEB & BWEB::Instance()
 {
 	if (!bInstance) bInstance = new BWEB();
 	return *bInstance;
+}
+
+TilePosition BWEB::getBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
+{
+	double distBest = DBL_MAX;
+	TilePosition tileBest = TilePositions::Invalid;
+	switch (building.tileWidth())
+	{
+	case 4:
+		for (auto &position : largePosition)
+		{
+			double distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+				distBest = distToPos, tileBest = position;
+		}
+		break;
+	case 3:
+		for (auto &position : mediumPosition)
+		{
+			double distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+				distBest = distToPos, tileBest = position;
+		}
+		break;
+	case 2:
+		for (auto &position : smallPosition)
+		{
+			double distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+				distBest = distToPos, tileBest = position;
+		}
+		break;
+	}
+	return tileBest;
+}
+
+TilePosition BWEB::getDefBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
+{
+	double distBest = DBL_MAX;
+	TilePosition tileBest = TilePositions::Invalid;
+	switch (building.tileWidth())
+	{
+	case 4:
+		break;
+	case 3:
+		for (auto &position : mDefPosition)
+		{
+			double distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+				distBest = distToPos, tileBest = position;
+		}
+		break;
+	case 2:
+		for (auto &position : sDefPosition)
+		{
+			double distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+				distBest = distToPos, tileBest = position;
+		}
+		break;
+	}
+	return tileBest;
+}
+
+TilePosition BWEB::getAnyBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
+{
+	double distBest = DBL_MAX;
+	TilePosition tileBest = TilePositions::Invalid;
+	switch (building.tileWidth())
+	{
+	case 4:
+		for (auto &position : largePosition)
+		{
+			double distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+				distBest = distToPos, tileBest = position;
+		}
+		break;
+	case 3:
+		for (auto &position : mediumPosition)
+		{
+			double distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+				distBest = distToPos, tileBest = position;
+		}
+		for (auto &position : mDefPosition)
+		{
+			double distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+				distBest = distToPos, tileBest = position;
+		}
+		break;
+	case 2:
+		for (auto &position : smallPosition)
+		{
+			double distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+				distBest = distToPos, tileBest = position;
+		}
+		for (auto &position : sDefPosition)
+		{
+			double distToPos = position.getDistance(searchCenter);
+			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+				distBest = distToPos, tileBest = position;
+		}
+		break;
+	}
+	return tileBest;
 }
