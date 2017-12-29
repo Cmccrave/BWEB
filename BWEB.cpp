@@ -14,16 +14,14 @@ void BWEBClass::draw()
 		Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
 	for (auto tile : expoPosition)
 		Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
-
-	for (auto tile : wallDefense)
-		Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Colors::Yellow);
-
-	Broodwar->drawCircleMap(Position(firstChoke), 12, Colors::Blue);
-	Broodwar->drawCircleMap(Position(secondChoke), 12, Colors::Green);
-	Broodwar->drawCircleMap(Position(natural), 12, Colors::Purple);
-	Broodwar->drawBoxMap(Position(wallSmall), Position(wallSmall) + Position(64, 64), Colors::Blue);
-	Broodwar->drawBoxMap(Position(wallMedium), Position(wallMedium) + Position(94, 64), Colors::Blue);
-	Broodwar->drawBoxMap(Position(wallLarge), Position(wallLarge) + Position(128, 96), Colors::Blue);
+	
+	for (auto &w : walls)
+	{
+		Wall wall = w.second;
+		Broodwar->drawBoxMap(Position(wall.getSmallWall()), Position(wall.getSmallWall()) + Position(64, 64), Broodwar->self()->getColor());
+		Broodwar->drawBoxMap(Position(wall.getMediumWall()), Position(wall.getMediumWall()) + Position(94, 64), Broodwar->self()->getColor());
+		Broodwar->drawBoxMap(Position(wall.getLargeWall()), Position(wall.getLargeWall()) + Position(128, 96), Broodwar->self()->getColor());
+	}
 }
 
 void BWEBClass::onStart()
@@ -124,11 +122,11 @@ bool BWEBClass::canAddBlock(TilePosition here, int width, int height, bool baseB
 		{
 			if (!TilePosition(x, y).isValid()) return false;
 			if (!Map::Instance().GetTile(TilePosition(x, y)).Buildable()) return false;
-			if (overlapsBlocks(TilePosition(x, y))) return false;
-			if (overlapsBases(TilePosition(x, y)) && !baseBlock) return false;
-			if (overlapsNeutrals(TilePosition(x, y))) return false;
-			if (overlapsMining(TilePosition(x, y))) return false;
-			if (overlapsWalls(TilePosition(x, y))) return false;
+			if (BWEBUtil().overlapsBlocks(TilePosition(x, y))) return false;
+			if (BWEBUtil().overlapsBases(TilePosition(x, y)) && !baseBlock) return false;
+			if (BWEBUtil().overlapsNeutrals(TilePosition(x, y))) return false;
+			if (BWEBUtil().overlapsMining(TilePosition(x, y))) return false;
+			if (BWEBUtil().overlapsWalls(TilePosition(x, y))) return false;
 		}
 	}
 	return true;
@@ -161,7 +159,7 @@ void BWEBClass::insertSmallBlock(TilePosition here, bool mirrorHorizontal, bool 
 }
 
 void BWEBClass::insertMediumBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
-{
+{	
 	if (Broodwar->self()->getRace() == Races::Protoss)
 	{
 		blocks[here] = Block(6, 8, here);
@@ -316,71 +314,6 @@ void BWEBClass::insertVExpoBlock(TilePosition here, bool mirrorHorizontal, bool 
 			smallPosition.insert(here + TilePosition(4, 3));
 		}
 	}
-}
-
-bool BWEBClass::overlapsBases(TilePosition here)
-{
-	for (auto &area : Map::Instance().Areas())
-	{
-		for (auto &base : area.Bases())
-		{
-			TilePosition tile = base.Location();
-			if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 3) return true;
-		}
-	}
-	return false;
-}
-
-bool BWEBClass::overlapsBlocks(TilePosition here)
-{
-	for (auto &b : blocks)
-	{
-		Block& block = b.second;
-		if (here.x >= block.tile().x && here.x < block.tile().x + block.width() && here.y >= block.tile().y && here.y < block.tile().y + block.height()) return true;
-	}
-	return false;
-}
-
-bool BWEBClass::overlapsMining(TilePosition here)
-{
-	for (auto &tile : resourceCenter)
-		if (tile.getDistance(here) < 5) return true;
-	return false;
-}
-
-bool BWEBClass::overlapsNeutrals(TilePosition here)
-{
-	for (auto &m : Map::Instance().Minerals())
-	{
-		TilePosition tile = m->TopLeft();
-		if (here.x >= tile.x && here.x < tile.x + 2 && here.y >= tile.y && here.y < tile.y + 1) return true;
-	}
-
-	for (auto &g : Map::Instance().Geysers())
-	{
-		TilePosition tile = g->TopLeft();
-		if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 2) return true;
-	}
-	return false;
-}
-
-bool BWEBClass::overlapsWalls(TilePosition here)
-{
-	int x = here.x;
-	int y = here.y;
-
-	if (x >= wallSmall.x && x < wallSmall.x + 2 && y >= wallSmall.y && y < wallSmall.y + 2) return true;
-	if (x >= wallMedium.x && x < wallMedium.x + 3 && y >= wallMedium.y && y < wallMedium.y + 2) return true;
-	if (x >= wallLarge.x && x < wallLarge.x + 4 && y >= wallLarge.y && y < wallLarge.y + 3) return true;
-	return false;
-}
-
-BWEBClass* BWEBClass::bInstance = nullptr;
-
-BWEBClass & BWEBClass::Instance()
-{
-	if (!bInstance) bInstance = new BWEBClass();
-	return *bInstance;
 }
 
 TilePosition BWEBClass::getBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
@@ -551,7 +484,8 @@ void BWEBClass::findSecondChoke()
 void BWEBClass::findWalls()
 {
 	TilePosition start = secondChoke;
-	double distance = DBL_MAX;
+	double distance = DBL_MAX;	
+	TilePosition small, medium, large;
 
 	// Large Building placement
 	for (int x = start.x - 20; x <= start.x + 20; x++)
@@ -579,19 +513,19 @@ void BWEBClass::findWalls()
 			int dx = x + 4;
 			for (int dy = y; dy < y + 3; dy++)
 			{
-				if (!isWalkable(TilePosition(dx, dy))) valid++;
+				if (!BWEBUtil().isWalkable(TilePosition(dx, dy))) valid++;
 			}
 
 			int dy = y + 3;
 			for (int dx = x; dx < x + 4; dx++)
 			{
-				if (!isWalkable(TilePosition(dx, dy))) valid++;
+				if (!BWEBUtil().isWalkable(TilePosition(dx, dy))) valid++;
 			}
 
 			double distNat = center.getDistance(Position(natural));
 			double distChoke = center.getDistance(chokeCenter);
 			if (valid >= 2 && distNat <= 512 && distChoke < distance)
-				wallLarge = TilePosition(x, y), distance = distChoke;
+				large = TilePosition(x, y), distance = distChoke;
 		}
 	}
 
@@ -604,7 +538,7 @@ void BWEBClass::findWalls()
 			if (!TilePosition(x, y).isValid()) continue;
 			Position center = Position(TilePosition(x, y)) + Position(48, 32);
 			Position chokeCenter = Position(secondChoke) + Position(16, 16);
-			Position bLargeCenter = Position(wallLarge) + Position(64, 48);
+			Position bLargeCenter = Position(large) + Position(64, 48);
 
 			bool buildable = true;
 			bool within = false;
@@ -616,7 +550,7 @@ void BWEBClass::findWalls()
 					if (!TilePosition(i, j).isValid()) continue;
 					if (!Broodwar->isBuildable(TilePosition(i, j))) buildable = false;
 					if (i >= natural.x && i < natural.x + 4 && j >= natural.y && j < natural.y + 3) buildable = false;
-					if (i >= wallLarge.x && i < wallLarge.x + 4 && j >= wallLarge.y && j < wallLarge.y + 3) buildable = false;
+					if (i >= large.x && i < large.x + 4 && j >= large.y && j < large.y + 3) buildable = false;
 					if (Map::Instance().GetArea(TilePosition(i, j)) && Map::Instance().GetArea(TilePosition(i, j)) == naturalArea) within = true;
 				}
 			}
@@ -625,7 +559,7 @@ void BWEBClass::findWalls()
 			{
 				for (int j = y - 1; j < y + 3; j++)
 				{
-					if (i >= wallLarge.x && i < wallLarge.x + 4 && j >= wallLarge.y && j < wallLarge.y + 3) buildable = false;
+					if (i >= large.x && i < large.x + 4 && j >= large.y && j < large.y + 3) buildable = false;
 				}
 			}
 
@@ -634,20 +568,20 @@ void BWEBClass::findWalls()
 			int dx = x - 1;
 			for (int dy = y; dy < y + 2; dy++)
 			{
-				if (dx >= wallLarge.x && dx < wallLarge.x + 4 && dy >= wallLarge.y && dy < wallLarge.y + 3) buildable = false;
-				if (!isWalkable(TilePosition(dx, dy))) valid++;
+				if (dx >= large.x && dx < large.x + 4 && dy >= large.y && dy < large.y + 3) buildable = false;
+				if (!BWEBUtil().isWalkable(TilePosition(dx, dy))) valid++;
 			}
 
 			int dy = y - 1;
 			for (int dx = x; dx < x + 3; dx++)
 			{
-				if (dx >= wallLarge.x && dx < wallLarge.x + 4 && dy >= wallLarge.y && dy < wallLarge.y + 3) buildable = false;
-				if (!isWalkable(TilePosition(dx, dy))) valid++;
+				if (dx >= large.x && dx < large.x + 4 && dy >= large.y && dy < large.y + 3) buildable = false;
+				if (!BWEBUtil().isWalkable(TilePosition(dx, dy))) valid++;
 			}
 
 			if (!buildable) continue;
 
-			if (valid >= 1 && center.getDistance(Position(natural)) <= 512 && (center.getDistance(chokeCenter) < distance || distance == 0.0)) wallMedium = TilePosition(x, y), distance = center.getDistance(chokeCenter);
+			if (valid >= 1 && center.getDistance(Position(natural)) <= 512 && (center.getDistance(chokeCenter) < distance || distance == 0.0)) medium = TilePosition(x, y), distance = center.getDistance(chokeCenter);
 		}
 	}
 
@@ -660,8 +594,8 @@ void BWEBClass::findWalls()
 			if (!TilePosition(x, y).isValid()) continue;
 			if (TilePosition(x, y) == secondChoke) continue;
 			Position center = Position(TilePosition(x, y)) + Position(32, 32);
-			Position bLargeCenter = Position(wallLarge) + Position(64, 48);
-			Position bMediumCenter = Position(wallMedium) + Position(48, 32);
+			Position bLargeCenter = Position(large) + Position(64, 48);
+			Position bMediumCenter = Position(medium) + Position(48, 32);
 
 			bool buildable = true;
 			for (int i = x; i < x + 2; i++)
@@ -669,24 +603,30 @@ void BWEBClass::findWalls()
 				for (int j = y; j < y + 2; j++)
 				{
 					if (!Broodwar->isBuildable(TilePosition(i, j))) buildable = false;
-					if (i >= wallMedium.x && i < wallMedium.x + 3 && j >= wallMedium.y && j < wallMedium.y + 2) buildable = false;
-					if (i >= wallLarge.x && i < wallLarge.x + 4 && j >= wallLarge.y && j < wallLarge.y + 3) buildable = false;
+					if (i >= medium.x && i < medium.x + 3 && j >= medium.y && j < medium.y + 2) buildable = false;
+					if (i >= large.x && i < large.x + 4 && j >= large.y && j < large.y + 3) buildable = false;
 					if (i >= natural.x && i < natural.x + 4 && j >= natural.y && j < natural.y + 3) buildable = false;
 				}
 			}
 
 			if (!buildable) continue;
-			if (buildable && Map::Instance().GetArea(TilePosition(center)) == Map::Instance().GetArea(natural) && center.getDistance(bLargeCenter) <= 160 && center.getDistance(bMediumCenter) <= 160 && (center.getDistance(Position(secondChoke)) > distance || distance == 0.0)) wallSmall = TilePosition(x, y), distance = center.getDistance(Position(secondChoke));
+			if (buildable && Map::Instance().GetArea(TilePosition(center)) == Map::Instance().GetArea(natural) && center.getDistance(bLargeCenter) <= 160 && center.getDistance(bMediumCenter) <= 160 && (center.getDistance(Position(secondChoke)) > distance || distance == 0.0)) small = TilePosition(x, y), distance = center.getDistance(Position(secondChoke));
 		}
 	}
 
 	int reservePathHome[256][256] = {};
+	Wall naturalWall;
+	naturalWall.setSmallWall(small);
+	naturalWall.setMediumWall(medium);
+	naturalWall.setLargeWall(large);
+
+	walls[naturalArea] = naturalWall;
 
 	// Create reserve path home
-	TilePosition end = wallSmall + TilePosition(1, 1);
-	TilePosition middle = (wallLarge + wallMedium) / 2;
+	TilePosition end = small + TilePosition(1, 1);
+	TilePosition middle = (large + medium) / 2;
 
-	start = (wallLarge + wallMedium) / 2;
+	start = (large + medium) / 2;
 	end = firstChoke;
 	int range = firstChoke.getDistance(secondChoke);
 
@@ -702,10 +642,10 @@ void BWEBClass::findWalls()
 		double distBest = DBL_MAX;
 		for (auto tile : testCases)
 		{
-			if (!tile.isValid() || overlapsWalls(tile)) continue;
-			if (overlapsBases(tile)) continue;
+			if (!tile.isValid() || BWEBUtil().overlapsWalls(tile)) continue;
+			if (BWEBUtil().overlapsBases(tile)) continue;
 			if (Map::Instance().GetArea(Broodwar->self()->getStartLocation()) == Map::Instance().GetArea(tile)) continue;
-			if (!isWalkable(tile)) continue;
+			if (!BWEBUtil().isWalkable(tile)) continue;
 
 			double dist = getGroundDistance(Position(tile), Position(end));
 			if (dist < distBest)
@@ -751,9 +691,9 @@ void BWEBClass::findWalls()
 
 						if (!Broodwar->isBuildable(TilePosition(i, j))) buildable = false;
 						if (reservePathHome[i][j] > 0) buildable = false;
-						if (i >= wallSmall.x && i < wallSmall.x + 2 && j >= wallSmall.y && j < wallSmall.y + 2) buildable = false;
-						if (i >= wallMedium.x && i < wallMedium.x + 3 && j >= wallMedium.y && j < wallMedium.y + 2) buildable = false;
-						if (i >= wallLarge.x && i < wallLarge.x + 4 && j >= wallLarge.y && j < wallLarge.y + 3) buildable = false;
+						if (i >= small.x && i < small.x + 2 && j >= small.y && j < small.y + 2) buildable = false;
+						if (i >= medium.x && i < medium.x + 3 && j >= medium.y && j < medium.y + 2) buildable = false;
+						if (i >= large.x && i < large.x + 4 && j >= large.y && j < large.y + 3) buildable = false;
 						if (i >= natural.x && i < natural.x + 4 && j >= natural.y && j < natural.y + 3) buildable = false;
 					}
 				}
@@ -786,16 +726,16 @@ int BWEBClass::getGroundDistance(Position start, Position end)
 	return dist += start.getDistance(end);
 }
 
-bool BWEBClass::isWalkable(TilePosition here)
+Wall BWEBClass::getWall(Area const* area)
 {
-	WalkPosition start = WalkPosition(here);
-	for (int x = start.x; x < start.x + 4; x++)
-	{
-		for (int y = start.y; y < start.y + 4; y++)
-		{
-			if (!WalkPosition(x, y).isValid()) return false;
-			if (!Map::Instance().getWalkPosition(WalkPosition(x, y)).Walkable()) return false;
-		}
-	}
-	return true;
+	if (walls.find(area) != walls.end())
+		return walls[area];
+}
+
+BWEBClass* BWEBClass::bInstance = nullptr;
+
+BWEBClass & BWEBClass::Instance()
+{
+	if (!bInstance) bInstance = new BWEBClass();
+	return *bInstance;
 }
