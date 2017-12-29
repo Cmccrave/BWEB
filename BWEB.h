@@ -13,7 +13,7 @@ class BWEBClass
 {
 	set<TilePosition> smallPosition, mediumPosition, largePosition, expoPosition, sDefPosition, mDefPosition;
 	set<TilePosition> resourceCenter;
-	TilePosition main, firstChoke, natural, secondChoke;
+	TilePosition firstChoke, natural, secondChoke;
 	map<Area const *, Wall> walls;
 	map<TilePosition, Block> blocks;
 	Area const * naturalArea;
@@ -22,8 +22,7 @@ class BWEBClass
 	void insertSmallBlock(TilePosition, bool, bool);
 	void insertMediumBlock(TilePosition, bool, bool);
 	void insertLargeBlock(TilePosition, bool, bool);
-	void insertHExpoBlock(TilePosition, bool, bool);
-	void insertVExpoBlock(TilePosition, bool, bool);
+	void insertStartBlock(TilePosition, bool, bool);
 	void findFirstChoke();
 	void findSecondChoke();
 	void findNatural();

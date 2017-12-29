@@ -14,7 +14,7 @@ void BWEBClass::draw()
 		Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
 	for (auto tile : expoPosition)
 		Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
-	
+
 	for (auto &w : walls)
 	{
 		Wall wall = w.second;
@@ -55,6 +55,21 @@ void BWEBClass::onStart()
 		}
 	}
 
+	TilePosition best;	
+	double distBest = DBL_MAX;
+	for (auto tile : mainTiles)
+	{
+		if (!tile.isValid()) continue;
+		Position blockCenter = Position(tile) + Position(144, 96);
+		double dist = pow(blockCenter.getDistance(pStart), 2.0) + blockCenter.getDistance(Position(firstChoke));
+		if (dist < distBest && canAddBlock(tile, 8, 5, false))
+		{
+			best = tile;
+			distBest = dist;
+		}
+	}
+	insertStartBlock(best, false, false);
+
 	// Mirror check, normally production above and left
 	bool mirrorHorizontal = false, mirrorVertical = false;
 	if (Map::Instance().Center().x > pStart.x) mirrorHorizontal = true;
@@ -79,21 +94,6 @@ void BWEBClass::onStart()
 
 			if (cnt > 0) center = center / cnt;
 			resourceCenter.insert(center);
-
-			//if (abs(center.x - base.Location().x) > abs(center.y - base.Location().y))
-			//{
-			//	if (center.x > base.Location().x)
-			//		insertHExpoBlock(base.Location() - TilePosition(h1, 0), false, mirrorVertical);
-			//	else
-			//		insertHExpoBlock(base.Location() - TilePosition(h2, 0), true, mirrorVertical);
-			//}
-			//else
-			//{
-			//	if (center.y > base.Location().y)
-			//		insertVExpoBlock(base.Location() - TilePosition(0, v1), mirrorHorizontal, false);
-			//	else
-			//		insertVExpoBlock(base.Location() - TilePosition(0, v2), mirrorHorizontal, true);
-			//}
 		}
 	}
 
@@ -159,7 +159,7 @@ void BWEBClass::insertSmallBlock(TilePosition here, bool mirrorHorizontal, bool 
 }
 
 void BWEBClass::insertMediumBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
-{	
+{
 	if (Broodwar->self()->getRace() == Races::Protoss)
 	{
 		blocks[here] = Block(6, 8, here);
@@ -227,92 +227,22 @@ void BWEBClass::insertLargeBlock(TilePosition here, bool mirrorHorizontal, bool 
 
 }
 
-void BWEBClass::insertHExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+void BWEBClass::insertStartBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 {
 	// TODO -- mirror based on gas position	
 	if (Broodwar->self()->getRace() == Races::Protoss)
 	{
-		blocks[here] = Block(8, 8, here);
-		if (mirrorHorizontal)
-		{
-			expoPosition.insert(here);
-			largePosition.insert(here + TilePosition(4, 0));
-			largePosition.insert(here + TilePosition(4, 5));
-			mDefPosition.insert(here + TilePosition(0, 3));
-			mediumPosition.insert(here + TilePosition(5, 3));
-			smallPosition.insert(here + TilePosition(3, 3));
-		}
-		else
-		{
-			expoPosition.insert(here + TilePosition(4, 0));
-			largePosition.insert(here);
-			largePosition.insert(here + TilePosition(0, 5));
-			mediumPosition.insert(here + TilePosition(0, 3));
-			mDefPosition.insert(here + TilePosition(5, 3));
-			smallPosition.insert(here + TilePosition(3, 3));
-		}
+		blocks[here] = Block(8, 5, here);
+		largePosition.insert(here);
+		largePosition.insert(here + TilePosition(4, 0));
+		smallPosition.insert(here + TilePosition(0, 3));
+		mediumPosition.insert(here + TilePosition(2, 3));
+		mediumPosition.insert(here + TilePosition(5, 3));
 	}
 	else
 	{
 		blocks[here] = Block(8, 5, here);
-		if (mirrorHorizontal)
-		{
-			expoPosition.insert(here + TilePosition(2, 0));
-			mediumPosition.insert(here + TilePosition(5, 3));
-			mDefPosition.insert(here + TilePosition(2, 3));
-			smallPosition.insert(here + TilePosition(6, 1));
-			sDefPosition.insert(here + TilePosition(0, 1));
-		}
-		else
-		{
-			expoPosition.insert(here + TilePosition(2, 0));
-			mediumPosition.insert(here + TilePosition(0, 3));
-			mDefPosition.insert(here + TilePosition(3, 3));
-			smallPosition.insert(here + TilePosition(6, 1));
-			sDefPosition.insert(here + TilePosition(0, 1));
-		}
-	}
-}
 
-void BWEBClass::insertVExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
-{
-	if (Broodwar->self()->getRace() == Races::Protoss)
-	{
-		blocks[here] = Block(7, 6, here);
-		if (mirrorVertical)
-		{
-			expoPosition.insert(here);
-			largePosition.insert(here + TilePosition(0, 3));
-			mDefPosition.insert(here + TilePosition(4, 0));
-			mediumPosition.insert(here + TilePosition(4, 4));
-			smallPosition.insert(here + TilePosition(4, 2));
-		}
-		else
-		{
-			expoPosition.insert(here);
-			largePosition.insert(here + TilePosition(0, 3));
-			mDefPosition.insert(here + TilePosition(4, 0));
-			mediumPosition.insert(here + TilePosition(4, 4));
-			smallPosition.insert(here + TilePosition(4, 2));
-		}
-	}
-	else
-	{
-		blocks[here] = Block(6, 5, here);
-		if (mirrorVertical)
-		{
-			expoPosition.insert(here);
-			mediumPosition.insert(here + TilePosition(0, 3));
-			mDefPosition.insert(here + TilePosition(3, 3));
-			smallPosition.insert(here + TilePosition(4, 1));
-		}
-		else
-		{
-			expoPosition.insert(here + TilePosition(0, 2));
-			mediumPosition.insert(here);
-			mDefPosition.insert(here + TilePosition(3, 0));
-			smallPosition.insert(here + TilePosition(4, 3));
-		}
 	}
 }
 
@@ -484,7 +414,7 @@ void BWEBClass::findSecondChoke()
 void BWEBClass::findWalls()
 {
 	TilePosition start = secondChoke;
-	double distance = DBL_MAX;	
+	double distance = DBL_MAX;
 	TilePosition small, medium, large;
 
 	// Large Building placement
@@ -676,7 +606,7 @@ void BWEBClass::findWalls()
 				if (!TilePosition(x, y).isValid()) continue;
 				if (TilePosition(x, y) == secondChoke) continue;
 				Position center = Position(TilePosition(x, y)) + Position(32, 32);
-				Position hold = Position(secondChoke);/*(Position(wallLarge) + Position(wallMedium)) / 2;*/
+				Position hold = Position(secondChoke);
 				double dist = center.getDistance(hold);
 				bool buildable = true;
 
