@@ -69,7 +69,7 @@ bool BWEBUtil::isWalkable(TilePosition here)
 		for (int y = start.y; y < start.y + 4; y++)
 		{
 			if (!WalkPosition(x, y).isValid()) return false;
-			if (!Map::Instance().getWalkPosition(WalkPosition(x, y)).Walkable()) return false;
+			if (!Map::Instance().GetMiniTile(WalkPosition(x, y)).Walkable()) return false;
 		}
 	}
 	return true;
