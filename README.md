@@ -12,17 +12,31 @@ Building placement is a very important aspect of Broodwar. Decisions such as hid
 BWEB requires the use of BWEM. To install BWEB you can either: download a copy of BWEB and move the folders into your directory, or clone the git and add it to your project in Visual Studio.
 
 ## Q: How do I use BWEB?
+
+In your main header file, you will need to include the BWEB header files.
+
+```
+#include "..\BWEB\BWEB.h"
+```
+
+There is a singleton instance accessor function that allows you to access BWEB easily, this will also go in your main header file.
+
+```
+namespace { auto & BWEB = BWEBClass::Instance(); }
+
+```
+
 You will need to put the onStart function into your onStart event. To draw the blocks, you will need to put the draw function into your onFrame event.
 
 ``` 
 void McRaveModule::onStart()
 {
-  theBuilder.onStart();
+  BWEB.onStart();
 }
 
 void McRaveModule::onFrame()
 {
-  theBuilder.draw();
+  BWEB.draw();
 }
 ```
 Once BWEB is initialized, you can grab positions for buildings based on their size and command your workers to build on that tile.
