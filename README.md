@@ -39,7 +39,7 @@ void McRaveModule::onFrame()
   BWEB.draw();
 }
 ```
-Once BWEB is initialized, you can grab positions for buildings based on their size and command your workers to build on that tile.
+All other BWEB functions have comments describing their use and what parameters are required or optional. GL HF!
 
 If you have any questions, feel free to email me at christianmccrave@gmail.com or message me on BWAPI Discord @Fawx.
 BWEB is created by Christian McCrave and Daniel Maize. 
