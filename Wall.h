@@ -5,21 +5,24 @@ using namespace BWAPI;
 using namespace BWEM;
 using namespace std;
 
-class Wall
+namespace BWEB
 {
-	TilePosition wallSmall, wallMedium, wallLarge;
-public:
-	Wall() { };
-	TilePosition getSmallWall() { return wallSmall; }
-	TilePosition getMediumWall() { return wallMedium; }
-	TilePosition getLargeWall() { return wallLarge; }
+	class Wall
+	{
+		TilePosition wallSmall, wallMedium, wallLarge;
+		set<TilePosition> defenses;
+	public:
+		Wall() { };
+		TilePosition getSmallWall() { return wallSmall; }
+		TilePosition getMediumWall() { return wallMedium; }
+		TilePosition getLargeWall() { return wallLarge; }
+		set<TilePosition> getDefenses() { return defenses; }
 
-	void setSmallWall(TilePosition here) { wallSmall = here; }
-	void setMediumWall(TilePosition here) { wallMedium = here; }
-	void setLargeWall(TilePosition here) { wallLarge = here; }
-};
+		void setSmallWall(TilePosition here) { wallSmall = here; }
+		void setMediumWall(TilePosition here) { wallMedium = here; }
+		void setLargeWall(TilePosition here) { wallLarge = here; }
+	};
 
-//Wall::Wall(TilePosition small, TilePosition medium, TilePosition large)
-//{
-//
-//}
+	void findWalls();
+	map<Area const *, Wall> areaWalls;
+}
