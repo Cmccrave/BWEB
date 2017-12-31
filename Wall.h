@@ -6,7 +6,7 @@ using namespace BWEM;
 using namespace std;
 
 namespace BWEB
-{
+{	
 	class Wall
 	{
 		TilePosition wallSmall, wallMedium, wallLarge;
@@ -24,5 +24,7 @@ namespace BWEB
 	};
 
 	void findWalls();
-	map<Area const *, Wall> areaWalls;
+	void findLargeWall();
+	void findMediumWall();
+	void findSmallWall();
 }

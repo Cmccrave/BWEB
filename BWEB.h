@@ -14,18 +14,23 @@ namespace BWEB
 {
 	class Block;
 	class Wall;
+
+	static TilePosition firstChoke, natural, secondChoke;
+	static map<Area const *, Wall> areaWalls;
+	static Area const * naturalArea;
+	static Area const * mainArea;
+	static map<TilePosition, Block> blocks;
+	static set<TilePosition> resourceCenter;
+	static set<TilePosition> smallPosition, mediumPosition, largePosition, expoPosition, sDefPosition, mDefPosition;
+
+	void findFirstChoke();
+	void findSecondChoke();
+	void findNatural();
+
 	class BWEBClass
-	{		
-		static TilePosition firstChoke, natural, secondChoke;	
-		static map<Area const *, Wall> walls;		
-		static Area const * naturalArea;
-		static Area const * mainArea;
+	{			
+	private:
 		static BWEBClass* bInstance;
-		
-		void findFirstChoke();
-		void findSecondChoke();
-		void findNatural();
-		void findWalls();
 		
 	public:
 		void draw();
@@ -42,7 +47,7 @@ namespace BWEB
 		TilePosition getAnyBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
 		
 		// Returns all the walls -- CURRENTLY ONLY NATURAL WALL, use at own risk if not using the BWEB natural area
-		map<Area const *, Wall> getWalls() { return walls; }
+		static map<Area const *, Wall> getWalls() { return areaWalls; }
 
 		// Returns the wall for this area if it exists -- CURRENTLY ONLY NATURAL WALL, use at own risk if not using the BWEB natural area
 		Wall getWall(Area const* area);
@@ -58,6 +63,17 @@ namespace BWEB
 
 		// Returns the estimated ground distance from a Position to another Position
 		int getGroundDistance(Position, Position);
+
+		// Returns all the blocks and the TilePosition of their top left corner
+		map<TilePosition, Block>& getBlocks() { return blocks; }
+
+		set<TilePosition> getSmallPosition() { return smallPosition; }
+		set<TilePosition> getMediumPosition() { return mediumPosition; }
+		set<TilePosition> getLargePosition() { return largePosition; }
+		set<TilePosition> getExpoPosition() { return expoPosition; }
+		set<TilePosition> getSDefPosition() { return sDefPosition; }
+		set<TilePosition> getMDefPosition() { return mDefPosition; }
+		set<TilePosition> getResourceCenter() { return resourceCenter; }
 		
 		static TilePosition getFirstChoke() { return firstChoke; }
 		static TilePosition getSecondChoke() { return secondChoke; }

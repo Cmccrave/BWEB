@@ -4,22 +4,22 @@ namespace BWEB
 {
 	void BWEBClass::draw()
 	{
-		for (auto tile : Blocks::smallPosition)
+		for (auto tile : smallPosition)
 			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
-		for (auto tile : Blocks::mediumPosition)
+		for (auto tile : mediumPosition)
 			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
-		for (auto tile : Blocks::largePosition)
+		for (auto tile : largePosition)
 			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
-		for (auto tile : Blocks::sDefPosition)
+		for (auto tile : sDefPosition)
 			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
-		for (auto tile : Blocks::mDefPosition)
+		for (auto tile : mDefPosition)
 			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
-		for (auto tile : Blocks::expoPosition)
+		for (auto tile : expoPosition)
 			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
 
-		for (auto &w : Walls::areaWalls)
+		for (auto &w : areaWalls)
 		{
-			Walls::Wall wall = w.second;
+			Wall wall = w.second;
 			Broodwar->drawBoxMap(Position(wall.getSmallWall()), Position(wall.getSmallWall()) + Position(64, 64), Broodwar->self()->getColor());
 			Broodwar->drawBoxMap(Position(wall.getMediumWall()), Position(wall.getMediumWall()) + Position(94, 64), Broodwar->self()->getColor());
 			Broodwar->drawBoxMap(Position(wall.getLargeWall()), Position(wall.getLargeWall()) + Position(128, 96), Broodwar->self()->getColor());
@@ -40,8 +40,8 @@ namespace BWEB
 		findNatural();
 		findFirstChoke();
 		findSecondChoke();
-		Walls::findWalls();
-		Blocks::findBlocks();		
+		findWalls();
+		findBlocks();		
 	}
 
 	TilePosition BWEBClass::getBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
@@ -51,7 +51,7 @@ namespace BWEB
 		switch (building.tileWidth())
 		{
 		case 4:
-			for (auto &position : Blocks::largePosition)
+			for (auto &position : largePosition)
 			{
 				double distToPos = position.getDistance(searchCenter);
 				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
@@ -59,7 +59,7 @@ namespace BWEB
 			}
 			break;
 		case 3:
-			for (auto &position : Blocks::mediumPosition)
+			for (auto &position : mediumPosition)
 			{
 				double distToPos = position.getDistance(searchCenter);
 				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
@@ -67,7 +67,7 @@ namespace BWEB
 			}
 			break;
 		case 2:
-			for (auto &position : Blocks::smallPosition)
+			for (auto &position : smallPosition)
 			{
 				double distToPos = position.getDistance(searchCenter);
 				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
@@ -87,7 +87,7 @@ namespace BWEB
 		case 4:
 			break;
 		case 3:
-			for (auto &position : Blocks::mDefPosition)
+			for (auto &position : mDefPosition)
 			{
 				double distToPos = position.getDistance(searchCenter);
 				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
@@ -95,7 +95,7 @@ namespace BWEB
 			}
 			break;
 		case 2:
-			for (auto &position : Blocks::sDefPosition)
+			for (auto &position : sDefPosition)
 			{
 				double distToPos = position.getDistance(searchCenter);
 				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
@@ -113,7 +113,7 @@ namespace BWEB
 		switch (building.tileWidth())
 		{
 		case 4:
-			for (auto &position : Blocks::largePosition)
+			for (auto &position : largePosition)
 			{
 				double distToPos = position.getDistance(searchCenter);
 				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
@@ -121,13 +121,13 @@ namespace BWEB
 			}
 			break;
 		case 3:
-			for (auto &position : Blocks::mediumPosition)
+			for (auto &position : mediumPosition)
 			{
 				double distToPos = position.getDistance(searchCenter);
 				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 					distBest = distToPos, tileBest = position;
 			}
-			for (auto &position : Blocks::mDefPosition)
+			for (auto &position : mDefPosition)
 			{
 				double distToPos = position.getDistance(searchCenter);
 				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
@@ -135,13 +135,13 @@ namespace BWEB
 			}
 			break;
 		case 2:
-			for (auto &position : Blocks::smallPosition)
+			for (auto &position : smallPosition)
 			{
 				double distToPos = position.getDistance(searchCenter);
 				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
 					distBest = distToPos, tileBest = position;
 			}
-			for (auto &position : Blocks::sDefPosition)
+			for (auto &position : sDefPosition)
 			{
 				double distToPos = position.getDistance(searchCenter);
 				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
@@ -152,7 +152,7 @@ namespace BWEB
 		return tileBest;
 	}
 
-	void BWEBClass::findNatural()
+	void findNatural()
 	{
 		// Find natural area
 		double distBest = DBL_MAX;
@@ -161,7 +161,7 @@ namespace BWEB
 			for (auto &base : area.Bases())
 			{
 				if (base.Starting() || base.Geysers().size() == 0 || area.AccessibleNeighbours().size() == 0) continue;
-				double dist = getGroundDistance(base.Center(), Position(Broodwar->self()->getStartLocation()));
+				double dist = BWEBClass::Instance().getGroundDistance(base.Center(), Position(Broodwar->self()->getStartLocation()));
 				if (dist < distBest)
 				{
 					distBest = dist;
@@ -172,19 +172,19 @@ namespace BWEB
 		}
 	}
 
-	void BWEBClass::findFirstChoke()
+	void findFirstChoke()
 	{
 		// Find the first choke
 		double distBest = DBL_MAX;
 		for (auto &choke : naturalArea->ChokePoints())
 		{
-			double dist = getGroundDistance(Position(choke->Center()), Position(Broodwar->self()->getStartLocation()));
+			double dist = BWEBClass::Instance().getGroundDistance(Position(choke->Center()), Position(Broodwar->self()->getStartLocation()));
 			if (choke && dist < distBest)
 				firstChoke = TilePosition(choke->Center()), distBest = dist;
 		}
 	}
 
-	void BWEBClass::findSecondChoke()
+	void findSecondChoke()
 	{
 		// Find area that shares the choke we need to defend
 		double distBest = DBL_MAX;
@@ -227,13 +227,13 @@ namespace BWEB
 
 	Wall BWEBClass::getWall(Area const* area)
 	{
-		if (walls.find(area) != walls.end())
-			return walls[area];
+		if (areaWalls.find(area) != areaWalls.end())
+			return areaWalls[area];
 	}
 
-	BWEBClass* BWEB::bInstance = nullptr;
+	BWEBClass* BWEBClass::bInstance = nullptr;
 
-	BWEBClass & BWEB::Instance()
+	BWEBClass & BWEBClass::Instance()
 	{
 		if (!bInstance) bInstance = new BWEBClass();
 		return *bInstance;

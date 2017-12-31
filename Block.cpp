@@ -2,7 +2,7 @@
 
 namespace BWEB
 {
-	void Blocks::findBlocks()
+	void findBlocks()
 	{
 		TilePosition tStart = Broodwar->self()->getStartLocation();
 		Position pStart = Position(tStart) + Position(64, 48);
@@ -77,7 +77,7 @@ namespace BWEB
 		}
 	}
 
-	bool Blocks::canAddBlock(TilePosition here, int width, int height, bool baseBlock)
+	bool canAddBlock(TilePosition here, int width, int height, bool baseBlock)
 	{
 		// Check if a block of specified size would overlap any bases, resources or other blocks
 		for (int x = here.x - 1; x < here.x + width + 1; x++)
@@ -96,7 +96,7 @@ namespace BWEB
 		return true;
 	}
 
-	void Blocks::insertSmallBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void insertSmallBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
@@ -122,7 +122,7 @@ namespace BWEB
 		}
 	}
 
-	void Blocks::insertMediumBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void insertMediumBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
@@ -186,12 +186,12 @@ namespace BWEB
 		}
 	}
 
-	void Blocks::insertLargeBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void insertLargeBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
 
 	}
 
-	void Blocks::insertStartBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void insertStartBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
 		// TODO -- mirror based on gas position	
 		if (Broodwar->self()->getRace() == Races::Protoss)
