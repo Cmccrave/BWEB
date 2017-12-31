@@ -2,20 +2,20 @@
 
 namespace BWEB
 {
-	void findBlocks()
+	void Map::findBlocks()
 	{
 		TilePosition tStart = Broodwar->self()->getStartLocation();
 		Position pStart = Position(tStart) + Position(64, 48);
-		Area const * mainArea = Map::Instance().GetArea(tStart);
 		set<TilePosition> mainTiles;
+		mainArea = BWEM::Map::Instance().GetArea(tStart);		
 
 		for (int x = 0; x <= Broodwar->mapWidth(); x++)
 		{
 			for (int y = 0; y <= Broodwar->mapHeight(); y++)
 			{
 				if (!TilePosition(x, y).isValid()) continue;
-				if (!Map::Instance().GetArea(TilePosition(x, y))) continue;
-				if (Map::Instance().GetArea(TilePosition(x, y)) == mainArea) mainTiles.insert(TilePosition(x, y));
+				if (!BWEM::Map::Instance().GetArea(TilePosition(x, y))) continue;
+				if (BWEM::Map::Instance().GetArea(TilePosition(x, y)) == mainArea) mainTiles.insert(TilePosition(x, y));
 			}
 		}
 
@@ -24,7 +24,7 @@ namespace BWEB
 		for (auto tile : mainTiles)
 		{
 			if (!tile.isValid()) continue;
-			Position blockCenter = Position(tile) + Position(144, 96);
+			Position blockCenter = Position(tile) + Position(128, 80);
 			double dist = pow(blockCenter.getDistance(pStart), 2.0) + blockCenter.getDistance(Position(firstChoke));
 			if (dist < distBest && canAddBlock(tile, 8, 5, false))
 			{
@@ -36,20 +36,15 @@ namespace BWEB
 
 		// Mirror check, normally production above and left
 		bool mirrorHorizontal = false, mirrorVertical = false;
-		if (Map::Instance().Center().x > pStart.x) mirrorHorizontal = true;
-		if (Map::Instance().Center().y > pStart.y) mirrorVertical = true;
+		if (BWEM::Map::Instance().Center().x > pStart.x) mirrorHorizontal = true;
+		if (BWEM::Map::Instance().Center().y > pStart.y) mirrorVertical = true;
 
-		for (auto &area : Map::Instance().Areas())
+		for (auto &area : BWEM::Map::Instance().Areas())
 		{
 			for (auto &base : area.Bases())
 			{
 				TilePosition center;
 				int cnt = 0;
-				int h1 = Broodwar->self()->getRace() == Races::Protoss ? 4 : 2;
-				int h2 = Broodwar->self()->getRace() == Races::Protoss ? 0 : 2;
-				int v1 = Broodwar->self()->getRace() == Races::Protoss ? 3 : 2;
-				int v2 = Broodwar->self()->getRace() == Races::Protoss ? 3 : 2;
-
 				for (auto &mineral : base.Minerals())
 					center += mineral->TopLeft(), cnt++;
 
@@ -64,6 +59,8 @@ namespace BWEB
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
 			for (auto tile : mainTiles)
+				if (canAddBlock(tile, 12, 6, false)) insertLargeBlock(tile, mirrorHorizontal, mirrorVertical);
+			for (auto tile : mainTiles)
 				if (canAddBlock(tile, 6, 8, false)) insertMediumBlock(tile, mirrorHorizontal, mirrorVertical);
 			for (auto tile : mainTiles)
 				if (canAddBlock(tile, 4, 5, false)) insertSmallBlock(tile, mirrorHorizontal, mirrorVertical);
@@ -77,7 +74,7 @@ namespace BWEB
 		}
 	}
 
-	bool canAddBlock(TilePosition here, int width, int height, bool baseBlock)
+	bool Map::canAddBlock(TilePosition here, int width, int height, bool baseBlock)
 	{
 		// Check if a block of specified size would overlap any bases, resources or other blocks
 		for (int x = here.x - 1; x < here.x + width + 1; x++)
@@ -85,7 +82,7 @@ namespace BWEB
 			for (int y = here.y - 1; y < here.y + height + 1; y++)
 			{
 				if (!TilePosition(x, y).isValid()) return false;
-				if (!Map::Instance().GetTile(TilePosition(x, y)).Buildable()) return false;
+				if (!BWEM::Map::Instance().GetTile(TilePosition(x, y)).Buildable()) return false;
 				if (BWEBUtil().overlapsBlocks(TilePosition(x, y))) return false;
 				if (BWEBUtil().overlapsBases(TilePosition(x, y)) && !baseBlock) return false;
 				if (BWEBUtil().overlapsNeutrals(TilePosition(x, y))) return false;
@@ -96,7 +93,7 @@ namespace BWEB
 		return true;
 	}
 
-	void insertSmallBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void Map::insertSmallBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
@@ -122,7 +119,7 @@ namespace BWEB
 		}
 	}
 
-	void insertMediumBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void Map::insertMediumBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
@@ -186,12 +183,22 @@ namespace BWEB
 		}
 	}
 
-	void insertLargeBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void Map::insertLargeBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
-
+		blocks[here] = Block(12, 6, here);
+		largePosition.insert(here);
+		largePosition.insert(here + TilePosition(0, 3));
+		largePosition.insert(here + TilePosition(8, 0));
+		largePosition.insert(here + TilePosition(8, 3));
+		smallPosition.insert(here + TilePosition(4, 0));
+		smallPosition.insert(here + TilePosition(4, 2));
+		smallPosition.insert(here + TilePosition(4, 4));
+		smallPosition.insert(here + TilePosition(6, 0));
+		smallPosition.insert(here + TilePosition(6, 2));
+		smallPosition.insert(here + TilePosition(6, 4));
 	}
 
-	void insertStartBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void Map::insertStartBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
 		// TODO -- mirror based on gas position	
 		if (Broodwar->self()->getRace() == Races::Protoss)

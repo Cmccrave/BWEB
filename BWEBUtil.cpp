@@ -4,7 +4,7 @@ namespace BWEB
 {
 	bool BWEBUtil::overlapsBases(TilePosition here)
 	{
-		for (auto &area : Map::Instance().Areas())
+		for (auto &area : BWEM::Map::Instance().Areas())
 		{
 			for (auto &base : area.Bases())
 			{
@@ -17,7 +17,7 @@ namespace BWEB
 
 	bool BWEBUtil::overlapsBlocks(TilePosition here)
 	{
-		for (auto &b : BWEBClass::Instance().getBlocks())
+		for (auto &b : Map::Instance().getBlocks())
 		{
 			Block& block = b.second;
 			if (here.x >= block.tile().x && here.x < block.tile().x + block.width() && here.y >= block.tile().y && here.y < block.tile().y + block.height()) return true;
@@ -27,20 +27,20 @@ namespace BWEB
 
 	bool BWEBUtil::overlapsMining(TilePosition here)
 	{
-		for (auto &tile : BWEBClass::Instance().getResourceCenter())
+		for (auto &tile : Map::Instance().getResourceCenter())
 			if (tile.getDistance(here) < 5) return true;
 		return false;
 	}
 
 	bool BWEBUtil::overlapsNeutrals(TilePosition here)
 	{
-		for (auto &m : Map::Instance().Minerals())
+		for (auto &m : BWEM::Map::Instance().Minerals())
 		{
 			TilePosition tile = m->TopLeft();
 			if (here.x >= tile.x && here.x < tile.x + 2 && here.y >= tile.y && here.y < tile.y + 1) return true;
 		}
 
-		for (auto &g : Map::Instance().Geysers())
+		for (auto &g : BWEM::Map::Instance().Geysers())
 		{
 			TilePosition tile = g->TopLeft();
 			if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 2) return true;
@@ -53,7 +53,7 @@ namespace BWEB
 		int x = here.x;
 		int y = here.y;
 
-		for (auto &w : BWEBClass::Instance().getWalls())
+		for (auto &w : Map::Instance().getWalls())
 		{
 			Wall wall = w.second;
 			if (x >= wall.getSmallWall().x && x < wall.getSmallWall().x + 2 && y >= wall.getSmallWall().y && y < wall.getSmallWall().y + 2) return true;
@@ -71,7 +71,7 @@ namespace BWEB
 			for (int y = start.y; y < start.y + 4; y++)
 			{
 				if (!WalkPosition(x, y).isValid()) return false;
-				if (!Map::Instance().GetMiniTile(WalkPosition(x, y)).Walkable()) return false;
+				if (!BWEM::Map::Instance().GetMiniTile(WalkPosition(x, y)).Walkable()) return false;
 			}
 		}
 		return true;

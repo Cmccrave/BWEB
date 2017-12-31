@@ -2,7 +2,7 @@
 
 namespace BWEB
 {
-	void BWEBClass::draw()
+	void Map::draw()
 	{
 		for (auto tile : smallPosition)
 			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
@@ -26,7 +26,7 @@ namespace BWEB
 		}
 	}
 
-	void BWEBClass::onStart()
+	void Map::onStart()
 	{
 		// For reference: https://imgur.com/a/I6IwH
 		// Currently missing features:	
@@ -44,7 +44,7 @@ namespace BWEB
 		findBlocks();		
 	}
 
-	TilePosition BWEBClass::getBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
+	TilePosition Map::getBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
 	{
 		double distBest = DBL_MAX;
 		TilePosition tileBest = TilePositions::Invalid;
@@ -78,7 +78,7 @@ namespace BWEB
 		return tileBest;
 	}
 
-	TilePosition BWEBClass::getDefBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
+	TilePosition Map::getDefBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
 	{
 		double distBest = DBL_MAX;
 		TilePosition tileBest = TilePositions::Invalid;
@@ -106,7 +106,7 @@ namespace BWEB
 		return tileBest;
 	}
 
-	TilePosition BWEBClass::getAnyBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
+	TilePosition Map::getAnyBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
 	{
 		double distBest = DBL_MAX;
 		TilePosition tileBest = TilePositions::Invalid;
@@ -152,16 +152,16 @@ namespace BWEB
 		return tileBest;
 	}
 
-	void findNatural()
+	void Map::findNatural()
 	{
 		// Find natural area
 		double distBest = DBL_MAX;
-		for (auto &area : Map::Instance().Areas())
+		for (auto &area : BWEM::Map::Instance().Areas())
 		{
 			for (auto &base : area.Bases())
 			{
 				if (base.Starting() || base.Geysers().size() == 0 || area.AccessibleNeighbours().size() == 0) continue;
-				double dist = BWEBClass::Instance().getGroundDistance(base.Center(), Position(Broodwar->self()->getStartLocation()));
+				double dist = getGroundDistance(base.Center(), Position(Broodwar->self()->getStartLocation()));
 				if (dist < distBest)
 				{
 					distBest = dist;
@@ -172,19 +172,19 @@ namespace BWEB
 		}
 	}
 
-	void findFirstChoke()
+	void Map::findFirstChoke()
 	{
 		// Find the first choke
 		double distBest = DBL_MAX;
 		for (auto &choke : naturalArea->ChokePoints())
 		{
-			double dist = BWEBClass::Instance().getGroundDistance(Position(choke->Center()), Position(Broodwar->self()->getStartLocation()));
+			double dist = getGroundDistance(Position(choke->Center()), Position(Broodwar->self()->getStartLocation()));
 			if (choke && dist < distBest)
 				firstChoke = TilePosition(choke->Center()), distBest = dist;
 		}
 	}
 
-	void findSecondChoke()
+	void Map::findSecondChoke()
 	{
 		// Find area that shares the choke we need to defend
 		double distBest = DBL_MAX;
@@ -192,7 +192,7 @@ namespace BWEB
 		for (auto &area : naturalArea->AccessibleNeighbours())
 		{
 			WalkPosition center = area->Top();
-			double dist = Position(center).getDistance(Map::Instance().Center());
+			double dist = Position(center).getDistance(BWEM::Map::Instance().Center());
 			if (center.isValid() && dist < distBest)
 				second = area, distBest = dist;
 		}
@@ -209,13 +209,13 @@ namespace BWEB
 		}
 	}
 
-	int BWEBClass::getGroundDistance(Position start, Position end)
+	int Map::getGroundDistance(Position start, Position end)
 	{
 		int dist = 0;
 		if (!start.isValid() || !end.isValid()) return INT_MAX;
-		if (!Map::Instance().GetArea(WalkPosition(start)) || !Map::Instance().GetArea(WalkPosition(end))) return INT_MAX;
+		if (!BWEM::Map::Instance().GetArea(WalkPosition(start)) || !BWEM::Map::Instance().GetArea(WalkPosition(end))) return INT_MAX;
 
-		for (auto cpp : Map::Instance().GetPath(start, end))
+		for (auto cpp : BWEM::Map::Instance().GetPath(start, end))
 		{
 			auto center = Position{ cpp->Center() };
 			dist += start.getDistance(center);
@@ -225,17 +225,17 @@ namespace BWEB
 		return dist += start.getDistance(end);
 	}
 
-	Wall BWEBClass::getWall(Area const* area)
+	Wall Map::getWall(Area const* area)
 	{
 		if (areaWalls.find(area) != areaWalls.end())
 			return areaWalls[area];
 	}
 
-	BWEBClass* BWEBClass::bInstance = nullptr;
+	Map* Map::BWEBInstance = nullptr;
 
-	BWEBClass & BWEBClass::Instance()
+	Map & Map::Instance()
 	{
-		if (!bInstance) bInstance = new BWEBClass();
-		return *bInstance;
+		if (!BWEBInstance) BWEBInstance = new Map();
+		return *BWEBInstance;
 	}
 }

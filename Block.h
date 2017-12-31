@@ -18,11 +18,4 @@ namespace BWEB
 		int height() { return h; }
 		TilePosition tile() { return t; }
 	};
-
-	void findBlocks();
-	bool canAddBlock(TilePosition, int, int, bool);
-	void insertSmallBlock(TilePosition, bool, bool);
-	void insertMediumBlock(TilePosition, bool, bool);
-	void insertLargeBlock(TilePosition, bool, bool);
-	void insertStartBlock(TilePosition, bool, bool);
 }

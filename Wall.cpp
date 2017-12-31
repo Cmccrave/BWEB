@@ -2,7 +2,7 @@
 
 namespace BWEB
 {
-	void findWalls()
+	void Map::findWalls()
 	{
 		findLargeWall();
 		findMediumWall();
@@ -35,10 +35,10 @@ namespace BWEB
 			{
 				if (!tile.isValid() || BWEBUtil().overlapsWalls(tile)) continue;
 				if (BWEBUtil().overlapsBases(tile)) continue;
-				if (Map::Instance().GetArea(Broodwar->self()->getStartLocation()) == Map::Instance().GetArea(tile)) continue;
+				if (BWEM::Map::Instance().GetArea(Broodwar->self()->getStartLocation()) == BWEM::Map::Instance().GetArea(tile)) continue;
 				if (!BWEBUtil().isWalkable(tile)) continue;
 
-				double dist = BWEBClass::Instance().getGroundDistance(Position(tile), Position(end));
+				double dist = Map::Instance().getGroundDistance(Position(tile), Position(end));
 				if (dist < distBest)
 				{
 					distBest = dist;
@@ -91,7 +91,7 @@ namespace BWEB
 
 					if (!buildable) continue;
 
-					if (Map::Instance().GetArea(TilePosition(center)) != naturalArea) continue;
+					if (BWEM::Map::Instance().GetArea(TilePosition(center)) != naturalArea) continue;
 					if (dist >= 96 && dist <= 320 && dist < distance)
 						best = TilePosition(x, y), distance = dist;
 
@@ -101,7 +101,7 @@ namespace BWEB
 		}
 	}
 	
-	void findLargeWall()
+	void Map::findLargeWall()
 	{
 		double distance = DBL_MAX;
 		TilePosition large;
@@ -123,7 +123,7 @@ namespace BWEB
 						if (!TilePosition(i, j).isValid()) continue;
 						if (!Broodwar->isBuildable(TilePosition(i, j))) buildable = false;
 						if (i >= natural.x && i < natural.x + 4 && j >= natural.y && j < natural.y + 3) buildable = false;
-						if (Map::Instance().GetArea(TilePosition(i, j)) && Map::Instance().GetArea(TilePosition(i, j)) == naturalArea) valid = 1;
+						if (BWEM::Map::Instance().GetArea(TilePosition(i, j)) && BWEM::Map::Instance().GetArea(TilePosition(i, j)) == naturalArea) valid = 1;
 					}
 				}
 				if (!buildable) continue;
@@ -150,7 +150,7 @@ namespace BWEB
 		areaWalls[naturalArea].setLargeWall(large);
 	}
 
-	void findMediumWall()
+	void Map::findMediumWall()
 	{
 		double distance = DBL_MAX;
 		TilePosition medium;
@@ -177,7 +177,7 @@ namespace BWEB
 						if (!Broodwar->isBuildable(TilePosition(i, j))) buildable = false;
 						if (i >= natural.x && i < natural.x + 4 && j >= natural.y && j < natural.y + 3) buildable = false;
 						if (i >= large.x && i < large.x + 4 && j >= large.y && j < large.y + 3) buildable = false;
-						if (Map::Instance().GetArea(TilePosition(i, j)) && Map::Instance().GetArea(TilePosition(i, j)) == naturalArea) within = true;
+						if (BWEM::Map::Instance().GetArea(TilePosition(i, j)) && BWEM::Map::Instance().GetArea(TilePosition(i, j)) == naturalArea) within = true;
 					}
 				}
 
@@ -211,9 +211,10 @@ namespace BWEB
 					medium = TilePosition(x, y), distance = center.getDistance(chokeCenter);
 			}
 		}
+		areaWalls[naturalArea].setMediumWall(medium);
 	}
 
-	void findSmallWall()
+	void Map::findSmallWall()
 	{
 		// Pylon placement 
 		double distance = DBL_MAX;
@@ -243,9 +244,10 @@ namespace BWEB
 				}
 
 				if (!buildable) continue;
-				if (buildable && Map::Instance().GetArea(TilePosition(center)) == Map::Instance().GetArea(natural) && center.getDistance(bLargeCenter) <= 160 && center.getDistance(bMediumCenter) <= 160 && (center.getDistance(Position(secondChoke)) > distance || distance == 0.0))
+				if (buildable && BWEM::Map::Instance().GetArea(TilePosition(center)) == BWEM::Map::Instance().GetArea(natural) && center.getDistance(bLargeCenter) <= 160 && center.getDistance(bMediumCenter) <= 160 && (center.getDistance(Position(secondChoke)) > distance || distance == 0.0))
 					small = TilePosition(x, y), distance = center.getDistance(Position(secondChoke));
 			}
 		}
+		areaWalls[naturalArea].setSmallWall(small);
 	}
 }

@@ -21,10 +21,5 @@ namespace BWEB
 		void setSmallWall(TilePosition here) { wallSmall = here; }
 		void setMediumWall(TilePosition here) { wallMedium = here; }
 		void setLargeWall(TilePosition here) { wallLarge = here; }
-	};
-
-	void findWalls();
-	void findLargeWall();
-	void findMediumWall();
-	void findSmallWall();
+	};	
 }
