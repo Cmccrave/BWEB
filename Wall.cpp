@@ -217,7 +217,7 @@ namespace BWEB
 	void Map::findSmallWall()
 	{
 		// Pylon placement 
-		double distance = DBL_MAX;
+		double distance = 0.0;
 		TilePosition small;
 		TilePosition medium = areaWalls[naturalArea].getMediumWall();
 		TilePosition large = areaWalls[naturalArea].getLargeWall();
