@@ -4,18 +4,31 @@ namespace BWEB
 {
 	void Map::draw()
 	{
-		for (auto tile : smallPosition)
-			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
-		for (auto tile : mediumPosition)
-			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
-		for (auto tile : largePosition)
-			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
-		for (auto tile : sDefPosition)
-			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
-		for (auto tile : mDefPosition)
-			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
-		for (auto tile : expoPosition)
-			Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
+		for (auto &b : prodBlocks)
+		{
+			Block block = b.second;
+			for (auto tile : block.getPylon())
+				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
+			for (auto tile : block.getSmall())
+				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
+			for (auto tile : block.getMedium())
+				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
+			for (auto tile : block.getLarge())
+				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
+		}
+
+		for (auto &b : expoBlocks)
+		{
+			Block block = b.second;
+			for (auto tile : block.getPylon())
+				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
+			for (auto tile : block.getSmall())
+				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
+			for (auto tile : block.getMedium())
+				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
+			for (auto tile : block.getLarge())
+				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
+		}
 
 		for (auto &w : areaWalls)
 		{
@@ -23,58 +36,77 @@ namespace BWEB
 			Broodwar->drawBoxMap(Position(wall.getSmallWall()), Position(wall.getSmallWall()) + Position(64, 64), Broodwar->self()->getColor());
 			Broodwar->drawBoxMap(Position(wall.getMediumWall()), Position(wall.getMediumWall()) + Position(94, 64), Broodwar->self()->getColor());
 			Broodwar->drawBoxMap(Position(wall.getLargeWall()), Position(wall.getLargeWall()) + Position(128, 96), Broodwar->self()->getColor());
+
+			for (auto tile : wall.getDefenses())
+				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
 		}
 	}
 
 	void Map::onStart()
 	{
 		// For reference: https://imgur.com/a/I6IwH
-		// Currently missing features:	
-		// - Counting of how many of each type of block
-		// - Defensive blocks - cannons/turrets
+		// TODO:	
+		// - Simplify accessor functions
 		// - Blocks for areas other than main
-		// - Variations based on build order (bio build or mech build)
-		// - Smooth density
-		// - Optimize starting blocks
+		// - Check why path isnt working like McRave did
 
 		findNatural();
 		findFirstChoke();
 		findSecondChoke();
+		findStartBlocks();
 		findWalls();
-		findBlocks();		
+		findBlocks();
 	}
 
 	TilePosition Map::getBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
 	{
 		double distBest = DBL_MAX;
 		TilePosition tileBest = TilePositions::Invalid;
-		switch (building.tileWidth())
+
+		for (auto b : prodBlocks)
+		{
+			Block block = b.second;
+			set<TilePosition> placements;
+			if (building.tileWidth() == 4) placements = block.getLarge();
+			else if (building.tileWidth() == 3) placements = block.getMedium();
+			else placements = block.getSmall();
+			{
+				for (auto position : placements)
+				{
+					double distToPos = position.getDistance(searchCenter);
+					if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+						distBest = distToPos, tileBest = position;
+				}
+			}
+		}
+
+		/*switch (building.tileWidth())
 		{
 		case 4:
-			for (auto &position : largePosition)
-			{
-				double distToPos = position.getDistance(searchCenter);
-				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-					distBest = distToPos, tileBest = position;
-			}
-			break;
-		case 3:
-			for (auto &position : mediumPosition)
-			{
-				double distToPos = position.getDistance(searchCenter);
-				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-					distBest = distToPos, tileBest = position;
-			}
-			break;
-		case 2:
-			for (auto &position : smallPosition)
-			{
-				double distToPos = position.getDistance(searchCenter);
-				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-					distBest = distToPos, tileBest = position;
-			}
-			break;
+		for (auto &position : largePosition)
+		{
+		double distToPos = position.getDistance(searchCenter);
+		if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+		distBest = distToPos, tileBest = position;
 		}
+		break;
+		case 3:
+		for (auto &position : mediumPosition)
+		{
+		double distToPos = position.getDistance(searchCenter);
+		if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+		distBest = distToPos, tileBest = position;
+		}
+		break;
+		case 2:
+		for (auto &position : smallPosition)
+		{
+		double distToPos = position.getDistance(searchCenter);
+		if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+		distBest = distToPos, tileBest = position;
+		}
+		break;
+		}*/
 		return tileBest;
 	}
 

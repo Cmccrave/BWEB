@@ -2,12 +2,61 @@
 
 namespace BWEB
 {
+	void Map::findStartBlocks()
+	{
+		TilePosition tStart = Broodwar->self()->getStartLocation();
+		Position pStart = Position(tStart) + Position(64, 48);
+		for (auto &area : BWEM::Map::Instance().Areas())
+		{
+			for (auto &base : area.Bases())
+			{
+				bool h = false, v = false;
+				if (base.Center().x > BWEM::Map::Instance().Center().y) h = true;
+				TilePosition genCenter; Position gasCenter;
+				int cnt = 0;
+				for (auto &mineral : base.Minerals())
+					genCenter += mineral->TopLeft(), cnt++;
+
+				for (auto &gas : base.Geysers())
+				{
+					genCenter += gas->TopLeft();
+					cnt++;
+					gasCenter = gas->Pos();
+				}
+
+				if (gasCenter.y > base.Center().y) v = true;
+				if (cnt > 0) genCenter = genCenter / cnt;
+				resourceCenter.insert(genCenter);
+				insertExpoBlock(base.Location(), h, v);
+			}
+		}
+
+		TilePosition best;
+		double distBest = DBL_MAX;
+		for (int x = tStart.x - 8; x <= tStart.x + 5; x++)
+		{
+			for (int y = tStart.y - 5; y <= tStart.y + 4; y++)
+			{
+				TilePosition tile = TilePosition(x, y);
+				if (!tile.isValid()) continue;
+				Position blockCenter = Position(tile) + Position(128, 80);
+				double dist = blockCenter.getDistance(pStart) + blockCenter.getDistance(Position(firstChoke));
+				if (dist < distBest && canAddBlock(tile, 8, 5, true))
+				{
+					best = tile;
+					distBest = dist;
+				}
+			}
+		}
+		insertStartBlock(best, false, false);
+	}
+
 	void Map::findBlocks()
 	{
 		TilePosition tStart = Broodwar->self()->getStartLocation();
 		Position pStart = Position(tStart) + Position(64, 48);
 		set<TilePosition> mainTiles;
-		mainArea = BWEM::Map::Instance().GetArea(tStart);		
+		mainArea = BWEM::Map::Instance().GetArea(tStart);
 
 		for (int x = 0; x <= Broodwar->mapWidth(); x++)
 		{
@@ -19,42 +68,10 @@ namespace BWEB
 			}
 		}
 
-		TilePosition best;
-		double distBest = DBL_MAX;
-		for (auto tile : mainTiles)
-		{
-			if (!tile.isValid()) continue;
-			Position blockCenter = Position(tile) + Position(128, 80);
-			double dist = pow(blockCenter.getDistance(pStart), 2.0) + blockCenter.getDistance(Position(firstChoke));
-			if (dist < distBest && canAddBlock(tile, 8, 5, false))
-			{
-				best = tile;
-				distBest = dist;
-			}
-		}
-		insertStartBlock(best, false, false);
-
 		// Mirror check, normally production above and left
 		bool mirrorHorizontal = false, mirrorVertical = false;
 		if (BWEM::Map::Instance().Center().x > pStart.x) mirrorHorizontal = true;
 		if (BWEM::Map::Instance().Center().y > pStart.y) mirrorVertical = true;
-
-		for (auto &area : BWEM::Map::Instance().Areas())
-		{
-			for (auto &base : area.Bases())
-			{
-				TilePosition center;
-				int cnt = 0;
-				for (auto &mineral : base.Minerals())
-					center += mineral->TopLeft(), cnt++;
-
-				for (auto &gas : base.Geysers())
-					center += gas->TopLeft(), cnt++;
-
-				if (cnt > 0) center = center / cnt;
-				resourceCenter.insert(center);
-			}
-		}
 
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
@@ -76,15 +93,16 @@ namespace BWEB
 
 	bool Map::canAddBlock(TilePosition here, int width, int height, bool baseBlock)
 	{
+		int offset = baseBlock ? 0 : 1;
 		// Check if a block of specified size would overlap any bases, resources or other blocks
-		for (int x = here.x - 1; x < here.x + width + 1; x++)
+		for (int x = here.x - offset; x < here.x + width + offset; x++)
 		{
-			for (int y = here.y - 1; y < here.y + height + 1; y++)
+			for (int y = here.y - offset; y < here.y + height + offset; y++)
 			{
 				if (!TilePosition(x, y).isValid()) return false;
 				if (!BWEM::Map::Instance().GetTile(TilePosition(x, y)).Buildable()) return false;
 				if (BWEBUtil().overlapsBlocks(TilePosition(x, y))) return false;
-				if (BWEBUtil().overlapsBases(TilePosition(x, y)) && !baseBlock) return false;
+				if (BWEBUtil().overlapsBases(TilePosition(x, y))) return false;
 				if (BWEBUtil().overlapsNeutrals(TilePosition(x, y))) return false;
 				if (BWEBUtil().overlapsMining(TilePosition(x, y))) return false;
 				if (BWEBUtil().overlapsWalls(TilePosition(x, y))) return false;
@@ -97,25 +115,25 @@ namespace BWEB
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
-			blocks[here] = Block(4, 5, here);
+			prodBlocks[here] = Block(4, 5, here);
 			if (mirrorVertical)
 			{
-				smallPosition.insert(here);
-				smallPosition.insert(here + TilePosition(2, 0));
-				largePosition.insert(here + TilePosition(0, 2));
+				prodBlocks[here].insertPylon(here);
+				prodBlocks[here].insertPylon(here + TilePosition(2, 0));
+				prodBlocks[here].insertLarge(here + TilePosition(0, 2));
 			}
 			else
 			{
-				smallPosition.insert(here + TilePosition(0, 3));
-				smallPosition.insert(here + TilePosition(2, 3));
-				largePosition.insert(here);
+				prodBlocks[here].insertPylon(here + TilePosition(0, 3));
+				prodBlocks[here].insertPylon(here + TilePosition(2, 3));
+				prodBlocks[here].insertLarge(here);
 			}
 		}
 		else if (Broodwar->self()->getRace() == Races::Terran)
 		{
-			blocks[here] = Block(3, 4, here);
-			mediumPosition.insert(here);
-			mediumPosition.insert(here + TilePosition(0, 2));
+			prodBlocks[here] = Block(3, 4, here);
+			prodBlocks[here].insertMedium(here);
+			prodBlocks[here].insertMedium(here + TilePosition(0, 2));
 		}
 	}
 
@@ -123,79 +141,79 @@ namespace BWEB
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
-			blocks[here] = Block(6, 8, here);
+			prodBlocks[here] = Block(6, 8, here);
 			if (mirrorHorizontal)
 			{
 				if (mirrorVertical)
 				{
-					smallPosition.insert(here + TilePosition(0, 2));
-					smallPosition.insert(here + TilePosition(0, 4));
-					smallPosition.insert(here + TilePosition(0, 6));
-					mediumPosition.insert(here);
-					mediumPosition.insert(here + TilePosition(3, 0));
-					largePosition.insert(here + TilePosition(2, 2));
-					largePosition.insert(here + TilePosition(2, 5));
+					prodBlocks[here].insertPylon(here + TilePosition(0, 2));
+					prodBlocks[here].insertPylon(here + TilePosition(0, 4));
+					prodBlocks[here].insertPylon(here + TilePosition(0, 6));
+					prodBlocks[here].insertMedium(here);
+					prodBlocks[here].insertMedium(here + TilePosition(3, 0));
+					prodBlocks[here].insertLarge(here + TilePosition(2, 2));
+					prodBlocks[here].insertLarge(here + TilePosition(2, 5));
 				}
 				else
 				{
-					smallPosition.insert(here);
-					smallPosition.insert(here + TilePosition(0, 2));
-					smallPosition.insert(here + TilePosition(0, 4));
-					mediumPosition.insert(here + TilePosition(0, 6));
-					mediumPosition.insert(here + TilePosition(3, 6));
-					largePosition.insert(here + TilePosition(2, 0));
-					largePosition.insert(here + TilePosition(2, 3));
+					prodBlocks[here].insertPylon(here);
+					prodBlocks[here].insertPylon(here + TilePosition(0, 2));
+					prodBlocks[here].insertPylon(here + TilePosition(0, 4));
+					prodBlocks[here].insertMedium(here + TilePosition(0, 6));
+					prodBlocks[here].insertMedium(here + TilePosition(3, 6));
+					prodBlocks[here].insertLarge(here + TilePosition(2, 0));
+					prodBlocks[here].insertLarge(here + TilePosition(2, 3));
 				}
 			}
 			else
 			{
 				if (mirrorVertical)
 				{
-					smallPosition.insert(here + TilePosition(4, 2));
-					smallPosition.insert(here + TilePosition(4, 4));
-					smallPosition.insert(here + TilePosition(4, 6));
-					mediumPosition.insert(here);
-					mediumPosition.insert(here + TilePosition(3, 0));
-					largePosition.insert(here + TilePosition(0, 2));
-					largePosition.insert(here + TilePosition(0, 5));
+					prodBlocks[here].insertPylon(here + TilePosition(4, 2));
+					prodBlocks[here].insertPylon(here + TilePosition(4, 4));
+					prodBlocks[here].insertPylon(here + TilePosition(4, 6));
+					prodBlocks[here].insertMedium(here);
+					prodBlocks[here].insertMedium(here + TilePosition(3, 0));
+					prodBlocks[here].insertLarge(here + TilePosition(0, 2));
+					prodBlocks[here].insertLarge(here + TilePosition(0, 5));
 				}
 				else
 				{
-					smallPosition.insert(here + TilePosition(4, 0));
-					smallPosition.insert(here + TilePosition(4, 2));
-					smallPosition.insert(here + TilePosition(4, 4));
-					mediumPosition.insert(here + TilePosition(0, 6));
-					mediumPosition.insert(here + TilePosition(3, 6));
-					largePosition.insert(here);
-					largePosition.insert(here + TilePosition(0, 3));
+					prodBlocks[here].insertPylon(here + TilePosition(4, 0));
+					prodBlocks[here].insertPylon(here + TilePosition(4, 2));
+					prodBlocks[here].insertPylon(here + TilePosition(4, 4));
+					prodBlocks[here].insertMedium(here + TilePosition(0, 6));
+					prodBlocks[here].insertMedium(here + TilePosition(3, 6));
+					prodBlocks[here].insertLarge(here);
+					prodBlocks[here].insertLarge(here + TilePosition(0, 3));
 				}
 			}
 		}
 		else if (Broodwar->self()->getRace() == Races::Terran)
 		{
-			blocks[here] = Block(6, 8, here);
-			smallPosition.insert(here + TilePosition(4, 1));
-			smallPosition.insert(here + TilePosition(4, 4));
-			mediumPosition.insert(here + TilePosition(0, 6));
-			mediumPosition.insert(here + TilePosition(3, 6));
-			largePosition.insert(here);
-			largePosition.insert(here + TilePosition(0, 3));
+			prodBlocks[here] = Block(6, 8, here);
+			prodBlocks[here].insertSmall(here + TilePosition(4, 1));
+			prodBlocks[here].insertSmall(here + TilePosition(4, 4));
+			prodBlocks[here].insertMedium(here + TilePosition(0, 6));
+			prodBlocks[here].insertMedium(here + TilePosition(3, 6));
+			prodBlocks[here].insertLarge(here);
+			prodBlocks[here].insertLarge(here + TilePosition(0, 3));
 		}
 	}
 
 	void Map::insertLargeBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
-		blocks[here] = Block(12, 6, here);
-		largePosition.insert(here);
-		largePosition.insert(here + TilePosition(0, 3));
-		largePosition.insert(here + TilePosition(8, 0));
-		largePosition.insert(here + TilePosition(8, 3));
-		smallPosition.insert(here + TilePosition(4, 0));
-		smallPosition.insert(here + TilePosition(4, 2));
-		smallPosition.insert(here + TilePosition(4, 4));
-		smallPosition.insert(here + TilePosition(6, 0));
-		smallPosition.insert(here + TilePosition(6, 2));
-		smallPosition.insert(here + TilePosition(6, 4));
+		prodBlocks[here] = Block(12, 6, here);
+		prodBlocks[here].insertLarge(here);
+		prodBlocks[here].insertLarge(here + TilePosition(0, 3));
+		prodBlocks[here].insertLarge(here + TilePosition(8, 0));
+		prodBlocks[here].insertLarge(here + TilePosition(8, 3));
+		prodBlocks[here].insertPylon(here + TilePosition(4, 0));
+		prodBlocks[here].insertPylon(here + TilePosition(4, 2));
+		prodBlocks[here].insertPylon(here + TilePosition(4, 4));
+		prodBlocks[here].insertPylon(here + TilePosition(6, 0));
+		prodBlocks[here].insertPylon(here + TilePosition(6, 2));
+		prodBlocks[here].insertPylon(here + TilePosition(6, 4));
 	}
 
 	void Map::insertStartBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
@@ -203,16 +221,58 @@ namespace BWEB
 		// TODO -- mirror based on gas position	
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
-			blocks[here] = Block(8, 5, here);
-			largePosition.insert(here);
-			largePosition.insert(here + TilePosition(4, 0));
-			smallPosition.insert(here + TilePosition(0, 3));
-			mediumPosition.insert(here + TilePosition(2, 3));
-			mediumPosition.insert(here + TilePosition(5, 3));
+			prodBlocks[here] = Block(8, 5, here);
+			prodBlocks[here].insertLarge(here);
+			prodBlocks[here].insertLarge(here + TilePosition(4, 0));
+			prodBlocks[here].insertPylon(here + TilePosition(0, 3));
+			prodBlocks[here].insertMedium(here + TilePosition(2, 3));
+			prodBlocks[here].insertMedium(here + TilePosition(5, 3));
 		}
 		else if (Broodwar->self()->getRace() == Races::Terran)
 		{
-			blocks[here] = Block(8, 5, here);
+			prodBlocks[here] = Block(8, 5, here);
+		}
+	}
+
+	void Map::insertExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	{
+		if (mirrorVertical)
+		{
+			if (mirrorHorizontal)
+			{
+				expoBlocks[here] = Block(6, 5, here);
+				expoBlocks[here].insertLarge(here);
+				expoBlocks[here].insertSmall(here + TilePosition(0, 3));
+				expoBlocks[here].insertPylon(here + TilePosition(4, 3));
+				expoBlocks[here].insertSmall(here + TilePosition(4, 0));				
+			}
+			else
+			{
+				expoBlocks[here + TilePosition(-2, 0)] = Block(6, 5, here + TilePosition(-2, 0));
+				expoBlocks[here + TilePosition(-2, 0)].insertLarge(here);
+				expoBlocks[here + TilePosition(-2, 0)].insertSmall(here + TilePosition(-2, 0));
+				expoBlocks[here + TilePosition(-2, 0)].insertPylon(here + TilePosition(-2, 3));
+				expoBlocks[here + TilePosition(-2, 0)].insertSmall(here + TilePosition(2, 3));
+			}
+		}
+		else
+		{
+			if (mirrorHorizontal)
+			{
+				expoBlocks[here + TilePosition(0, -2)] = Block(6, 5, here + TilePosition(0, -2));
+				expoBlocks[here + TilePosition(0, -2)].insertLarge(here);
+				expoBlocks[here + TilePosition(0, -2)].insertSmall(here + TilePosition(0, -2));
+				expoBlocks[here + TilePosition(0, -2)].insertPylon(here + TilePosition(4, -2));
+				expoBlocks[here + TilePosition(0, -2)].insertSmall(here + TilePosition(4, 1));
+			}
+			else
+			{
+				expoBlocks[here + TilePosition(-2, -2)] = Block(6, 5, here + TilePosition(-2, -2));
+				expoBlocks[here + TilePosition(-2, -2)].insertLarge(here + TilePosition(0, 0));				
+				expoBlocks[here + TilePosition(-2, -2)].insertSmall(here + TilePosition(2, -2));
+				expoBlocks[here + TilePosition(-2, -2)].insertPylon(here + TilePosition(-2, -2));
+				expoBlocks[here + TilePosition(-2, -2)].insertSmall(here + TilePosition(-2, 1));
+			}
 		}
 	}
 }

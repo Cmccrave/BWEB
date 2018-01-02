@@ -10,7 +10,7 @@ namespace BWEB
 	class Wall
 	{
 		TilePosition wallSmall, wallMedium, wallLarge;
-		set<TilePosition> defenses;
+		set<TilePosition> defenses;		
 	public:
 		Wall() { };
 		TilePosition getSmallWall() { return wallSmall; }
@@ -21,5 +21,6 @@ namespace BWEB
 		void setSmallWall(TilePosition here) { wallSmall = here; }
 		void setMediumWall(TilePosition here) { wallMedium = here; }
 		void setLargeWall(TilePosition here) { wallLarge = here; }
+		void insertDefense(TilePosition here) { defenses.insert(here); }
 	};	
 }

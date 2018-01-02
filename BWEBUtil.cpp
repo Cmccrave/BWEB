@@ -17,7 +17,12 @@ namespace BWEB
 
 	bool BWEBUtil::overlapsBlocks(TilePosition here)
 	{
-		for (auto &b : Map::Instance().getBlocks())
+		for (auto &b : Map::Instance().getProdBlocks())
+		{
+			Block& block = b.second;
+			if (here.x >= block.tile().x && here.x < block.tile().x + block.width() && here.y >= block.tile().y && here.y < block.tile().y + block.height()) return true;
+		}
+		for (auto &b : Map::Instance().getExpoBlocks())
 		{
 			Block& block = b.second;
 			if (here.x >= block.tile().x && here.x < block.tile().x + block.width() && here.y >= block.tile().y && here.y < block.tile().y + block.height()) return true;
@@ -44,6 +49,12 @@ namespace BWEB
 		{
 			TilePosition tile = g->TopLeft();
 			if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 2) return true;
+		}
+
+		for (auto &n : BWEM::Map::Instance().StaticBuildings())
+		{
+			TilePosition tile = n->TopLeft();
+			if (here.x >= tile.x && here.x < tile.x + n->Type().tileWidth() && here.y >= tile.y && here.y < tile.y + n->Type().tileHeight()) return true;
 		}
 		return false;
 	}
