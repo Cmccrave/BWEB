@@ -49,6 +49,7 @@ namespace BWEB
 		// - Simplify accessor functions
 		// - Blocks for areas other than main
 		// - Check why path isnt working like McRave did
+		// - Add BWEB Base - contains all of BWEM stuff + defensive ring
 
 		findNatural();
 		findFirstChoke();
