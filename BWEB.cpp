@@ -49,8 +49,8 @@ namespace BWEB
 		// - Simplify accessor functions
 		// - Blocks for areas other than main
 		// - Check why path isnt working like McRave did
-		// - Add BWEB Base - contains all of BWEM stuff + defensive ring
 
+		findMain();
 		findNatural();
 		findFirstChoke();
 		findSecondChoke();
@@ -183,6 +183,13 @@ namespace BWEB
 			break;
 		}
 		return tileBest;
+	}
+
+	void Map::findMain()
+	{
+		tStart = Broodwar->self()->getStartLocation();
+		pStart = Position(tStart) + Position(64, 48);
+		mainArea = BWEM::Map::Instance().GetArea(tStart);
 	}
 
 	void Map::findNatural()

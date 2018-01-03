@@ -6,30 +6,6 @@ namespace BWEB
 	{
 		TilePosition tStart = Broodwar->self()->getStartLocation();
 		Position pStart = Position(tStart) + Position(64, 48);
-		for (auto &area : BWEM::Map::Instance().Areas())
-		{
-			for (auto &base : area.Bases())
-			{
-				bool h = false, v = false;
-				if (base.Center().x > BWEM::Map::Instance().Center().y) h = true;
-				TilePosition genCenter; Position gasCenter;
-				int cnt = 0;
-				for (auto &mineral : base.Minerals())
-					genCenter += mineral->TopLeft(), cnt++;
-
-				for (auto &gas : base.Geysers())
-				{
-					genCenter += gas->TopLeft();
-					cnt++;
-					gasCenter = gas->Pos();
-				}
-
-				if (gasCenter.y > base.Center().y) v = true;
-				if (cnt > 0) genCenter = genCenter / cnt;
-				resourceCenter.insert(genCenter);
-				insertExpoBlock(base.Location(), h, v);
-			}
-		}
 
 		TilePosition best;
 		double distBest = DBL_MAX;
@@ -52,12 +28,8 @@ namespace BWEB
 	}
 
 	void Map::findBlocks()
-	{
-		TilePosition tStart = Broodwar->self()->getStartLocation();
-		Position pStart = Position(tStart) + Position(64, 48);
+	{		
 		set<TilePosition> mainTiles;
-		mainArea = BWEM::Map::Instance().GetArea(tStart);
-
 		for (int x = 0; x <= Broodwar->mapWidth(); x++)
 		{
 			for (int y = 0; y <= Broodwar->mapHeight(); y++)
@@ -231,48 +203,6 @@ namespace BWEB
 		else if (Broodwar->self()->getRace() == Races::Terran)
 		{
 			prodBlocks[here] = Block(8, 5, here);
-		}
-	}
-
-	void Map::insertExpoBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
-	{
-		if (mirrorVertical)
-		{
-			if (mirrorHorizontal)
-			{
-				expoBlocks[here] = Block(6, 5, here);
-				expoBlocks[here].insertLarge(here);
-				expoBlocks[here].insertSmall(here + TilePosition(0, 3));
-				expoBlocks[here].insertPylon(here + TilePosition(4, 3));
-				expoBlocks[here].insertSmall(here + TilePosition(4, 0));				
-			}
-			else
-			{
-				expoBlocks[here + TilePosition(-2, 0)] = Block(6, 5, here + TilePosition(-2, 0));
-				expoBlocks[here + TilePosition(-2, 0)].insertLarge(here);
-				expoBlocks[here + TilePosition(-2, 0)].insertSmall(here + TilePosition(-2, 0));
-				expoBlocks[here + TilePosition(-2, 0)].insertPylon(here + TilePosition(-2, 3));
-				expoBlocks[here + TilePosition(-2, 0)].insertSmall(here + TilePosition(2, 3));
-			}
-		}
-		else
-		{
-			if (mirrorHorizontal)
-			{
-				expoBlocks[here + TilePosition(0, -2)] = Block(6, 5, here + TilePosition(0, -2));
-				expoBlocks[here + TilePosition(0, -2)].insertLarge(here);
-				expoBlocks[here + TilePosition(0, -2)].insertSmall(here + TilePosition(0, -2));
-				expoBlocks[here + TilePosition(0, -2)].insertPylon(here + TilePosition(4, -2));
-				expoBlocks[here + TilePosition(0, -2)].insertSmall(here + TilePosition(4, 1));
-			}
-			else
-			{
-				expoBlocks[here + TilePosition(-2, -2)] = Block(6, 5, here + TilePosition(-2, -2));
-				expoBlocks[here + TilePosition(-2, -2)].insertLarge(here + TilePosition(0, 0));				
-				expoBlocks[here + TilePosition(-2, -2)].insertSmall(here + TilePosition(2, -2));
-				expoBlocks[here + TilePosition(-2, -2)].insertPylon(here + TilePosition(-2, -2));
-				expoBlocks[here + TilePosition(-2, -2)].insertSmall(here + TilePosition(-2, 1));
-			}
 		}
 	}
 }

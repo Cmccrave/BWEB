@@ -2,6 +2,7 @@
 #pragma warning(disable : 4351)
 #include <BWAPI.h>
 #include "..\BWEM\bwem.h"
+#include "Base.h"
 #include "Block.h"
 #include "Wall.h"
 #include "BWEBUtil.h"
@@ -23,8 +24,14 @@ namespace BWEB
 		Area const * mainArea;
 		map<TilePosition, Block> expoBlocks, prodBlocks, techBlocks;
 		set<TilePosition> smallPosition, mediumPosition, largePosition, expoPosition, sDefPosition, mDefPosition, resourceCenter;
+		Position pStart;
+		TilePosition tStart;
 
-		void findFirstChoke(), findSecondChoke(), findNatural(), findStartBlocks(), findBlocks(), findWalls(), findLargeWall(), findMediumWall(), findSmallWall(), findWallDefenses(), findPath();
+		set<Base> bases;
+
+		void findMain(), findFirstChoke(), findSecondChoke(), findNatural(), findStartBlocks(), findBlocks(), findWalls(), findLargeWall(), findMediumWall(), findSmallWall(), findWallDefenses(), findPath();
+
+		void findBases();
 
 		int reservePathHome[256][256] = {};
 		bool canAddBlock(TilePosition, int, int, bool);
@@ -32,7 +39,7 @@ namespace BWEB
 		void insertMediumBlock(TilePosition, bool, bool);
 		void insertLargeBlock(TilePosition, bool, bool);
 		void insertStartBlock(TilePosition, bool, bool);
-		void insertExpoBlock(TilePosition, bool, bool);
+		set<TilePosition>& baseDefenses(TilePosition, bool, bool);
 		static Map* BWEBInstance;
 
 	public:
@@ -68,10 +75,10 @@ namespace BWEB
 		int getGroundDistance(Position, Position);
 
 		// Returns all the production blocks and the TilePosition of their top left corner
-		map<TilePosition, Block>& getProdBlocks() { return prodBlocks; }
+		map<TilePosition, Block>& Production() { return prodBlocks; }
 
 		// Returns all the expansion blocks and the TilePosition of their top left corner
-		map<TilePosition, Block>& getExpoBlocks() { return expoBlocks; }
+		set<Base>& Bases() { return bases; }
 
 		//set<TilePosition> getSmallPosition() { return smallPosition; }
 		//set<TilePosition> getMediumPosition() { return mediumPosition; }

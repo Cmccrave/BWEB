@@ -4,25 +4,17 @@ namespace BWEB
 {
 	bool BWEBUtil::overlapsBases(TilePosition here)
 	{
-		for (auto &area : BWEM::Map::Instance().Areas())
+		for (auto &base : BWEB::Map::Instance().Bases())
 		{
-			for (auto &base : area.Bases())
-			{
-				TilePosition tile = base.Location();
-				if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 3) return true;
-			}
+			TilePosition tile = base.Location();
+			if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 3) return true;
 		}
 		return false;
 	}
 
 	bool BWEBUtil::overlapsBlocks(TilePosition here)
 	{
-		for (auto &b : Map::Instance().getProdBlocks())
-		{
-			Block& block = b.second;
-			if (here.x >= block.tile().x && here.x < block.tile().x + block.width() && here.y >= block.tile().y && here.y < block.tile().y + block.height()) return true;
-		}
-		for (auto &b : Map::Instance().getExpoBlocks())
+		for (auto &b : BWEB::Map::Instance().Production())
 		{
 			Block& block = b.second;
 			if (here.x >= block.tile().x && here.x < block.tile().x + block.width() && here.y >= block.tile().y && here.y < block.tile().y + block.height()) return true;
@@ -32,7 +24,7 @@ namespace BWEB
 
 	bool BWEBUtil::overlapsMining(TilePosition here)
 	{
-		for (auto &tile : Map::Instance().getResourceCenter())
+		for (auto &tile : BWEB::Map::Instance().getResourceCenter())
 			if (tile.getDistance(here) < 5) return true;
 		return false;
 	}
@@ -64,7 +56,7 @@ namespace BWEB
 		int x = here.x;
 		int y = here.y;
 
-		for (auto &w : Map::Instance().getWalls())
+		for (auto &w : BWEB::Map::Instance().getWalls())
 		{
 			Wall wall = w.second;
 			if (x >= wall.getSmallWall().x && x < wall.getSmallWall().x + 2 && y >= wall.getSmallWall().y && y < wall.getSmallWall().y + 2) return true;
