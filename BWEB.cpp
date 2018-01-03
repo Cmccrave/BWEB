@@ -228,7 +228,7 @@ namespace BWEB
 	{
 		// Find area that shares the choke we need to defend
 		double distBest = DBL_MAX;
-		const Area* second = nullptr;
+		const BWEM::Area* second = nullptr;
 		for (auto &area : naturalArea->AccessibleNeighbours())
 		{
 			WalkPosition center = area->Top();
@@ -249,9 +249,9 @@ namespace BWEB
 		}
 	}
 
-	int Map::getGroundDistance(Position start, Position end)
+	double Map::getGroundDistance(Position start, Position end)
 	{
-		int dist = 0;
+		double dist = 0.0;
 		if (!start.isValid() || !end.isValid()) return INT_MAX;
 		if (!BWEM::Map::Instance().GetArea(WalkPosition(start)) || !BWEM::Map::Instance().GetArea(WalkPosition(end))) return INT_MAX;
 
@@ -265,10 +265,11 @@ namespace BWEB
 		return dist += start.getDistance(end);
 	}
 
-	Wall Map::getWall(Area const* area)
+	Wall Map::getWall(BWEM::Area const* area)
 	{
 		if (areaWalls.find(area) != areaWalls.end())
 			return areaWalls[area];
+		return Wall();
 	}
 
 	Map* Map::BWEBInstance = nullptr;

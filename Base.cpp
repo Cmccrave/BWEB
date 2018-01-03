@@ -2,9 +2,8 @@
 
 namespace BWEB
 {
-	Base::Base(TilePosition newTile, TilePosition newResourceCenter, set<TilePosition> newDefenses, const BWEM::Base* newBase)
+	Base::Base(TilePosition newResourceCenter, set<TilePosition> newDefenses, const BWEM::Base* newBase)
 	{
-		location = newTile;
 		resourceCenter = newResourceCenter;		
 		defenses = newDefenses;
 		base = newBase;
@@ -40,22 +39,23 @@ namespace BWEB
 				for (auto m : base.Minerals()) { minerals.insert(m->Unit()); }
 				for (auto g : base.Geysers()) { geysers.insert(g->Unit()); }
 
-				Base newBase(here, genCenter, baseDefenses(base.Location(), h, v), &base);
-				bases.insert(newBase);
+				Base newBase(genCenter, baseDefenses(base.Location(), h, v), &base);
+				bases.push_back(newBase);
 			}
 		}
 	}
 
 	set<TilePosition>& Map::baseDefenses(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
-		set<TilePosition> returnValues;
+		returnValues.clear();
 		if (mirrorVertical)
 		{
 			if (mirrorHorizontal)
 			{
-				returnValues.insert(here + TilePosition(0, 3));
-				returnValues.insert(here + TilePosition(4, 3));
-				returnValues.insert(here + TilePosition(4, 0));
+				// Test if this works?
+				returnValues.insert({ here + TilePosition(0, 3), here + TilePosition(4, 3), here + TilePosition(4, 0) });
+				//returnValues.insert(here + TilePosition(4, 3));
+				//returnValues.insert(here + TilePosition(4, 0));
 			}
 			else
 			{

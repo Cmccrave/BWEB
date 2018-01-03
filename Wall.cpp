@@ -7,8 +7,8 @@ namespace BWEB
 		findLargeWall();
 		findMediumWall();
 		findSmallWall();
-		findWallDefenses();
 		findPath();
+		findWallDefenses();
 	}
 
 	void Map::findLargeWall()
@@ -66,7 +66,6 @@ namespace BWEB
 		TilePosition medium;
 		TilePosition large = areaWalls[naturalArea].getLargeWall();
 		// Medium Building placement
-		distance = 0.0;
 		for (int x = secondChoke.x - 20; x <= secondChoke.x + 20; x++)
 		{
 			for (int y = secondChoke.y - 20; y <= secondChoke.y + 20; y++)
@@ -117,7 +116,7 @@ namespace BWEB
 
 				if (!buildable) continue;
 
-				if (valid >= 1 && center.getDistance(Position(natural)) <= 512 && (center.getDistance(chokeCenter) < distance || distance == 0.0))
+				if (valid >= 1 && center.getDistance(Position(natural)) <= 512 && center.getDistance(chokeCenter) < distance)
 					medium = TilePosition(x, y), distance = center.getDistance(chokeCenter);
 			}
 		}
@@ -232,7 +231,7 @@ namespace BWEB
 		TilePosition start = (large + medium) / 2;
 		double distance = DBL_MAX;
 		end = firstChoke;
-		int range = firstChoke.getDistance(secondChoke);
+		int range = int(firstChoke.getDistance(secondChoke));
 
 		for (int i = 0; i <= range; i++)
 		{

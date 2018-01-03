@@ -6,8 +6,10 @@ namespace BWEB
 	{
 		for (auto &base : BWEB::Map::Instance().Bases())
 		{
-			TilePosition tile = base.Location();
+			TilePosition tile = base.BWEMBase()->Location();
 			if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 3) return true;
+			for (auto defense : base.DefenseLocations())
+				if (here.x >= defense.x && here.x < defense.x + 2 && here.y >= defense.y && here.y < defense.y + 2) return true;
 		}
 		return false;
 	}
@@ -24,8 +26,8 @@ namespace BWEB
 
 	bool BWEBUtil::overlapsMining(TilePosition here)
 	{
-		for (auto &tile : BWEB::Map::Instance().getResourceCenter())
-			if (tile.getDistance(here) < 5) return true;
+		for (auto &base : BWEB::Map::Instance().Bases())
+			if (here.getDistance(base.ResourceCenter()) < 5) return true;
 		return false;
 	}
 

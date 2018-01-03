@@ -1,9 +1,6 @@
 #pragma once
 #include "BWEB.h"
 
-using namespace BWAPI;
-using namespace std;
-
 namespace BWEB
 {	
 	class Wall
@@ -12,10 +9,19 @@ namespace BWEB
 		set<TilePosition> defenses;		
 	public:
 		Wall() { };
-		TilePosition getSmallWall() { return wallSmall; }
-		TilePosition getMediumWall() { return wallMedium; }
-		TilePosition getLargeWall() { return wallLarge; }
-		set<TilePosition> getDefenses() { return defenses; }
+		Wall(TilePosition, TilePosition, TilePosition, set<TilePosition>);
+
+		// Returns the small building associated with this Wall
+		const TilePosition getSmallWall() { return wallSmall; }
+
+		// Returns the medium building associated with this Wall
+		const TilePosition getMediumWall() { return wallMedium; }
+
+		// Returns the large building associated with this Wall
+		const TilePosition getLargeWall() { return wallLarge; }
+
+		// Returns the defense locations associated with this Wall
+		const set<TilePosition> getDefenses() { return defenses; }
 
 		void setSmallWall(TilePosition here) { wallSmall = here; }
 		void setMediumWall(TilePosition here) { wallMedium = here; }

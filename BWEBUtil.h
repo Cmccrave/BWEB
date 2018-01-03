@@ -1,10 +1,6 @@
 #pragma once
 #include "BWEB.h"
 
-using namespace BWAPI;
-using namespace BWEM;
-using namespace std;
-
 namespace BWEB
 {
 	class BWEBUtil
