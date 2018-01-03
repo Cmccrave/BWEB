@@ -3,11 +3,14 @@
 
 namespace BWEB
 {
+	using namespace BWAPI;
+	using namespace std;
+
 	class BWEBUtil
 	{
 	public:
 		bool overlapsBlocks(TilePosition);
-		bool overlapsBases(TilePosition);
+		bool overlapsStations(TilePosition);
 		bool overlapsNeutrals(TilePosition);
 		bool overlapsMining(TilePosition);
 		bool overlapsWalls(TilePosition);

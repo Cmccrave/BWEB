@@ -147,6 +147,7 @@ namespace BWEB
 					{
 						if (!Broodwar->isBuildable(TilePosition(i, j))) buildable = false;
 						if (BWEBUtil().overlapsBlocks(TilePosition(i, j))) buildable = false;
+						if (BWEBUtil().overlapsStations(TilePosition(i, j))) buildable = false;
 						if (i >= medium.x && i < medium.x + 3 && j >= medium.y && j < medium.y + 2) buildable = false;
 						if (i >= large.x && i < large.x + 4 && j >= large.y && j < large.y + 3) buildable = false;
 						if (i >= natural.x && i < natural.x + 4 && j >= natural.y && j < natural.y + 3) buildable = false;
@@ -186,7 +187,7 @@ namespace BWEB
 					{
 						for (int j = y; j < y + 2; j++)
 						{
-							for (auto tile : sDefPosition)
+							for (auto tile : areaWalls[naturalArea].getDefenses())
 							{
 								if (i >= tile.x && i < tile.x + 2 && j >= tile.y && j < tile.y + 2) buildable = false;
 							}
@@ -195,6 +196,7 @@ namespace BWEB
 							if (reservePathHome[i][j] > 0) buildable = false;
 							if (BWEBUtil().overlapsNeutrals(TilePosition(i, j))) buildable = false;
 							if (BWEBUtil().overlapsBlocks(TilePosition(i, j))) buildable = false;
+							if (BWEBUtil().overlapsStations(TilePosition(i, j))) buildable = false;
 							if (i >= small.x && i < small.x + 2 && j >= small.y && j < small.y + 2) buildable = false;
 							if (i >= medium.x && i < medium.x + 3 && j >= medium.y && j < medium.y + 2) buildable = false;
 							if (i >= large.x && i < large.x + 4 && j >= large.y && j < large.y + 3) buildable = false;
@@ -212,7 +214,6 @@ namespace BWEB
 			}
 			if (best.isValid())
 			{
-				sDefPosition.insert(best);
 				areaWalls[naturalArea].insertDefense(best);
 			}
 			else return;
@@ -246,7 +247,7 @@ namespace BWEB
 			for (auto tile : testCases)
 			{
 				if (!tile.isValid() || BWEBUtil().overlapsWalls(tile)) continue;
-				if (BWEBUtil().overlapsBases(tile)) continue;
+				if (BWEBUtil().overlapsStations(tile)) continue;
 				if (BWEM::Map::Instance().GetArea(Broodwar->self()->getStartLocation()) == BWEM::Map::Instance().GetArea(tile)) continue;
 				if (!BWEBUtil().isWalkable(tile)) continue;
 

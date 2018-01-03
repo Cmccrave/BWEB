@@ -28,7 +28,7 @@ namespace BWEB
 	}
 
 	void Map::findBlocks()
-	{		
+	{
 		set<TilePosition> mainTiles;
 		for (int x = 0; x <= Broodwar->mapWidth(); x++)
 		{
@@ -74,7 +74,7 @@ namespace BWEB
 				if (!TilePosition(x, y).isValid()) return false;
 				if (!BWEM::Map::Instance().GetTile(TilePosition(x, y)).Buildable()) return false;
 				if (BWEBUtil().overlapsBlocks(TilePosition(x, y))) return false;
-				if (BWEBUtil().overlapsBases(TilePosition(x, y))) return false;
+				if (BWEBUtil().overlapsStations(TilePosition(x, y))) return false;
 				if (BWEBUtil().overlapsNeutrals(TilePosition(x, y))) return false;
 				if (BWEBUtil().overlapsMining(TilePosition(x, y))) return false;
 				if (BWEBUtil().overlapsWalls(TilePosition(x, y))) return false;
@@ -87,25 +87,28 @@ namespace BWEB
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
-			prodBlocks[here] = Block(4, 5, here);
+			Block newBlock(4, 5, here);
 			if (mirrorVertical)
 			{
-				prodBlocks[here].insertPylon(here);
-				prodBlocks[here].insertPylon(here + TilePosition(2, 0));
-				prodBlocks[here].insertLarge(here + TilePosition(0, 2));
+				newBlock.insertSmall(here);
+				newBlock.insertSmall(here + TilePosition(2, 0));
+				newBlock.insertLarge(here + TilePosition(0, 2));
 			}
 			else
 			{
-				prodBlocks[here].insertPylon(here + TilePosition(0, 3));
-				prodBlocks[here].insertPylon(here + TilePosition(2, 3));
-				prodBlocks[here].insertLarge(here);
+				newBlock.insertSmall(here + TilePosition(0, 3));
+				newBlock.insertSmall(here + TilePosition(2, 3));
+				newBlock.insertLarge(here);
 			}
+			blocks.push_back(newBlock);
+
 		}
 		else if (Broodwar->self()->getRace() == Races::Terran)
 		{
-			prodBlocks[here] = Block(3, 4, here);
-			prodBlocks[here].insertMedium(here);
-			prodBlocks[here].insertMedium(here + TilePosition(0, 2));
+			Block newBlock(3, 4, here);
+			newBlock.insertMedium(here);
+			newBlock.insertMedium(here + TilePosition(0, 2));
+			blocks.push_back(newBlock);
 		}
 	}
 
@@ -113,79 +116,82 @@ namespace BWEB
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
-			prodBlocks[here] = Block(6, 8, here);
+			Block newBlock(6, 8, here);
 			if (mirrorHorizontal)
 			{
 				if (mirrorVertical)
 				{
-					prodBlocks[here].insertPylon(here + TilePosition(0, 2));
-					prodBlocks[here].insertPylon(here + TilePosition(0, 4));
-					prodBlocks[here].insertPylon(here + TilePosition(0, 6));
-					prodBlocks[here].insertMedium(here);
-					prodBlocks[here].insertMedium(here + TilePosition(3, 0));
-					prodBlocks[here].insertLarge(here + TilePosition(2, 2));
-					prodBlocks[here].insertLarge(here + TilePosition(2, 5));
+					newBlock.insertSmall(here + TilePosition(0, 2));
+					newBlock.insertSmall(here + TilePosition(0, 4));
+					newBlock.insertSmall(here + TilePosition(0, 6));
+					newBlock.insertMedium(here);
+					newBlock.insertMedium(here + TilePosition(3, 0));
+					newBlock.insertLarge(here + TilePosition(2, 2));
+					newBlock.insertLarge(here + TilePosition(2, 5));
 				}
 				else
 				{
-					prodBlocks[here].insertPylon(here);
-					prodBlocks[here].insertPylon(here + TilePosition(0, 2));
-					prodBlocks[here].insertPylon(here + TilePosition(0, 4));
-					prodBlocks[here].insertMedium(here + TilePosition(0, 6));
-					prodBlocks[here].insertMedium(here + TilePosition(3, 6));
-					prodBlocks[here].insertLarge(here + TilePosition(2, 0));
-					prodBlocks[here].insertLarge(here + TilePosition(2, 3));
+					newBlock.insertSmall(here);
+					newBlock.insertSmall(here + TilePosition(0, 2));
+					newBlock.insertSmall(here + TilePosition(0, 4));
+					newBlock.insertMedium(here + TilePosition(0, 6));
+					newBlock.insertMedium(here + TilePosition(3, 6));
+					newBlock.insertLarge(here + TilePosition(2, 0));
+					newBlock.insertLarge(here + TilePosition(2, 3));
 				}
 			}
 			else
 			{
 				if (mirrorVertical)
 				{
-					prodBlocks[here].insertPylon(here + TilePosition(4, 2));
-					prodBlocks[here].insertPylon(here + TilePosition(4, 4));
-					prodBlocks[here].insertPylon(here + TilePosition(4, 6));
-					prodBlocks[here].insertMedium(here);
-					prodBlocks[here].insertMedium(here + TilePosition(3, 0));
-					prodBlocks[here].insertLarge(here + TilePosition(0, 2));
-					prodBlocks[here].insertLarge(here + TilePosition(0, 5));
+					newBlock.insertSmall(here + TilePosition(4, 2));
+					newBlock.insertSmall(here + TilePosition(4, 4));
+					newBlock.insertSmall(here + TilePosition(4, 6));
+					newBlock.insertMedium(here);
+					newBlock.insertMedium(here + TilePosition(3, 0));
+					newBlock.insertLarge(here + TilePosition(0, 2));
+					newBlock.insertLarge(here + TilePosition(0, 5));
 				}
 				else
 				{
-					prodBlocks[here].insertPylon(here + TilePosition(4, 0));
-					prodBlocks[here].insertPylon(here + TilePosition(4, 2));
-					prodBlocks[here].insertPylon(here + TilePosition(4, 4));
-					prodBlocks[here].insertMedium(here + TilePosition(0, 6));
-					prodBlocks[here].insertMedium(here + TilePosition(3, 6));
-					prodBlocks[here].insertLarge(here);
-					prodBlocks[here].insertLarge(here + TilePosition(0, 3));
+					newBlock.insertSmall(here + TilePosition(4, 0));
+					newBlock.insertSmall(here + TilePosition(4, 2));
+					newBlock.insertSmall(here + TilePosition(4, 4));
+					newBlock.insertMedium(here + TilePosition(0, 6));
+					newBlock.insertMedium(here + TilePosition(3, 6));
+					newBlock.insertLarge(here);
+					newBlock.insertLarge(here + TilePosition(0, 3));
 				}
 			}
+			blocks.push_back(newBlock);
 		}
 		else if (Broodwar->self()->getRace() == Races::Terran)
 		{
-			prodBlocks[here] = Block(6, 8, here);
-			prodBlocks[here].insertSmall(here + TilePosition(4, 1));
-			prodBlocks[here].insertSmall(here + TilePosition(4, 4));
-			prodBlocks[here].insertMedium(here + TilePosition(0, 6));
-			prodBlocks[here].insertMedium(here + TilePosition(3, 6));
-			prodBlocks[here].insertLarge(here);
-			prodBlocks[here].insertLarge(here + TilePosition(0, 3));
+			Block newBlock(6, 8, here);
+			newBlock.insertSmall(here + TilePosition(4, 1));
+			newBlock.insertSmall(here + TilePosition(4, 4));
+			newBlock.insertMedium(here + TilePosition(0, 6));
+			newBlock.insertMedium(here + TilePosition(3, 6));
+			newBlock.insertLarge(here);
+			newBlock.insertLarge(here + TilePosition(0, 3));
+			blocks.push_back(newBlock);
 		}
 	}
 
 	void Map::insertLargeBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
-		prodBlocks[here] = Block(12, 6, here);
-		prodBlocks[here].insertLarge(here);
-		prodBlocks[here].insertLarge(here + TilePosition(0, 3));
-		prodBlocks[here].insertLarge(here + TilePosition(8, 0));
-		prodBlocks[here].insertLarge(here + TilePosition(8, 3));
-		prodBlocks[here].insertPylon(here + TilePosition(4, 0));
-		prodBlocks[here].insertPylon(here + TilePosition(4, 2));
-		prodBlocks[here].insertPylon(here + TilePosition(4, 4));
-		prodBlocks[here].insertPylon(here + TilePosition(6, 0));
-		prodBlocks[here].insertPylon(here + TilePosition(6, 2));
-		prodBlocks[here].insertPylon(here + TilePosition(6, 4));
+		Block newBlock(12, 6, here);
+		newBlock.insertLarge(here);
+		newBlock.insertLarge(here + TilePosition(0, 3));
+		newBlock.insertLarge(here + TilePosition(8, 0));
+		newBlock.insertLarge(here + TilePosition(8, 3));
+		newBlock.insertSmall(here + TilePosition(4, 0));
+		newBlock.insertSmall(here + TilePosition(4, 2));
+		newBlock.insertSmall(here + TilePosition(4, 4));
+		newBlock.insertSmall(here + TilePosition(6, 0));
+		newBlock.insertSmall(here + TilePosition(6, 2));
+		newBlock.insertSmall(here + TilePosition(6, 4));
+		blocks.push_back(newBlock);
 	}
 
 	void Map::insertStartBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
@@ -193,16 +199,23 @@ namespace BWEB
 		// TODO -- mirror based on gas position	
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
-			prodBlocks[here] = Block(8, 5, here);
-			prodBlocks[here].insertLarge(here);
-			prodBlocks[here].insertLarge(here + TilePosition(4, 0));
-			prodBlocks[here].insertPylon(here + TilePosition(0, 3));
-			prodBlocks[here].insertMedium(here + TilePosition(2, 3));
-			prodBlocks[here].insertMedium(here + TilePosition(5, 3));
+			Block newBlock(8, 5, here);
+			newBlock.insertLarge(here);
+			newBlock.insertLarge(here + TilePosition(4, 0));
+			newBlock.insertSmall(here + TilePosition(0, 3));
+			newBlock.insertMedium(here + TilePosition(2, 3));
+			newBlock.insertMedium(here + TilePosition(5, 3));
+			blocks.push_back(newBlock);
 		}
 		else if (Broodwar->self()->getRace() == Races::Terran)
 		{
-			prodBlocks[here] = Block(8, 5, here);
+			Block newBlock(8, 5, here);
+			newBlock.insertLarge(here);
+			newBlock.insertLarge(here + TilePosition(4, 0));
+			newBlock.insertSmall(here + TilePosition(0, 3));
+			newBlock.insertMedium(here + TilePosition(2, 3));
+			newBlock.insertMedium(here + TilePosition(5, 3));
+			blocks.push_back(newBlock);
 		}
 	}
 }

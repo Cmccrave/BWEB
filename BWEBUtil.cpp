@@ -2,13 +2,13 @@
 
 namespace BWEB
 {
-	bool BWEBUtil::overlapsBases(TilePosition here)
+	bool BWEBUtil::overlapsStations(TilePosition here)
 	{
-		for (auto &base : BWEB::Map::Instance().Bases())
+		for (auto &station : BWEB::Map::Instance().Stations())
 		{
-			TilePosition tile = base.BWEMBase()->Location();
+			TilePosition tile = station.BWEMBase()->Location();
 			if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 3) return true;
-			for (auto defense : base.DefenseLocations())
+			for (auto &defense : station.DefenseLocations())
 				if (here.x >= defense.x && here.x < defense.x + 2 && here.y >= defense.y && here.y < defense.y + 2) return true;
 		}
 		return false;
@@ -16,18 +16,17 @@ namespace BWEB
 
 	bool BWEBUtil::overlapsBlocks(TilePosition here)
 	{
-		for (auto &b : BWEB::Map::Instance().Production())
+		for (auto &block : BWEB::Map::Instance().Blocks())
 		{
-			Block& block = b.second;
-			if (here.x >= block.tile().x && here.x < block.tile().x + block.width() && here.y >= block.tile().y && here.y < block.tile().y + block.height()) return true;
+			if (here.x >= block.Location().x && here.x < block.Location().x + block.width() && here.y >= block.Location().y && here.y < block.Location().y + block.height()) return true;
 		}
 		return false;
 	}
 
 	bool BWEBUtil::overlapsMining(TilePosition here)
 	{
-		for (auto &base : BWEB::Map::Instance().Bases())
-			if (here.getDistance(base.ResourceCenter()) < 5) return true;
+		for (auto &station : BWEB::Map::Instance().Stations())
+			if (here.getDistance(station.ResourceCenter()) < 5) return true;
 		return false;
 	}
 

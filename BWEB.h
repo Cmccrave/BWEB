@@ -2,7 +2,7 @@
 #pragma warning(disable : 4351)
 #include <BWAPI.h>
 #include "..\BWEM\bwem.h"
-#include "Base.h"
+#include "Station.h"
 #include "Block.h"
 #include "Wall.h"
 #include "BWEBUtil.h"
@@ -14,7 +14,7 @@ namespace BWEB
 
 	class Block;
 	class Wall;
-	class Base;
+	class Station;
 	class Map
 	{
 	private:
@@ -22,17 +22,18 @@ namespace BWEB
 		map<BWEM::Area const *, Wall> areaWalls;
 		BWEM::Area const * naturalArea;
 		BWEM::Area const * mainArea;
-		map<TilePosition, Block> expoBlocks, prodBlocks, techBlocks;
-		set<TilePosition> smallPosition, mediumPosition, largePosition, expoPosition, sDefPosition, mDefPosition, resourceCenter;
+		
+		set<TilePosition> smallPosition, mediumPosition, largePosition, resourceCenter;
 		Position pStart;
 		TilePosition tStart;
 
-		vector<Base> bases;
+		vector<Block> blocks;
+		vector<Station> stations;
 		set<TilePosition> returnValues;
 
 		void findMain(), findFirstChoke(), findSecondChoke(), findNatural(), findStartBlocks(), findBlocks(), findWalls(), findLargeWall(), findMediumWall(), findSmallWall(), findWallDefenses(), findPath();
 
-		void findBases();
+		void findStations();
 
 		int reservePathHome[256][256] = {};
 		bool canAddBlock(TilePosition, int, int, bool);
@@ -52,10 +53,12 @@ namespace BWEB
 		TilePosition getBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
 
 		// Returns the closest build position possible for a building designed for defenses, with optional parameters of what tiles are used already and where you want to build closest to
-		TilePosition getDefBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
+		// Commenting this out because Im not using def positions anymore, stations instead.
+		// TilePosition getDefBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
 
 		// Returns the closest build position possible, with optional parameters of what tiles are used already and where you want to build closest to
-		TilePosition getAnyBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
+		// Commenting this out because Im not using def positions anymore, stations instead.
+		// TilePosition getAnyBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
 
 		// Returns all the walls -- CURRENTLY ONLY NATURAL WALL, use at own risk if not using the BWEB natural area
 		map<BWEM::Area const *, Wall> getWalls() { return areaWalls; }
@@ -76,10 +79,10 @@ namespace BWEB
 		double getGroundDistance(Position, Position);
 
 		// Returns all the production blocks and the TilePosition of their top left corner
-		map<TilePosition, Block>& Production() { return prodBlocks; }
+		vector<Block>& Blocks() { return blocks; }
 
 		// Returns all the BWEB bases with pointers to BWEM bases
-		vector<Base>& Bases() { return bases; }
+		vector<Station>& Stations() { return stations; }
 		
 		TilePosition getFirstChoke() { return firstChoke; }
 		TilePosition getSecondChoke() { return secondChoke; }

@@ -3,6 +3,9 @@
 
 namespace BWEB
 {	
+	using namespace BWAPI;
+	using namespace std;
+
 	class Wall
 	{
 		TilePosition wallSmall, wallMedium, wallLarge;

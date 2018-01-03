@@ -4,30 +4,21 @@ namespace BWEB
 {
 	void Map::draw()
 	{
-		for (auto &b : prodBlocks)
+		for (auto &block : blocks)
 		{
-			Block block = b.second;
-			for (auto tile : block.getPylon())
+			for (auto tile : block.SmallTiles())
 				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
-			for (auto tile : block.getSmall())
-				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
-			for (auto tile : block.getMedium())
+			for (auto tile : block.MediumTiles())
 				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
-			for (auto tile : block.getLarge())
+			for (auto tile : block.LargeTiles())
 				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
 		}
 
-		for (auto &b : expoBlocks)
+		for (auto &station : stations)
 		{
-			Block block = b.second;
-			for (auto tile : block.getPylon())
+			for (auto tile : station.DefenseLocations())
 				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
-			for (auto tile : block.getSmall())
-				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
-			for (auto tile : block.getMedium())
-				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
-			for (auto tile : block.getLarge())
-				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
+			Broodwar->drawBoxMap(Position(station.BWEMBase()->Location()), Position(station.BWEMBase()->Location() + TilePosition(4, 3)), Broodwar->self()->getColor());
 		}
 
 		for (auto &w : areaWalls)
@@ -48,12 +39,12 @@ namespace BWEB
 		// TODO:	
 		// - Simplify accessor functions
 		// - Blocks for areas other than main
-		// - Check why path isnt working like McRave did
 
 		findMain();
 		findNatural();
 		findFirstChoke();
 		findSecondChoke();
+		findStations();
 		findStartBlocks();
 		findWalls();
 		findBlocks();
@@ -64,13 +55,12 @@ namespace BWEB
 		double distBest = DBL_MAX;
 		TilePosition tileBest = TilePositions::Invalid;
 
-		for (auto b : prodBlocks)
+		for (auto &block : blocks)
 		{
-			Block block = b.second;
 			set<TilePosition> placements;
-			if (building.tileWidth() == 4) placements = block.getLarge();
-			else if (building.tileWidth() == 3) placements = block.getMedium();
-			else placements = block.getSmall();
+			if (building.tileWidth() == 4) placements = block.LargeTiles();
+			else if (building.tileWidth() == 3) placements = block.MediumTiles();
+			else placements = block.SmallTiles();
 			{
 				for (auto position : placements)
 				{
@@ -80,110 +70,82 @@ namespace BWEB
 				}
 			}
 		}
-
-		/*switch (building.tileWidth())
-		{
-		case 4:
-		for (auto &position : largePosition)
-		{
-		double distToPos = position.getDistance(searchCenter);
-		if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-		distBest = distToPos, tileBest = position;
-		}
-		break;
-		case 3:
-		for (auto &position : mediumPosition)
-		{
-		double distToPos = position.getDistance(searchCenter);
-		if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-		distBest = distToPos, tileBest = position;
-		}
-		break;
-		case 2:
-		for (auto &position : smallPosition)
-		{
-		double distToPos = position.getDistance(searchCenter);
-		if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-		distBest = distToPos, tileBest = position;
-		}
-		break;
-		}*/
 		return tileBest;
 	}
 
-	TilePosition Map::getDefBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
-	{
-		double distBest = DBL_MAX;
-		TilePosition tileBest = TilePositions::Invalid;
-		switch (building.tileWidth())
-		{
-		case 4:
-			break;
-		case 3:
-			for (auto &position : mDefPosition)
-			{
-				double distToPos = position.getDistance(searchCenter);
-				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-					distBest = distToPos, tileBest = position;
-			}
-			break;
-		case 2:
-			for (auto &position : sDefPosition)
-			{
-				double distToPos = position.getDistance(searchCenter);
-				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-					distBest = distToPos, tileBest = position;
-			}
-			break;
-		}
-		return tileBest;
-	}
+	//TilePosition Map::getDefBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
+	//{
+	//	double distBest = DBL_MAX;
+	//	TilePosition tileBest = TilePositions::Invalid;
+	//	switch (building.tileWidth())
+	//	{
+	//	case 4:
+	//		break;
+	//	case 3:
+	//		for (auto &position : mDefPosition)
+	//		{
+	//			double distToPos = position.getDistance(searchCenter);
+	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+	//				distBest = distToPos, tileBest = position;
+	//		}
+	//		break;
+	//	case 2:
+	//		for (auto &position : sDefPosition)
+	//		{
+	//			double distToPos = position.getDistance(searchCenter);
+	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+	//				distBest = distToPos, tileBest = position;
+	//		}
+	//		break;
+	//	}
+	//	return tileBest;
+	//}
 
-	TilePosition Map::getAnyBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
-	{
-		double distBest = DBL_MAX;
-		TilePosition tileBest = TilePositions::Invalid;
-		switch (building.tileWidth())
-		{
-		case 4:
-			for (auto &position : largePosition)
-			{
-				double distToPos = position.getDistance(searchCenter);
-				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-					distBest = distToPos, tileBest = position;
-			}
-			break;
-		case 3:
-			for (auto &position : mediumPosition)
-			{
-				double distToPos = position.getDistance(searchCenter);
-				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-					distBest = distToPos, tileBest = position;
-			}
-			for (auto &position : mDefPosition)
-			{
-				double distToPos = position.getDistance(searchCenter);
-				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-					distBest = distToPos, tileBest = position;
-			}
-			break;
-		case 2:
-			for (auto &position : smallPosition)
-			{
-				double distToPos = position.getDistance(searchCenter);
-				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-					distBest = distToPos, tileBest = position;
-			}
-			for (auto &position : sDefPosition)
-			{
-				double distToPos = position.getDistance(searchCenter);
-				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-					distBest = distToPos, tileBest = position;
-			}
-			break;
-		}
-		return tileBest;
-	}
+	//TilePosition Map::getAnyBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
+	//{
+	//	double distBest = DBL_MAX;
+	//	TilePosition tileBest = TilePositions::Invalid;
+	//	switch (building.tileWidth())
+	//	{
+	//	case 4:
+	//		for (auto &position : largePosition)
+	//		{
+	//			double distToPos = position.getDistance(searchCenter);
+	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+	//				distBest = distToPos, tileBest = position;
+	//		}
+	//		break;
+	//	case 3:
+	//		for (auto &position : mediumPosition)
+	//		{
+	//			double distToPos = position.getDistance(searchCenter);
+	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+	//				distBest = distToPos, tileBest = position;
+	//		}
+	//		for (auto &position : mDefPosition)
+	//		{
+	//			double distToPos = position.getDistance(searchCenter);
+	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+	//				distBest = distToPos, tileBest = position;
+	//		}
+	//		break;
+	//	case 2:
+	//		for (auto &position : smallPosition)
+	//		{
+	//			double distToPos = position.getDistance(searchCenter);
+	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+	//				distBest = distToPos, tileBest = position;
+	//		}
+	//		for (auto &position : sDefPosition)
+	//		{
+	//			double distToPos = position.getDistance(searchCenter);
+	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+	//				distBest = distToPos, tileBest = position;
+	//		}
+	//		break;
+	//	}
+	//	return tileBest;
+	//}
 
 	void Map::findMain()
 	{
@@ -226,6 +188,13 @@ namespace BWEB
 
 	void Map::findSecondChoke()
 	{
+		// Exception for maps with a natural behind the main
+		if (getGroundDistance(pStart, BWEM::Map::Instance().Center()) < getGroundDistance(Position(natural), BWEM::Map::Instance().Center()))
+		{
+			secondChoke = firstChoke;
+			return;
+		}
+
 		// Find area that shares the choke we need to defend
 		double distBest = DBL_MAX;
 		const BWEM::Area* second = nullptr;
