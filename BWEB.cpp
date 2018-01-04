@@ -39,6 +39,8 @@ namespace BWEB
 		// TODO:	
 		// - Simplify accessor functions
 		// - Blocks for areas other than main
+		// - Improve reservePath, fails on some FFE on non SSCAIT maps
+		// - Test goldrush again for overlapping egg
 
 		findMain();
 		findNatural();

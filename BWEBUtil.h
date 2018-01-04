@@ -14,6 +14,7 @@ namespace BWEB
 		bool overlapsNeutrals(TilePosition);
 		bool overlapsMining(TilePosition);
 		bool overlapsWalls(TilePosition);
+		bool overlapsAnything(TilePosition, int, int);
 		bool isWalkable(TilePosition);
 	};
 }

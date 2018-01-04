@@ -49,6 +49,12 @@ namespace BWEB
 			TilePosition tile = n->TopLeft();
 			if (here.x >= tile.x && here.x < tile.x + n->Type().tileWidth() && here.y >= tile.y && here.y < tile.y + n->Type().tileHeight()) return true;
 		}
+
+		for (auto &n : Broodwar->neutral()->getUnits())
+		{
+			TilePosition tile = n->getInitialTilePosition();
+			if (here.x >= tile.x && here.x < tile.x + n->getType().tileWidth() && here.y >= tile.y && here.y < tile.y + n->getType().tileHeight()) return true;
+		}
 		return false;
 	}
 
@@ -63,6 +69,19 @@ namespace BWEB
 			if (x >= wall.getSmallWall().x && x < wall.getSmallWall().x + 2 && y >= wall.getSmallWall().y && y < wall.getSmallWall().y + 2) return true;
 			if (x >= wall.getMediumWall().x && x < wall.getMediumWall().x + 3 && y >= wall.getMediumWall().y && y < wall.getMediumWall().y + 2) return true;
 			if (x >= wall.getLargeWall().x && x < wall.getLargeWall().x + 4 && y >= wall.getLargeWall().y && y < wall.getLargeWall().y + 3) return true;
+		}
+		return false;
+	}
+
+	bool BWEBUtil::overlapsAnything(TilePosition here, int width = 0, int height = 0)
+	{
+		for (int i = here.x; i < here.x + width; i++)
+		{
+			for (int j = here.y; j < here.y + height; j++)
+			{
+				if (!TilePosition(i, j).isValid()) continue;
+				if (overlapsBlocks(TilePosition(i, j)) || overlapsMining(TilePosition(i, j)) || overlapsNeutrals(TilePosition(i, j)) || overlapsStations(TilePosition(i, j)) || overlapsWalls(TilePosition(i, j))) return true;
+			}
 		}
 		return false;
 	}

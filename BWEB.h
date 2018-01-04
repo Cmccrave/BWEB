@@ -31,11 +31,13 @@ namespace BWEB
 		vector<Station> stations;
 		set<TilePosition> returnValues;
 
+		Station returnS;
+
 		void findMain(), findFirstChoke(), findSecondChoke(), findNatural(), findStartBlocks(), findBlocks(), findWalls(), findLargeWall(), findMediumWall(), findSmallWall(), findWallDefenses(), findPath();
 
 		void findStations();
 
-		int reservePathHome[256][256] = {};
+		int reservePath[256][256] = {};
 		bool canAddBlock(TilePosition, int, int, bool);
 		void insertSmallBlock(TilePosition, bool, bool);
 		void insertMediumBlock(TilePosition, bool, bool);
@@ -67,22 +69,26 @@ namespace BWEB
 		Wall getWall(BWEM::Area const* area);
 
 		// Returns the block at this TilePosition if it exists
-		Block getBlock(TilePosition here);
+		// Commenting this out because it probably will never be used, would need to know where the block is and if it exists before grabbing it
+		//Block getBlock(TilePosition here);
 
-		// Returns the area of the natural expansion
+		// Returns the BWEM Area of the natural expansion
 		BWEM::Area const * getNaturalArea() { return naturalArea; }
 
-		// Returns the area of the main
+		// Returns the BWEM Area of the main
 		BWEM::Area const * getMainArea() { return mainArea; }
 
 		// Returns the estimated ground distance from a Position to another Position
 		double getGroundDistance(Position, Position);
 
-		// Returns all the production blocks and the TilePosition of their top left corner
+		// Returns all the BWEB Blocks
 		vector<Block>& Blocks() { return blocks; }
 
-		// Returns all the BWEB bases with pointers to BWEM bases
+		// Returns all the BWEB Stations
 		vector<Station>& Stations() { return stations; }
+
+		// Returns the closest BWEB Station to the given TilePosition
+		Station getClosestStation(TilePosition);
 		
 		TilePosition getFirstChoke() { return firstChoke; }
 		TilePosition getSecondChoke() { return secondChoke; }

@@ -60,4 +60,16 @@ namespace BWEB
 		}
 		return returnValues;
 	}	
+
+	Station Map::getClosestStation(TilePosition here)
+	{		
+		double distBest = DBL_MAX;
+		for (auto &station : stations)
+		{
+			double dist = here.getDistance(station.BWEMBase()->Location());
+			if (dist < distBest)
+				distBest = dist, returnS = station;
+		}
+		return returnS;
+	}
 }
