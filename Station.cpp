@@ -4,7 +4,7 @@ namespace BWEB
 {
 	Station::Station(TilePosition newResourceCenter, set<TilePosition> newDefenses, const BWEM::Base* newBase)
 	{
-		resourceCenter = newResourceCenter;		
+		resourceCenter = newResourceCenter;
 		defenses = newDefenses;
 		base = newBase;
 	}
@@ -49,26 +49,26 @@ namespace BWEB
 		returnValues.clear();
 		if (mirrorVertical)
 		{
-			if (mirrorHorizontal) returnValues.insert({ here + TilePosition(4, 0), here + TilePosition(0, 3), here + TilePosition(4, 3) });		
-			else returnValues.insert({ here + TilePosition(-2, 3), here + TilePosition(-2, 0), here + TilePosition(2, 3) });		
+			if (mirrorHorizontal) returnValues.insert({ here + TilePosition(4, 0), here + TilePosition(0, 3), here + TilePosition(4, 3) });
+			else returnValues.insert({ here + TilePosition(-2, 3), here + TilePosition(-2, 0), here + TilePosition(2, 3) });
 		}
 		else
 		{
-			if (mirrorHorizontal) returnValues.insert({ here + TilePosition(4, -2), here + TilePosition(0, -2), here + TilePosition(4, 1) });			
-			else returnValues.insert({ here + TilePosition(-2, -2), here + TilePosition(2, -2), here + TilePosition(-2, 1) });			
+			if (mirrorHorizontal) returnValues.insert({ here + TilePosition(4, -2), here + TilePosition(0, -2), here + TilePosition(4, 1) });
+			else returnValues.insert({ here + TilePosition(-2, -2), here + TilePosition(2, -2), here + TilePosition(-2, 1) });
 		}
 		return returnValues;
-	}	
+	}
 
 	Station Map::getClosestStation(TilePosition here)
-	{		
-		double distBest = DBL_MAX;
-		for (auto &station : stations)
-		{
-			double dist = here.getDistance(station.BWEMBase()->Location());
-			if (dist < distBest)
-				distBest = dist, returnS = station;
-		}
-		return returnS;
+	{
+		//double distBest = DBL_MAX;
+		//for (auto &station : stations)
+		//{
+		//	double dist = here.getDistance(station.BWEMBase()->Location());
+		//	if (dist < distBest)
+		//		distBest = dist;
+		//	return station;
+		//}
 	}
 }

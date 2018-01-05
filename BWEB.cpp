@@ -31,6 +31,18 @@ namespace BWEB
 			for (auto tile : wall.getDefenses())
 				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
 		}
+
+		
+		for (int x = 0; x <= Broodwar->mapWidth(); x++)
+		{
+			for (int y = 0; y <= Broodwar->mapHeight(); y++)
+			{
+				if (reservePath[x][y] > 0)
+				{
+					Broodwar->drawCircleMap(Position(TilePosition(x, y)) + Position(16, 16), 4, Colors::Blue, true);
+				}
+			}
+		}
 	}
 
 	void Map::onStart()

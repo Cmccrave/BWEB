@@ -30,6 +30,7 @@ namespace BWEB
 
 		// Wall
 		void findWalls(), findLargeWall(), findMediumWall(), findSmallWall(), findWallDefenses(), findPath();
+		bool canPlaceHere(UnitType, TilePosition);
 		map<BWEM::Area const *, Wall> areaWalls;
 		int reservePath[256][256] = {};
 
@@ -43,7 +44,6 @@ namespace BWEB
 		// Station
 		void findStations();
 		vector<Station> stations;
-		Station returnS;
 		set<TilePosition>& stationDefenses(TilePosition, bool, bool);
 		set<TilePosition> returnValues;
 

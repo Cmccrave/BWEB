@@ -69,11 +69,14 @@ namespace BWEB
 			if (x >= wall.getSmallWall().x && x < wall.getSmallWall().x + 2 && y >= wall.getSmallWall().y && y < wall.getSmallWall().y + 2) return true;
 			if (x >= wall.getMediumWall().x && x < wall.getMediumWall().x + 3 && y >= wall.getMediumWall().y && y < wall.getMediumWall().y + 2) return true;
 			if (x >= wall.getLargeWall().x && x < wall.getLargeWall().x + 4 && y >= wall.getLargeWall().y && y < wall.getLargeWall().y + 3) return true;
+
+			for (auto &defense : wall.getDefenses())			
+				if (here.x >= defense.x && here.x < defense.x + 2 && here.y >= defense.y && here.y < defense.y + 2) return true;			
 		}
 		return false;
 	}
 
-	bool BWEBUtil::overlapsAnything(TilePosition here, int width = 0, int height = 0)
+	bool BWEBUtil::overlapsAnything(TilePosition here, int width, int height)
 	{
 		for (int i = here.x; i < here.x + width; i++)
 		{
@@ -98,5 +101,18 @@ namespace BWEB
 			}
 		}
 		return true;
+	}
+
+	bool BWEBUtil::insideNatArea(TilePosition here, int width, int height)
+	{
+		for (int i = here.x; i < here.x + width; i++)
+		{
+			for (int j = here.y; j < here.y + height; j++)
+			{
+				if (!TilePosition(i, j).isValid()) return false;
+				if (BWEM::Map::Instance().GetArea(TilePosition(i, j)) == BWEB::Map::Instance().getNaturalArea()) return true;
+			}
+		}
+		return false;
 	}
 }
