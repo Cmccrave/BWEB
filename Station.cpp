@@ -31,7 +31,6 @@ namespace BWEB
 
 				if (gasCenter.y > base.Center().y) v = true;
 				if (cnt > 0) genCenter = genCenter / cnt;
-				resourceCenter.insert(genCenter);
 
 				TilePosition here = base.Location();
 				set<Unit> minerals, geysers;
@@ -39,13 +38,13 @@ namespace BWEB
 				for (auto m : base.Minerals()) { minerals.insert(m->Unit()); }
 				for (auto g : base.Geysers()) { geysers.insert(g->Unit()); }
 
-				Station newStation(genCenter, baseDefenses(base.Location(), h, v), &base);
+				Station newStation(genCenter, stationDefenses(base.Location(), h, v), &base);
 				stations.push_back(newStation);
 			}
 		}
 	}
 
-	set<TilePosition>& Map::baseDefenses(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	set<TilePosition>& Map::stationDefenses(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
 		returnValues.clear();
 		if (mirrorVertical)

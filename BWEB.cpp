@@ -41,6 +41,8 @@ namespace BWEB
 		// - Blocks for areas other than main
 		// - Improve reservePath, fails on some FFE on non SSCAIT maps
 		// - Test goldrush again for overlapping egg
+		// - Add pylon grid
+		// - Add used tiles into BWEB rather than locally in McRave?
 
 		findMain();
 		findNatural();
@@ -63,91 +65,15 @@ namespace BWEB
 			if (building.tileWidth() == 4) placements = block.LargeTiles();
 			else if (building.tileWidth() == 3) placements = block.MediumTiles();
 			else placements = block.SmallTiles();
+			for (auto position : placements)
 			{
-				for (auto position : placements)
-				{
-					double distToPos = position.getDistance(searchCenter);
-					if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-						distBest = distToPos, tileBest = position;
-				}
+				double distToPos = position.getDistance(searchCenter);
+				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
+					distBest = distToPos, tileBest = position;
 			}
 		}
 		return tileBest;
 	}
-
-	//TilePosition Map::getDefBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
-	//{
-	//	double distBest = DBL_MAX;
-	//	TilePosition tileBest = TilePositions::Invalid;
-	//	switch (building.tileWidth())
-	//	{
-	//	case 4:
-	//		break;
-	//	case 3:
-	//		for (auto &position : mDefPosition)
-	//		{
-	//			double distToPos = position.getDistance(searchCenter);
-	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-	//				distBest = distToPos, tileBest = position;
-	//		}
-	//		break;
-	//	case 2:
-	//		for (auto &position : sDefPosition)
-	//		{
-	//			double distToPos = position.getDistance(searchCenter);
-	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-	//				distBest = distToPos, tileBest = position;
-	//		}
-	//		break;
-	//	}
-	//	return tileBest;
-	//}
-
-	//TilePosition Map::getAnyBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
-	//{
-	//	double distBest = DBL_MAX;
-	//	TilePosition tileBest = TilePositions::Invalid;
-	//	switch (building.tileWidth())
-	//	{
-	//	case 4:
-	//		for (auto &position : largePosition)
-	//		{
-	//			double distToPos = position.getDistance(searchCenter);
-	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-	//				distBest = distToPos, tileBest = position;
-	//		}
-	//		break;
-	//	case 3:
-	//		for (auto &position : mediumPosition)
-	//		{
-	//			double distToPos = position.getDistance(searchCenter);
-	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-	//				distBest = distToPos, tileBest = position;
-	//		}
-	//		for (auto &position : mDefPosition)
-	//		{
-	//			double distToPos = position.getDistance(searchCenter);
-	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-	//				distBest = distToPos, tileBest = position;
-	//		}
-	//		break;
-	//	case 2:
-	//		for (auto &position : smallPosition)
-	//		{
-	//			double distToPos = position.getDistance(searchCenter);
-	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-	//				distBest = distToPos, tileBest = position;
-	//		}
-	//		for (auto &position : sDefPosition)
-	//		{
-	//			double distToPos = position.getDistance(searchCenter);
-	//			if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-	//				distBest = distToPos, tileBest = position;
-	//		}
-	//		break;
-	//	}
-	//	return tileBest;
-	//}
 
 	void Map::findMain()
 	{
@@ -158,7 +84,6 @@ namespace BWEB
 
 	void Map::findNatural()
 	{
-		// Find natural area
 		double distBest = DBL_MAX;
 		for (auto &area : BWEM::Map::Instance().Areas())
 		{
@@ -178,7 +103,6 @@ namespace BWEB
 
 	void Map::findFirstChoke()
 	{
-		// Find the first choke
 		double distBest = DBL_MAX;
 		for (auto &choke : naturalArea->ChokePoints())
 		{
@@ -190,7 +114,7 @@ namespace BWEB
 
 	void Map::findSecondChoke()
 	{
-		// Exception for maps with a natural behind the main
+		// Exception for maps with a natural behind the main such as Crossing Fields
 		if (getGroundDistance(pStart, BWEM::Map::Instance().Center()) < getGroundDistance(Position(natural), BWEM::Map::Instance().Center()))
 		{
 			secondChoke = firstChoke;

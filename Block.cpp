@@ -196,7 +196,7 @@ namespace BWEB
 
 	void Map::insertStartBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
-		// TODO -- mirror based on gas position	
+		// TODO -- mirroring
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
 			Block newBlock(8, 5, here);
