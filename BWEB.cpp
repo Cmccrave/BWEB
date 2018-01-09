@@ -55,6 +55,7 @@ namespace BWEB
 		// - Test goldrush again for overlapping egg
 		// - Add pylon grid
 		// - Add used tiles into BWEB rather than locally in McRave?
+		// - Stricter definition on chokes
 
 		findMain();
 		findNatural();

@@ -27,6 +27,7 @@ namespace BWEB
 		void insertMediumBlock(TilePosition, bool, bool);
 		void insertLargeBlock(TilePosition, bool, bool);
 		void insertStartBlock(TilePosition, bool, bool);
+		void insertTinyBlock(TilePosition, bool, bool);
 
 		// Wall
 		void findWalls(), findLargeWall(), findMediumWall(), findSmallWall(), findWallDefenses(), findPath();

@@ -62,13 +62,18 @@ namespace BWEB
 
 	Station Map::getClosestStation(TilePosition here)
 	{
-		//double distBest = DBL_MAX;
-		//for (auto &station : stations)
-		//{
-		//	double dist = here.getDistance(station.BWEMBase()->Location());
-		//	if (dist < distBest)
-		//		distBest = dist;
-		//	return station;
-		//}
+		double distBest = DBL_MAX;
+		auto bestStation = stations.end();
+		for (auto station = stations.begin(); station != stations.end(); ++station)
+		{
+			double dist = here.getDistance(station->BWEMBase()->Location());
+
+			if (dist < distBest)
+			{
+				distBest = dist;
+				bestStation = station;
+			}
+		}
+		return *bestStation;
 	}
 }
