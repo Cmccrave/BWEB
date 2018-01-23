@@ -17,7 +17,7 @@ namespace BWEB
 				if (!tile.isValid()) continue;
 				Position blockCenter = Position(tile) + Position(128, 80);
 				double dist = blockCenter.getDistance(pStart) + blockCenter.getDistance(Position(firstChoke));
-				if (dist < distBest && canAddBlock(tile, 8, 5, true))
+				if (dist < distBest && ((Broodwar->self()->getRace() == Races::Protoss && canAddBlock(tile, 8, 5, true)) || (Broodwar->self()->getRace() == Races::Terran && canAddBlock(tile, 6, 5, true))))
 				{
 					best = tile;
 					distBest = dist;
@@ -25,6 +25,24 @@ namespace BWEB
 			}
 		}
 		insertStartBlock(best, false, false);
+
+		distBest = 0.0;
+		for (int x = tStart.x - 30; x <= tStart.x + 30; x++)
+		{
+			for (int y = tStart.y - 30; y <= tStart.y + 30; y++)
+			{
+				TilePosition tile = TilePosition(x, y);
+				if (!tile.isValid()) continue;
+				Position blockCenter = Position(tile) + Position(80, 64);
+				double dist = blockCenter.getDistance(Position(firstChoke));
+				if (dist > distBest && canAddBlock(tile, 5, 4, true))
+				{
+					best = tile;
+					distBest = dist;
+				}
+			}
+		}
+		insertTechBlock(best, false, false);
 	}
 
 	void Map::findBlocks()
@@ -55,7 +73,7 @@ namespace BWEB
 			if (Broodwar->self()->getRace() == Races::Protoss)
 			{
 				for (auto tile : tileSet)
-					if (canAddBlock(tile, 12, 6, false)) insertLargeBlock(tile, mirrorHorizontal, mirrorVertical);
+					if (canAddBlock(tile, 10, 6, false)) insertLargeBlock(tile, mirrorHorizontal, mirrorVertical);
 				for (auto tile : tileSet)
 					if (canAddBlock(tile, 6, 8, false)) insertMediumBlock(tile, mirrorHorizontal, mirrorVertical);
 				for (auto tile : tileSet)
@@ -73,11 +91,10 @@ namespace BWEB
 		}
 	}
 
-	bool Map::canAddBlock(TilePosition here, int width, int height, bool startBlock)
+	bool Map::canAddBlock(TilePosition here, int width, int height, bool lowReq)
 	{
-		int offset = startBlock ? 0 : 1;
+		int offset = lowReq ? 0 : 1;
 		// Check if a block of specified size would overlap any bases, resources or other blocks
-		// TODO - one check for overlaps anything at a certain width/height based on baseBlock value
 		for (int x = here.x - offset; x < here.x + width + offset; x++)
 		{
 			for (int y = here.y - offset; y < here.y + height + offset; y++)
@@ -92,7 +109,7 @@ namespace BWEB
 
 	void Map::insertTinyBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
-		Block newBlock(5, 2, here);
+		Block newBlock(5, 4, here);
 		newBlock.insertSmall(here);
 		newBlock.insertMedium(here + TilePosition(2, 0));
 		blocks.push_back(newBlock);
@@ -195,17 +212,14 @@ namespace BWEB
 
 	void Map::insertLargeBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
-		Block newBlock(12, 6, here);
+		Block newBlock(10, 6, here);
 		newBlock.insertLarge(here);
 		newBlock.insertLarge(here + TilePosition(0, 3));
-		newBlock.insertLarge(here + TilePosition(8, 0));
-		newBlock.insertLarge(here + TilePosition(8, 3));
+		newBlock.insertLarge(here + TilePosition(6, 0));
+		newBlock.insertLarge(here + TilePosition(6, 3));
 		newBlock.insertSmall(here + TilePosition(4, 0));
 		newBlock.insertSmall(here + TilePosition(4, 2));
 		newBlock.insertSmall(here + TilePosition(4, 4));
-		newBlock.insertSmall(here + TilePosition(6, 0));
-		newBlock.insertSmall(here + TilePosition(6, 2));
-		newBlock.insertSmall(here + TilePosition(6, 4));
 		blocks.push_back(newBlock);
 	}
 
@@ -224,12 +238,24 @@ namespace BWEB
 		}
 		else if (Broodwar->self()->getRace() == Races::Terran)
 		{
-			Block newBlock(8, 5, here);
-			newBlock.insertLarge(here);
-			newBlock.insertLarge(here + TilePosition(4, 0));
-			newBlock.insertSmall(here + TilePosition(0, 3));
-			newBlock.insertMedium(here + TilePosition(2, 3));
-			newBlock.insertMedium(here + TilePosition(5, 3));
+			Block newBlock(6, 5, here);
+			newBlock.insertLarge(here);			
+			newBlock.insertSmall(here + TilePosition(4, 1));
+			newBlock.insertMedium(here + TilePosition(0, 3));
+			newBlock.insertMedium(here + TilePosition(3, 3));
+			blocks.push_back(newBlock);
+		}
+	}
+
+	void Map::insertTechBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	{
+		if (Broodwar->self()->getRace() == Races::Protoss)
+		{
+			Block newBlock(5, 4, here);
+			newBlock.insertSmall(here);
+			newBlock.insertSmall(here + TilePosition(0, 2));
+			newBlock.insertMedium(here + TilePosition(2, 0));
+			newBlock.insertMedium(here + TilePosition(2, 2));
 			blocks.push_back(newBlock);
 		}
 	}

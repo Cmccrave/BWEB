@@ -13,6 +13,11 @@ namespace BWEB
 			for (auto tile : block.LargeTiles())
 				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
 		}
+		
+		//for (auto tile : chokeTiles)
+		//{
+		//	Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(1, 1)), Broodwar->self()->getColor());
+		//}
 
 		for (auto &station : stations)
 		{
@@ -27,12 +32,13 @@ namespace BWEB
 			Broodwar->drawBoxMap(Position(wall.getSmallWall()), Position(wall.getSmallWall()) + Position(64, 64), Broodwar->self()->getColor());
 			Broodwar->drawBoxMap(Position(wall.getMediumWall()), Position(wall.getMediumWall()) + Position(94, 64), Broodwar->self()->getColor());
 			Broodwar->drawBoxMap(Position(wall.getLargeWall()), Position(wall.getLargeWall()) + Position(128, 96), Broodwar->self()->getColor());
+			Broodwar->drawBoxMap(Position(wall.getDoor()), Position(wall.getDoor()) + Position(32, 32), Colors::Red);
 
 			for (auto tile : wall.getDefenses())
 				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
 		}
 
-		
+
 		for (int x = 0; x <= Broodwar->mapWidth(); x++)
 		{
 			for (int y = 0; y <= Broodwar->mapHeight(); y++)
@@ -41,6 +47,10 @@ namespace BWEB
 				{
 					Broodwar->drawCircleMap(Position(TilePosition(x, y)) + Position(16, 16), 4, Colors::Blue, true);
 				}
+				//if (usedTiles.find(TilePosition(x, y)) != usedTiles.end())
+				//{
+				//	Broodwar->drawCircleMap(Position(TilePosition(x, y)) + Position(16, 16), 4, Colors::Purple, true);
+				//}
 			}
 		}
 	}
@@ -48,13 +58,9 @@ namespace BWEB
 	void Map::onStart()
 	{
 		// For reference: https://imgur.com/a/I6IwH
-		// TODO:	
-		// - Simplify accessor functions
-		// - Blocks for areas other than main
+		// TODO:		
 		// - Improve reservePath, fails on some FFE on non SSCAIT maps
-		// - Test goldrush again for overlapping egg
 		// - Add pylon grid
-		// - Add used tiles into BWEB rather than locally in McRave?
 		// - Stricter definition on chokes
 
 		findMain();
@@ -67,7 +73,51 @@ namespace BWEB
 		findBlocks();
 	}
 
-	TilePosition Map::getBuildPosition(UnitType building, const set<TilePosition> *usedTiles, TilePosition searchCenter)
+	void Map::onUnitDiscover(Unit unit)
+	{
+		if (!unit || !unit->exists() || !unit->getType().isBuilding() || unit->isFlying()) return;
+		if (unit->getType() == UnitTypes::Resource_Vespene_Geyser) return;
+		TilePosition here = unit->getTilePosition();
+		UnitType building = unit->getType();
+		for (int x = here.x; x < here.x + building.tileWidth(); x++)
+		{
+			for (int y = here.y; y < here.y + building.tileHeight(); y++)
+			{
+				if (!TilePosition(x, y).isValid()) continue;
+				usedTiles.insert(TilePosition(x, y));
+			}
+		}
+	}
+
+	void Map::onUnitDestroy(Unit unit)
+	{
+		if (!unit || !unit->getType().isBuilding() || unit->isFlying()) return;
+		TilePosition here = unit->getTilePosition();
+		UnitType building = unit->getType();
+		for (int x = here.x; x < here.x + building.tileWidth(); x++)
+		{
+			for (int y = here.y; y < here.y + building.tileHeight(); y++)
+			{
+				if (!TilePosition(x, y).isValid()) continue;
+				usedTiles.erase(TilePosition(x, y));
+			}
+		}
+	}
+
+	bool Map::buildingFits(TilePosition here, UnitType building, const set<TilePosition>& reservedTiles)
+	{
+		for (int x = here.x; x < here.x + building.tileWidth(); x++)
+		{
+			for (int y = here.y; y < here.y + building.tileHeight(); y++)
+			{
+				if (!TilePosition(x, y).isValid()) return false;
+				if (reservedTiles.find(TilePosition(x, y)) != reservedTiles.end() || usedTiles.find(TilePosition(x, y)) != usedTiles.end()) return false;
+			}
+		}
+		return true;
+	}
+
+	TilePosition Map::getBuildPosition(UnitType building, const set<TilePosition>& reservedTiles, TilePosition searchCenter)
 	{
 		double distBest = DBL_MAX;
 		TilePosition tileBest = TilePositions::Invalid;
@@ -78,11 +128,11 @@ namespace BWEB
 			if (building.tileWidth() == 4) placements = block.LargeTiles();
 			else if (building.tileWidth() == 3) placements = block.MediumTiles();
 			else placements = block.SmallTiles();
-			for (auto position : placements)
+			for (auto tile : placements)
 			{
-				double distToPos = position.getDistance(searchCenter);
-				if (distToPos < distBest && usedTiles->find(position) == usedTiles->end())
-					distBest = distToPos, tileBest = position;
+				double distToPos = tile.getDistance(searchCenter);
+				if (distToPos < distBest && buildingFits(tile, building, reservedTiles))
+					distBest = distToPos, tileBest = tile;
 			}
 		}
 		return tileBest;
@@ -150,10 +200,11 @@ namespace BWEB
 		for (auto &choke : naturalArea->ChokePoints())
 		{
 			if (TilePosition(choke->Center()) == firstChoke) continue;
+			if (choke->Blocked() || choke->Geometry().size() <= 3) continue;
 			if (choke->GetAreas().first != second && choke->GetAreas().second != second) continue;
 			double dist = Position(choke->Center()).getDistance(Position(Broodwar->self()->getStartLocation()));
 			if (dist < distBest)
-				secondChoke = TilePosition(choke->Center()), distBest = dist;
+				secondChoke = TilePosition(choke->Center()), naturalChoke = choke, distBest = dist;
 		}
 	}
 

@@ -97,7 +97,8 @@ namespace BWEB
 			for (int y = start.y; y < start.y + 4; y++)
 			{
 				if (!WalkPosition(x, y).isValid()) return false;
-				if (!BWEM::Map::Instance().GetMiniTile(WalkPosition(x, y)).Walkable()) return false;
+			//	if (!BWEM::Map::Instance().GetMiniTile(WalkPosition(x, y)).Walkable()) return false;
+				if (!Broodwar->isWalkable(WalkPosition(x, y))) return false;
 			}
 		}
 		return true;

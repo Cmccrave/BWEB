@@ -60,7 +60,7 @@ namespace BWEB
 		return returnValues;
 	}
 
-	Station Map::getClosestStation(TilePosition here)
+	const Station& Map::getClosestStation(TilePosition here) const
 	{
 		double distBest = DBL_MAX;
 		auto bestStation = stations.end();

@@ -8,8 +8,8 @@ namespace BWEB
 
 	class Wall
 	{
-		TilePosition wallSmall, wallMedium, wallLarge;
-		set<TilePosition> defenses;		
+		TilePosition wallSmall, wallMedium, wallLarge, wallDoor;
+		set<TilePosition> defenses;
 	public:
 		Wall() { };
 		Wall(TilePosition, TilePosition, TilePosition, set<TilePosition>);
@@ -26,9 +26,13 @@ namespace BWEB
 		// Returns the defense locations associated with this Wall
 		const set<TilePosition> getDefenses() { return defenses; }
 
+		// Returns the TilePosition belonging to the position where a melee unit should stand to fill the gap of the wall
+		const TilePosition getDoor() { return wallDoor; }
+
 		void setSmallWall(TilePosition here) { wallSmall = here; }
 		void setMediumWall(TilePosition here) { wallMedium = here; }
 		void setLargeWall(TilePosition here) { wallLarge = here; }
 		void insertDefense(TilePosition here) { defenses.insert(here); }
+		void setWallDoor(TilePosition here) { wallDoor = here; }
 	};	
 }
