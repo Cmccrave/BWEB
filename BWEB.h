@@ -1,74 +1,108 @@
 #pragma once
+#pragma warning(disable : 4351)
 #include <BWAPI.h>
 #include "..\BWEM\bwem.h"
+#include "Station.h"
 #include "Block.h"
 #include "Wall.h"
 #include "BWEBUtil.h"
 
-using namespace BWAPI;
-using namespace BWEM;
-using namespace std;
-
-class BWEBClass
+namespace BWEB
 {
-	set<TilePosition> smallPosition, mediumPosition, largePosition, expoPosition, sDefPosition, mDefPosition;
-	set<TilePosition> resourceCenter;
-	TilePosition firstChoke, natural, secondChoke;
-	map<Area const *, Wall> walls;
-	map<TilePosition, Block> blocks;
-	Area const * naturalArea;
-	Area const * mainArea;
-	bool canAddBlock(TilePosition, int, int, bool);	
-	void insertSmallBlock(TilePosition, bool, bool);
-	void insertMediumBlock(TilePosition, bool, bool);
-	void insertLargeBlock(TilePosition, bool, bool);
-	void insertStartBlock(TilePosition, bool, bool);
-	void findFirstChoke();
-	void findSecondChoke();
-	void findNatural();
-	void findWalls();
-	static BWEBClass* bInstance;
-public:
-	void draw();
-	void onStart();
-	static BWEBClass &Instance();
+	using namespace BWAPI;
+	using namespace std;
 
-	// Returns the closest build position possible for a building designed for anything except defenses, with optional parameters of what tiles are used already and where you want to build closest to
-	TilePosition getBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
+	class Block;
+	class Wall;
+	class Station;
+	class Map
+	{
+	private:
 
-	// Returns the closest build position possible for a building designed for defenses, with optional parameters of what tiles are used already and where you want to build closest to
-	TilePosition getDefBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
+		// Blocks
+		void findStartBlocks(), findBlocks();
+		vector<Block> blocks;
+		bool canAddBlock(TilePosition, int, int, bool);
+		void insertSmallBlock(TilePosition, bool, bool);
+		void insertMediumBlock(TilePosition, bool, bool);
+		void insertLargeBlock(TilePosition, bool, bool);		
+		void insertTinyBlock(TilePosition, bool, bool);
+		void insertStartBlock(TilePosition, bool, bool);
+		void insertTechBlock(TilePosition, bool, bool);
 
-	// Returns the closest build position possible, with optional parameters of what tiles are used already and where you want to build closest to
-	TilePosition getAnyBuildPosition(UnitType, const set<TilePosition>* = nullptr, TilePosition = Broodwar->self()->getStartLocation());
+		// Wall
+		void findWalls(), findLargeWall(), findMediumWall(), findSmallWall(), findWallDefenses(), findPath();
+		bool canPlaceHere(UnitType, TilePosition);
+		map<BWEM::Area const *, Wall> areaWalls;
+		int reservePath[256][256] = {};
+		int enemyPath[256][256] = {};
+		int overlapsChoke(UnitType, TilePosition);
+		set<TilePosition> chokeTiles;
 
-	// Returns all the blocks and the TilePosition of their top left corner
-	map<TilePosition, Block>& getBlocks() { return blocks; }
+		// Map
+		void findMain(), findFirstChoke(), findSecondChoke(), findNatural();
+		TilePosition tStart, firstChoke, natural, secondChoke;
+		set<TilePosition> usedTiles;
+		BWEM::Area const * naturalArea;
+		BWEM::Area const * mainArea;
+		BWEM::ChokePoint const * naturalChoke;
+		Position pStart;
+		bool buildingFits(TilePosition, UnitType, const set<TilePosition>& = {});
 
-	// Returns all the walls -- CURRENTLY ONLY NATURAL WALL, use at own risk if not using the BWEB natural area
-	map<Area const *, Wall> getWalls() { return walls; }
+		// Station
+		void findStations();
+		vector<const Station> stations;
+		set<TilePosition>& stationDefenses(TilePosition, bool, bool);
+		set<TilePosition> returnValues;
 
-	// Returns the block at this TilePosition if it exists
-	Block getBlock(TilePosition here);
+		// General
+		static Map* BWEBInstance;
 
-	// Returns the wall for this area if it exists -- CURRENTLY ONLY NATURAL WALL, use at own risk if not using the BWEB natural area
-	Wall getWall(Area const* area);
+	public:
+		void draw(), onStart(), onUnitDiscover(Unit), onUnitDestroy(Unit);
+		static Map &Instance();
 
-	// Returns the area of the natural expansion
-	Area const * getNaturalArea() { return naturalArea; }
+		// Returns the closest build position possible for a building, with optional parameters of what tiles are used already and where you want to build closest to
+		TilePosition getBuildPosition(UnitType, const set<TilePosition>& = {}, TilePosition = Broodwar->self()->getStartLocation());
 
-	// Returns the estimated ground distance from a Position to another Position
-	int getGroundDistance(Position, Position);
+		// Returns the closest build position possible for a defense building, with optional parameters of what tiles are used already and where you want to build closest to
+		TilePosition getDefBuildPosition(UnitType, const set<TilePosition>& = {}, TilePosition = Broodwar->self()->getStartLocation());
 
-	set<TilePosition> getSmallPosition() { return smallPosition; }
-	set<TilePosition> getMediumPosition() { return mediumPosition; }
-	set<TilePosition> getLargePosition() { return largePosition; }
-	set<TilePosition> getExpoPosition() { return expoPosition; }
-	set<TilePosition> getSDefPosition() { return sDefPosition; }
-	set<TilePosition> getMDefPosition() { return mDefPosition; }
-	set<TilePosition> getResourceCenter() { return resourceCenter; }
+		// Returns all the walls -- CURRENTLY ONLY NATURAL WALL, use at own risk if not using the BWEB natural area
+		map<BWEM::Area const *, Wall> getWalls() { return areaWalls; }
 
-	TilePosition getFirstChoke() { return firstChoke; }
-	TilePosition getSecondChoke() { return secondChoke; }
-	TilePosition getNatural() { return natural; }
-};
+		// Returns the wall for this area if it exists -- CURRENTLY ONLY NATURAL WALL, use at own risk if not using the BWEB natural area
+		Wall getWall(BWEM::Area const* area);
+
+		// Returns the BWEM Area of the natural expansion
+		BWEM::Area const * getNaturalArea() { return naturalArea; }
+
+		// Returns the BWEM Area of the main
+		BWEM::Area const * getMainArea() { return mainArea; }
+
+		// Returns the estimated ground distance from a Position to another Position
+		double getGroundDistance(Position, Position);
+
+		// Returns all the BWEB Blocks
+		vector<Block>& Blocks() { return blocks; }
+
+		// Returns all the BWEB Stations
+		vector<const Station>& Stations() { return stations; }
+
+		// Returns the closest BWEB Station to the given TilePosition
+		const Station& getClosestStation(TilePosition) const;
+
+		// Returns the TilePosition of the first chokepoint
+		TilePosition getFirstChoke() { return firstChoke; }
+
+		// Returns the TilePosition of the second chokepoint
+		TilePosition getSecondChoke() { return secondChoke; }
+
+		// Returns the TilePosition of the natural expansion
+		TilePosition getNatural() { return natural; }
+
+		// Returns the set of used TilePositions
+		set<TilePosition>& getUsedTiles() { return usedTiles; }
+	};
+
+}
