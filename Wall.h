@@ -8,31 +8,29 @@ namespace BWEB
 
 	class Wall
 	{
-		TilePosition wallSmall, wallMedium, wallLarge, wallDoor;
-		set<TilePosition> defenses;
+		TilePosition wallDoor;
+		set<TilePosition> defenses, small, medium, large;
+		
 	public:
-		Wall() { };
-		Wall(TilePosition, TilePosition, TilePosition, set<TilePosition>);
+		Wall() { wallDoor = TilePositions::Invalid; };
 
-		// Returns the small building associated with this Wall
-		const TilePosition getSmallWall() { return wallSmall; }
-
-		// Returns the medium building associated with this Wall
-		const TilePosition getMediumWall() { return wallMedium; }
-
-		// Returns the large building associated with this Wall
-		const TilePosition getLargeWall() { return wallLarge; }
-
+		void insertDefense(TilePosition here) { defenses.insert(here); }
+		void setWallDoor(TilePosition here) { wallDoor = here; }
+		void insertSegment(TilePosition, UnitType);
+		
 		// Returns the defense locations associated with this Wall
 		const set<TilePosition> getDefenses() { return defenses; }
 
 		// Returns the TilePosition belonging to the position where a melee unit should stand to fill the gap of the wall
 		const TilePosition getDoor() { return wallDoor; }
 
-		void setSmallWall(TilePosition here) { wallSmall = here; }
-		void setMediumWall(TilePosition here) { wallMedium = here; }
-		void setLargeWall(TilePosition here) { wallLarge = here; }
-		void insertDefense(TilePosition here) { defenses.insert(here); }
-		void setWallDoor(TilePosition here) { wallDoor = here; }
+		// Returns the TilePosition belonging to large UnitType buildings
+		const set<TilePosition>& largeTiles() { return large; }
+
+		// Returns the TilePosition belonging to medium UnitType buildings
+		const set<TilePosition>& mediumTiles() { return medium; }
+
+		// Returns the TilePosition belonging to small UnitType buildings
+		const set<TilePosition>& smallTiles() { return small; }
 	};	
 }

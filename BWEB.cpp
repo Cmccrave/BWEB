@@ -2,74 +2,14 @@
 
 namespace BWEB
 {
-	void Map::draw()
-	{
-		for (auto &block : blocks)
-		{
-			for (auto tile : block.SmallTiles())
-				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
-			for (auto tile : block.MediumTiles())
-				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(3, 2)), Broodwar->self()->getColor());
-			for (auto tile : block.LargeTiles())
-				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(4, 3)), Broodwar->self()->getColor());
-		}
-		
-		//for (auto tile : chokeTiles)
-		//{
-		//	Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(1, 1)), Broodwar->self()->getColor());
-		//}
-
-		for (auto &station : stations)
-		{
-			for (auto tile : station.DefenseLocations())
-				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
-			Broodwar->drawBoxMap(Position(station.BWEMBase()->Location()), Position(station.BWEMBase()->Location() + TilePosition(4, 3)), Broodwar->self()->getColor());
-		}
-
-		for (auto &w : areaWalls)
-		{
-			Wall wall = w.second;
-			Broodwar->drawBoxMap(Position(wall.getSmallWall()), Position(wall.getSmallWall()) + Position(64, 64), Broodwar->self()->getColor());
-			Broodwar->drawBoxMap(Position(wall.getMediumWall()), Position(wall.getMediumWall()) + Position(94, 64), Broodwar->self()->getColor());
-			Broodwar->drawBoxMap(Position(wall.getLargeWall()), Position(wall.getLargeWall()) + Position(128, 96), Broodwar->self()->getColor());
-			Broodwar->drawBoxMap(Position(wall.getDoor()), Position(wall.getDoor()) + Position(32, 32), Colors::Red);
-
-			for (auto tile : wall.getDefenses())
-				Broodwar->drawBoxMap(Position(tile), Position(tile + TilePosition(2, 2)), Broodwar->self()->getColor());
-		}
-
-
-		for (int x = 0; x <= Broodwar->mapWidth(); x++)
-		{
-			for (int y = 0; y <= Broodwar->mapHeight(); y++)
-			{
-				if (reservePath[x][y] > 0)
-				{
-					Broodwar->drawCircleMap(Position(TilePosition(x, y)) + Position(16, 16), 4, Colors::Blue, true);
-				}
-				//if (usedTiles.find(TilePosition(x, y)) != usedTiles.end())
-				//{
-				//	Broodwar->drawCircleMap(Position(TilePosition(x, y)) + Position(16, 16), 4, Colors::Purple, true);
-				//}
-			}
-		}
-	}
-
 	void Map::onStart()
 	{
-		// For reference: https://imgur.com/a/I6IwH
-		// TODO:		
-		// - Improve reservePath, fails on some FFE on non SSCAIT maps
-		// - Add pylon grid
-		// - Stricter definition on chokes
-
 		findMain();
 		findNatural();
 		findFirstChoke();
 		findSecondChoke();
 		findStations();
 		findStartBlocks();
-		findWalls();
 		findBlocks();
 	}
 
@@ -206,6 +146,62 @@ namespace BWEB
 			if (dist < distBest)
 				secondChoke = TilePosition(choke->Center()), naturalChoke = choke, distBest = dist;
 		}
+
+		// Add the geometry of these tiles to a set
+		if (naturalChoke)
+		{
+			for (auto tile : naturalChoke->Geometry())			
+				chokeTiles.insert(TilePosition(tile));			
+		}
+	}
+
+	void Map::draw()
+	{
+		//for (auto &block : blocks)
+		//{
+		//	for (auto tile : block.SmallTiles())
+		//		Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
+		//	for (auto tile : block.MediumTiles())
+		//		Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(97, 65), Broodwar->self()->getColor());
+		//	for (auto tile : block.LargeTiles())
+		//		Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(129, 97), Broodwar->self()->getColor());
+		//}
+
+		//for (auto &station : stations)
+		//{
+		//	for (auto tile : station.DefenseLocations())
+		//		Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
+		//	Broodwar->drawBoxMap(Position(station.BWEMBase()->Location()), Position(station.BWEMBase()->Location()) + Position(129, 97), Broodwar->self()->getColor());
+		//}
+
+		for (auto &w : areaWalls)
+		{
+			Wall wall = w.second;
+			for (auto tile : wall.smallTiles())
+				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
+			for (auto tile : wall.mediumTiles())
+				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(97, 65), Broodwar->self()->getColor());
+			for (auto tile : wall.largeTiles())
+				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(129, 97), Broodwar->self()->getColor());
+
+			Broodwar->drawBoxMap(Position(wall.getDoor()), Position(wall.getDoor()) + Position(32, 32), Colors::Red);
+
+			for (auto tile : wall.getDefenses())
+				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
+		}
+
+		for (int x = 0; x <= Broodwar->mapWidth(); x++)
+		{
+			for (int y = 0; y <= Broodwar->mapHeight(); y++)
+			{
+				if (reservePath[x][y] > 0)
+				{
+					Broodwar->drawCircleMap(Position(TilePosition(x, y)) + Position(16, 16), 4, Colors::Blue, true);
+				}
+			}
+		}
+
+		Broodwar->drawCircleMap(Position(testTile), 16, Colors::Green, true);
 	}
 
 	double Map::getGroundDistance(Position start, Position end)
@@ -224,11 +220,11 @@ namespace BWEB
 		return dist += start.getDistance(end);
 	}
 
-	Wall Map::getWall(BWEM::Area const* area)
+	Wall* Map::getWall(BWEM::Area const* area)
 	{
 		if (areaWalls.find(area) != areaWalls.end())
-			return areaWalls[area];
-		return Wall();
+			return &areaWalls.at(area);
+		return nullptr;
 	}
 
 	Map* Map::BWEBInstance = nullptr;

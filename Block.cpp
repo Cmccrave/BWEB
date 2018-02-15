@@ -6,6 +6,8 @@ namespace BWEB
 	{
 		TilePosition tStart = Broodwar->self()->getStartLocation();
 		Position pStart = Position(tStart) + Position(64, 48);
+		bool h, v;
+		h = v = false;
 
 		TilePosition best;
 		double distBest = DBL_MAX;
@@ -21,10 +23,15 @@ namespace BWEB
 				{
 					best = tile;
 					distBest = dist;
+
+					if (blockCenter.x < pStart.x) h = true;
+					if (blockCenter.y < pStart.y) v = true;
 				}
+
+
 			}
 		}
-		insertStartBlock(best, false, false);
+		insertStartBlock(best, h, v);
 
 		distBest = 0.0;
 		for (int x = tStart.x - 30; x <= tStart.x + 30; x++)
@@ -32,7 +39,7 @@ namespace BWEB
 			for (int y = tStart.y - 30; y <= tStart.y + 30; y++)
 			{
 				TilePosition tile = TilePosition(x, y);
-				if (!tile.isValid()) continue;
+				if (!tile.isValid() || BWEM::Map::Instance().GetArea(tile) != mainArea) continue;
 				Position blockCenter = Position(tile) + Position(80, 64);
 				double dist = blockCenter.getDistance(Position(firstChoke));
 				if (dist > distBest && canAddBlock(tile, 5, 4, true))
@@ -69,15 +76,28 @@ namespace BWEB
 			bool mirrorHorizontal = false, mirrorVertical = false;
 			if (BWEM::Map::Instance().Center().x > pStart.x) mirrorHorizontal = true;
 			if (BWEM::Map::Instance().Center().y > pStart.y) mirrorVertical = true;
+			int i = 2;
 
 			if (Broodwar->self()->getRace() == Races::Protoss)
 			{
 				for (auto tile : tileSet)
-					if (canAddBlock(tile, 10, 6, false)) insertLargeBlock(tile, mirrorHorizontal, mirrorVertical);
+					if (canAddBlock(tile, 10, 6, false) && i < 12)
+					{
+						i += 4;
+						insertLargeBlock(tile, mirrorHorizontal, mirrorVertical);
+					}
 				for (auto tile : tileSet)
-					if (canAddBlock(tile, 6, 8, false)) insertMediumBlock(tile, mirrorHorizontal, mirrorVertical);
+					if (canAddBlock(tile, 6, 8, false) && i < 12)
+					{
+						i += 2;
+						insertMediumBlock(tile, mirrorHorizontal, mirrorVertical);
+					}
 				for (auto tile : tileSet)
-					if (canAddBlock(tile, 4, 5, false)) insertSmallBlock(tile, mirrorHorizontal, mirrorVertical);
+					if (canAddBlock(tile, 4, 5, false) && i < 12)
+					{
+						i += 1;
+						insertSmallBlock(tile, mirrorHorizontal, mirrorVertical);
+					}
 				for (auto tile : tileSet)
 					if (canAddBlock(tile, 5, 2, false)) insertTinyBlock(tile, mirrorHorizontal, mirrorVertical);
 			}
@@ -102,6 +122,7 @@ namespace BWEB
 				if (!TilePosition(x, y).isValid()) return false;
 				if (!BWEM::Map::Instance().GetTile(TilePosition(x, y)).Buildable()) return false;
 				if (BWEBUtil().overlapsAnything(TilePosition(x, y))) return false;
+				if (here.getDistance(secondChoke) < 4) return false;
 			}
 		}
 		return true;
@@ -228,18 +249,57 @@ namespace BWEB
 		// TODO -- mirroring
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
-			Block newBlock(8, 5, here);
-			newBlock.insertLarge(here);
-			newBlock.insertLarge(here + TilePosition(4, 0));
-			newBlock.insertSmall(here + TilePosition(0, 3));
-			newBlock.insertMedium(here + TilePosition(2, 3));
-			newBlock.insertMedium(here + TilePosition(5, 3));
-			blocks.push_back(newBlock);
+			if (mirrorHorizontal)
+			{
+				if (mirrorVertical)
+				{
+					Block newBlock(8, 5, here);
+					newBlock.insertLarge(here);
+					newBlock.insertLarge(here + TilePosition(4, 0));
+					newBlock.insertSmall(here + TilePosition(6, 3));
+					newBlock.insertMedium(here + TilePosition(0, 3));
+					newBlock.insertMedium(here + TilePosition(3, 3));
+					blocks.push_back(newBlock);
+				}
+				else
+				{
+					Block newBlock(8, 5, here);
+					newBlock.insertLarge(here + TilePosition(0, 2));
+					newBlock.insertLarge(here + TilePosition(4, 2));
+					newBlock.insertSmall(here + TilePosition(6, 0));
+					newBlock.insertMedium(here + TilePosition(0, 0));
+					newBlock.insertMedium(here + TilePosition(3, 0));
+					blocks.push_back(newBlock);					
+				}
+			}
+			else
+			{
+				if (mirrorVertical)
+				{
+					Block newBlock(8, 5, here);
+					newBlock.insertLarge(here);
+					newBlock.insertLarge(here + TilePosition(4, 0));
+					newBlock.insertSmall(here + TilePosition(0, 3));
+					newBlock.insertMedium(here + TilePosition(2, 3));
+					newBlock.insertMedium(here + TilePosition(5, 3));
+					blocks.push_back(newBlock);					
+				}
+				else
+				{
+					Block newBlock(8, 5, here);
+					newBlock.insertLarge(here + TilePosition(0, 2));
+					newBlock.insertLarge(here + TilePosition(4, 2));
+					newBlock.insertSmall(here + TilePosition(0, 0));
+					newBlock.insertMedium(here + TilePosition(2, 0));
+					newBlock.insertMedium(here + TilePosition(5, 0));
+					blocks.push_back(newBlock);					
+				}
+			}
 		}
 		else if (Broodwar->self()->getRace() == Races::Terran)
 		{
 			Block newBlock(6, 5, here);
-			newBlock.insertLarge(here);			
+			newBlock.insertLarge(here);
 			newBlock.insertSmall(here + TilePosition(4, 1));
 			newBlock.insertMedium(here + TilePosition(0, 3));
 			newBlock.insertMedium(here + TilePosition(3, 3));

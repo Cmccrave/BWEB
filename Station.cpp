@@ -2,7 +2,7 @@
 
 namespace BWEB
 {
-	Station::Station(TilePosition newResourceCenter, set<TilePosition> newDefenses, const BWEM::Base* newBase)
+	Station::Station(Position newResourceCenter, set<TilePosition> newDefenses, const BWEM::Base* newBase)
 	{
 		resourceCenter = newResourceCenter;
 		defenses = newDefenses;
@@ -16,21 +16,25 @@ namespace BWEB
 			for (auto &base : area.Bases())
 			{
 				bool h = false, v = false;
-				if (base.Center().x > BWEM::Map::Instance().Center().y) h = true;
-				TilePosition genCenter; Position gasCenter;
+
+				Position genCenter, sCenter;
 				int cnt = 0;
 				for (auto &mineral : base.Minerals())
-					genCenter += mineral->TopLeft(), cnt++;
+					genCenter += mineral->Pos(), cnt++;				
+
+				if (cnt > 0) sCenter = genCenter / cnt;
 
 				for (auto &gas : base.Geysers())
 				{
-					genCenter += gas->TopLeft();
+					sCenter = (sCenter + gas->Pos()) / 2;
+					genCenter += gas->Pos();
 					cnt++;
-					gasCenter = gas->Pos();
 				}
 
-				if (gasCenter.y > base.Center().y) v = true;
 				if (cnt > 0) genCenter = genCenter / cnt;
+
+				if (base.Center().x < sCenter.x) h = true;
+				if (base.Center().y < sCenter.y) v = true;
 
 				TilePosition here = base.Location();
 				set<Unit> minerals, geysers;
@@ -55,7 +59,7 @@ namespace BWEB
 		else
 		{
 			if (mirrorHorizontal) returnValues.insert({ here + TilePosition(4, -2), here + TilePosition(0, -2), here + TilePosition(4, 1) });
-			else returnValues.insert({ here + TilePosition(-2, -2), here + TilePosition(2, -2), here + TilePosition(-2, 1) });
+			else returnValues.insert({ here + TilePosition(-2, -2), here + TilePosition(2, -2), here + TilePosition(-2, 1) });			
 		}
 		return returnValues;
 	}

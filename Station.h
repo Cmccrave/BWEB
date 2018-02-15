@@ -10,13 +10,13 @@ namespace BWEB
 	{		
 		const BWEM::Base * base;
 		set<TilePosition> defenses;
-		TilePosition resourceCenter;	
+		Position resourceCenter;	
 		
 	public:
-		Station(TilePosition, set<TilePosition>, const BWEM::Base*);
+		Station(Position, set<TilePosition>, const BWEM::Base*);
 
 		// Returns the central position of the resources associated with this base including geysers
-		const TilePosition ResourceCenter() const { return resourceCenter; }
+		const Position ResourceCenter() const { return resourceCenter; }
 
 		// Returns the set of defense locations associated with this base
 		const set<TilePosition>& DefenseLocations() const { return defenses; }

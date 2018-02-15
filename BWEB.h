@@ -19,25 +19,28 @@ namespace BWEB
 	{
 	private:
 
+		TilePosition testTile;
+
 		// Blocks
 		void findStartBlocks(), findBlocks();
 		vector<Block> blocks;
 		bool canAddBlock(TilePosition, int, int, bool);
 		void insertSmallBlock(TilePosition, bool, bool);
 		void insertMediumBlock(TilePosition, bool, bool);
-		void insertLargeBlock(TilePosition, bool, bool);		
+		void insertLargeBlock(TilePosition, bool, bool);
 		void insertTinyBlock(TilePosition, bool, bool);
 		void insertStartBlock(TilePosition, bool, bool);
 		void insertTechBlock(TilePosition, bool, bool);
 
-		// Wall
-		void findWalls(), findLargeWall(), findMediumWall(), findSmallWall(), findWallDefenses(), findPath();
-		bool canPlaceHere(UnitType, TilePosition);
+		// Wall		
 		map<BWEM::Area const *, Wall> areaWalls;
 		int reservePath[256][256] = {};
 		int enemyPath[256][256] = {};
 		int overlapsChoke(UnitType, TilePosition);
 		set<TilePosition> chokeTiles;
+		bool wallTight(UnitType, TilePosition, bool);
+		bool canPlaceHere(UnitType, TilePosition);
+		bool powersWall(TilePosition);
 
 		// Map
 		void findMain(), findFirstChoke(), findSecondChoke(), findNatural();
@@ -72,7 +75,7 @@ namespace BWEB
 		map<BWEM::Area const *, Wall> getWalls() { return areaWalls; }
 
 		// Returns the wall for this area if it exists -- CURRENTLY ONLY NATURAL WALL, use at own risk if not using the BWEB natural area
-		Wall getWall(BWEM::Area const* area);
+		Wall* getWall(BWEM::Area const* area);
 
 		// Returns the BWEM Area of the natural expansion
 		BWEM::Area const * getNaturalArea() { return naturalArea; }
@@ -103,6 +106,15 @@ namespace BWEB
 
 		// Returns the set of used TilePositions
 		set<TilePosition>& getUsedTiles() { return usedTiles; }
+
+		// Given a UnitType, this will store a position for this UnitType at your natural as a piece of the wall
+		void findWallSegment(UnitType, bool = true);
+
+		// This will store up to 6 small positions for defenses for a wall at your natural
+		void findWallDefenses(UnitType, int = 1);
+
+		// This will create a path that walls cannot be built on, connecting your main to your natural. Call it only once.
+		void findPath();
 	};
 
 }
