@@ -68,6 +68,14 @@ namespace BWEB
 				}
 			}
 		}
+		
+		//for (auto area : tilesByArea)
+		//{
+		//	map<TilePosition, double> tilesByDistance;
+		//	for (auto tile : area.second)
+		//	{
+		//	}
+		//}
 
 		for (auto area : tilesByArea)
 		{
@@ -87,13 +95,13 @@ namespace BWEB
 						insertLargeBlock(tile, mirrorHorizontal, mirrorVertical);
 					}
 				for (auto tile : tileSet)
-					if (canAddBlock(tile, 6, 8, false) && i < 12)
+					if (canAddBlock(tile, 6, 8, false) && i < 16)
 					{
 						i += 2;
 						insertMediumBlock(tile, mirrorHorizontal, mirrorVertical);
 					}
 				for (auto tile : tileSet)
-					if (canAddBlock(tile, 4, 5, false) && i < 12)
+					if (canAddBlock(tile, 4, 5, false) && i < 18)
 					{
 						i += 1;
 						insertSmallBlock(tile, mirrorHorizontal, mirrorVertical);
@@ -317,6 +325,19 @@ namespace BWEB
 			newBlock.insertMedium(here + TilePosition(2, 0));
 			newBlock.insertMedium(here + TilePosition(2, 2));
 			blocks.push_back(newBlock);
+		}
+	}
+
+	void Map::eraseBlock(TilePosition here)
+	{
+		for (auto it = blocks.begin(); it != blocks.end(); it++)
+		{
+			auto & block = *it;
+			if (here.x >= block.Location().x && here.x < block.Location().x + block.width() && here.y >= block.Location().y && here.y < block.Location().y + block.height())
+			{
+				blocks.erase(it);
+				return;
+			}
 		}
 	}
 }

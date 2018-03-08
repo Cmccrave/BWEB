@@ -44,7 +44,7 @@ namespace BWEB
 			if (current->coordinates == target) break;
 
 			closedSet.insert(current);
-			openSet.erase(std::find(openSet.begin(), openSet.end(), current));
+			openSet.erase(find(openSet.begin(), openSet.end(), current));
 
 			for (uint i = 0; i < directions; ++i)
 			{
@@ -52,13 +52,10 @@ namespace BWEB
 
 				// Detection collision or skip tiles already added to closed set
 				if (!tile.isValid() || BWEB::BWEBUtil().overlapsBlocks(tile) || BWEB::BWEBUtil().overlapsStations(tile) || BWEB::BWEBUtil().overlapsNeutrals(tile) || BWEB::BWEBUtil().overlapsWalls(tile) || !BWEB::BWEBUtil().isWalkable(tile) || findNodeOnList(closedSet, tile)) continue;
+				if (BWEB::Map::Instance().overlapsCurrentWall(tile) != UnitTypes::None) continue;
 
 				// Cost function?
-				uint totalCost = current->G + ((i < 4) ? 10 : 14) + (500 * (current->direction != direction[i])) + (BWEM::Map::Instance().GetTile(tile).MinAltitude());
-
-				//if (BWEM::Map::Instance().GetArea(tile) != BWEB::Map::Instance().getMainArea() && BWEM::Map::Instance().GetArea(tile) != BWEB::Map::Instance().getNaturalArea())
-				//	totalCost = current->G + ((i < 4) ? 10 : 14) + (3 * (current->direction == direction[i]));
-
+				uint totalCost = current->G + ((i < 4) ? 10 : 14) /*+ log(BWEM::Map::Instance().GetTile(tile).MinAltitude())*/;
 				// Checks if the node has been made already, if not it creates one
 				Node *successor = findNodeOnList(openSet, tile);
 				if (successor == nullptr)

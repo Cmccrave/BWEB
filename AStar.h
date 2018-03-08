@@ -18,7 +18,6 @@ namespace BWEB
 		uint getScore();
 	};
 
-
 	class AStar
 	{
 		Node* findNodeOnList(set<Node*>&, TilePosition);

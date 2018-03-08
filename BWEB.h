@@ -22,7 +22,7 @@ namespace BWEB
 		TilePosition testTile;
 
 		// Blocks
-		void findStartBlocks(), findBlocks();
+		void findStartBlocks();
 		vector<Block> blocks;
 		bool canAddBlock(TilePosition, int, int, bool);
 		void insertSmallBlock(TilePosition, bool, bool);
@@ -34,13 +34,21 @@ namespace BWEB
 
 		// Wall		
 		map<BWEM::Area const *, Wall> areaWalls;
-		int reservePath[256][256] = {};
-		int enemyPath[256][256] = {};
-		int overlapsChoke(UnitType, TilePosition);
-		set<TilePosition> chokeTiles;
-		bool wallTight(UnitType, TilePosition, bool);
+		int reservePath[256][256] ={};
+		int enemyPath[256][256] ={};
+		int testPath[256][256] ={};
+		bool wallTight(UnitType, TilePosition);
 		bool canPlaceHere(UnitType, TilePosition);
 		bool powersWall(TilePosition);
+		TilePosition currentHole;
+		double distToChokeGeo(Position);
+
+		double bestWallScore;
+		map<TilePosition, UnitType> bestWall;
+		map<TilePosition, UnitType> currentWall;
+		tuple<double, TilePosition> scoreWallSegment(UnitType, bool tight = true);
+		int tightState(WalkPosition, UnitType);
+		bool walled, R, L, T, B;
 
 		// Map
 		void findMain(), findFirstChoke(), findSecondChoke(), findNatural();
@@ -50,7 +58,7 @@ namespace BWEB
 		BWEM::Area const * mainArea;
 		BWEM::ChokePoint const * naturalChoke;
 		Position pStart;
-		bool buildingFits(TilePosition, UnitType, const set<TilePosition>& = {});
+		bool buildingFits(TilePosition, UnitType, const set<TilePosition>& ={});
 
 		// Station
 		void findStations();
@@ -62,14 +70,16 @@ namespace BWEB
 		static Map* BWEBInstance;
 
 	public:
-		void draw(), onStart(), onUnitDiscover(Unit), onUnitDestroy(Unit);
+		void draw(), onStart(), onUnitDiscover(Unit), onUnitDestroy(Unit), onUnitMorph(Unit);
 		static Map &Instance();
 
+		UnitType overlapsCurrentWall(TilePosition, int width = 1, int height = 1);
+
 		// Returns the closest build position possible for a building, with optional parameters of what tiles are used already and where you want to build closest to
-		TilePosition getBuildPosition(UnitType, const set<TilePosition>& = {}, TilePosition = Broodwar->self()->getStartLocation());
+		TilePosition getBuildPosition(UnitType, const set<TilePosition>& ={}, TilePosition = Broodwar->self()->getStartLocation());
 
 		// Returns the closest build position possible for a defense building, with optional parameters of what tiles are used already and where you want to build closest to
-		TilePosition getDefBuildPosition(UnitType, const set<TilePosition>& = {}, TilePosition = Broodwar->self()->getStartLocation());
+		TilePosition getDefBuildPosition(UnitType, const set<TilePosition>& ={}, TilePosition = Broodwar->self()->getStartLocation());
 
 		// Returns all the walls -- CURRENTLY ONLY NATURAL WALL, use at own risk if not using the BWEB natural area
 		map<BWEM::Area const *, Wall> getWalls() { return areaWalls; }
@@ -110,11 +120,21 @@ namespace BWEB
 		// Given a UnitType, this will store a position for this UnitType at your natural as a piece of the wall
 		void findWallSegment(UnitType, bool = true);
 
+		// Given a set of UnitTypes, finds an optimal wall placement
+		void findFullWall(vector<UnitType>&);
+
 		// This will store up to 6 small positions for defenses for a wall at your natural
 		void findWallDefenses(UnitType, int = 1);
 
 		// This will create a path that walls cannot be built on, connecting your main to your natural. Call it only once.
 		void findPath();
+
+		// Erases any blocks at the specified TilePosition
+		void eraseBlock(TilePosition);
+
+		// Experimenting with being able to build blocks after building a wall
+		void findBlocks();
+
 	};
 
 }

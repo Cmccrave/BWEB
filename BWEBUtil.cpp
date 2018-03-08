@@ -86,7 +86,7 @@ namespace BWEB
 			for (int j = here.y; j < here.y + height; j++)
 			{
 				if (!TilePosition(i, j).isValid()) continue;
-				if ((overlapsBlocks(TilePosition(i, j)) && !ignoreBlocks) || overlapsMining(TilePosition(i, j)) || overlapsNeutrals(TilePosition(i, j)) || overlapsStations(TilePosition(i, j)) || overlapsWalls(TilePosition(i, j))) return true;
+				if ((overlapsBlocks(TilePosition(i, j)) && !ignoreBlocks) || (overlapsMining(TilePosition(i, j)) && !ignoreBlocks) || overlapsNeutrals(TilePosition(i, j)) || overlapsStations(TilePosition(i, j)) || overlapsWalls(TilePosition(i, j))) return true;
 			}
 		}
 		return false;
@@ -107,16 +107,18 @@ namespace BWEB
 		return true;
 	}
 
-	bool BWEBUtil::insideNatArea(TilePosition here, int width, int height)
+	int BWEBUtil::insideNatArea(TilePosition here, int width, int height)
 	{
+		int cnt = 0;
 		for (int i = here.x; i < here.x + width; i++)
 		{
 			for (int j = here.y; j < here.y + height; j++)
 			{
 				if (!TilePosition(i, j).isValid()) return false;
-				if (BWEM::Map::Instance().GetArea(TilePosition(i, j)) == BWEB::Map::Instance().getNaturalArea()) return true;
+				if (BWEM::Map::Instance().GetArea(TilePosition(i, j)) == BWEB::Map::Instance().getNaturalArea())
+					cnt++;
 			}
 		}
-		return false;
+		return cnt;
 	}
 }

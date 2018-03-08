@@ -16,6 +16,6 @@ namespace BWEB
 		bool overlapsWalls(TilePosition);
 		bool overlapsAnything(TilePosition here, int width = 1, int height = 1, bool ignoreBlocks = false);
 		bool isWalkable(TilePosition);
-		bool insideNatArea(TilePosition here, int width = 1, int height = 1);
+		int insideNatArea(TilePosition here, int width = 1, int height = 1);
 	};
 }
