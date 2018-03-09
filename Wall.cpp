@@ -2,6 +2,7 @@
 #include "AStar.h"
 #include <tuple>
 #include <chrono>
+#include "BWEBUtil.h"
 
 namespace BWEB
 {

@@ -1,11 +1,12 @@
 #pragma once
 #pragma warning(disable : 4351)
-#include <BWAPI.h>
+#include <set>
+
+#include "BWAPI.h"
 #include "..\BWEM\bwem.h"
 #include "Station.h"
 #include "Block.h"
 #include "Wall.h"
-#include "BWEBUtil.h"
 
 namespace BWEB
 {
@@ -62,7 +63,7 @@ namespace BWEB
 
 		// Station
 		void findStations();
-		vector<const Station> stations;
+		vector<Station> stations;
 		set<TilePosition>& stationDefenses(TilePosition, bool, bool);
 		set<TilePosition> returnValues;
 
@@ -100,7 +101,7 @@ namespace BWEB
 		vector<Block>& Blocks() { return blocks; }
 
 		// Returns all the BWEB Stations
-		vector<const Station>& Stations() { return stations; }
+		vector<Station>& Stations() { return stations; }
 
 		// Returns the closest BWEB Station to the given TilePosition
 		const Station& getClosestStation(TilePosition) const;

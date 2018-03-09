@@ -1,4 +1,5 @@
 #include "AStar.h"
+#include "BWEBUtil.h"
 
 using namespace std::placeholders;
 

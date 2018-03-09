@@ -1,4 +1,5 @@
 #include "Block.h"
+#include "BWEBUtil.h"
 
 namespace BWEB
 {
