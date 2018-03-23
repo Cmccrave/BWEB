@@ -10,27 +10,31 @@ namespace BWEB
 	{
 		TilePosition wallDoor;
 		set<TilePosition> defenses, small, medium, large;
+		const BWEM::Area * area;
+		const BWEM::ChokePoint * choke;
 		
 	public:
-		Wall() { wallDoor = TilePositions::Invalid; };
-
+		Wall(const BWEM::Area *, const BWEM::ChokePoint *);
 		void insertDefense(TilePosition here) { defenses.insert(here); }
 		void setWallDoor(TilePosition here) { wallDoor = here; }
 		void insertSegment(TilePosition, UnitType);
+
+		const BWEM::ChokePoint * getChokePoint() const { return choke; }
+		const BWEM::Area * getArea() const { return area; }
 		
 		// Returns the defense locations associated with this Wall
-		const set<TilePosition> getDefenses() { return defenses; }
+		set<TilePosition> getDefenses() const { return defenses; }
 
 		// Returns the TilePosition belonging to the position where a melee unit should stand to fill the gap of the wall
-		const TilePosition getDoor() { return wallDoor; }
+		TilePosition getDoor() const { return wallDoor; }
 
 		// Returns the TilePosition belonging to large UnitType buildings
-		const set<TilePosition>& largeTiles() { return large; }
+		set<TilePosition> largeTiles() const { return large; }
 
 		// Returns the TilePosition belonging to medium UnitType buildings
-		const set<TilePosition>& mediumTiles() { return medium; }
+		set<TilePosition> mediumTiles() const { return medium; }
 
 		// Returns the TilePosition belonging to small UnitType buildings
-		const set<TilePosition>& smallTiles() { return small; }
+		set<TilePosition> smallTiles() const { return small; }
 	};	
 }

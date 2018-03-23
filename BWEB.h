@@ -2,7 +2,7 @@
 #pragma warning(disable : 4351)
 #include <set>
 
-#include "BWAPI.h"
+#include <BWAPI.h>
 #include "..\BWEM\bwem.h"
 #include "Station.h"
 #include "Block.h"
@@ -20,50 +20,73 @@ namespace BWEB
 	{
 	private:
 
-		TilePosition testTile;
-
-		// Blocks
-		void findStartBlocks();
+		vector<Station> stations;
+		vector<Wall> walls;
 		vector<Block> blocks;
+		
+		// Blocks
+		void findStartBlock(), findHiddenTechBlock();
 		bool canAddBlock(TilePosition, int, int, bool);
+		void insertTinyBlock(TilePosition, bool, bool);
 		void insertSmallBlock(TilePosition, bool, bool);
 		void insertMediumBlock(TilePosition, bool, bool);
-		void insertLargeBlock(TilePosition, bool, bool);
-		void insertTinyBlock(TilePosition, bool, bool);
+		void insertLargeBlock(TilePosition, bool, bool);		
 		void insertStartBlock(TilePosition, bool, bool);
 		void insertTechBlock(TilePosition, bool, bool);
 
-		// Wall		
-		map<BWEM::Area const *, Wall> areaWalls;
-		int reservePath[256][256] ={};
-		int enemyPath[256][256] ={};
-		int testPath[256][256] ={};
-		bool wallTight(UnitType, TilePosition);
-		bool canPlaceHere(UnitType, TilePosition);
-		bool powersWall(TilePosition);
-		TilePosition currentHole;
-		double distToChokeGeo(Position);
+		// Walls
+		bool isWallTight(UnitType, TilePosition, UnitType);
+		bool isPlaceable(UnitType, TilePosition);
+		bool isPoweringWall(TilePosition);
 
-		double bestWallScore;
+		int tightState(WalkPosition, UnitType, bool);
+		void findCurrentHole(TilePosition, TilePosition, const BWEM::ChokePoint *);
+
+		bool iteratePieces();
+		bool checkPiece(TilePosition);
+		bool testPiece(TilePosition);
+		bool placePiece(TilePosition);
+		bool identicalPiece(TilePosition, UnitType, TilePosition, UnitType);
+
+
+		void addWallDefenses(const vector<UnitType>& type, Wall& wall);
+
+		int reservePath[256][256] ={};
+		bool walled, R, L, T, B;
+		double closest = DBL_MAX;
+		vector<TilePosition> currentPath;
+		double bestWallScore = 0.0;
+		TilePosition currentHole, startTile, endTile;
+		vector<UnitType>::iterator typeIterator;		
 		map<TilePosition, UnitType> bestWall;
 		map<TilePosition, UnitType> currentWall;
-		tuple<double, TilePosition> scoreWallSegment(UnitType, bool tight = true);
-		int tightState(WalkPosition, UnitType);
-		bool walled, R, L, T, B;
 
+		vector<UnitType> buildings;
+		const BWEM::ChokePoint * choke;
+		const BWEM::Area * area;
+		UnitType tight;
+
+		struct PieceNode
+		{
+			UnitType type;
+			TilePosition tile;
+		};
+		vector<PieceNode> visited;
+		bool parentSame, currentSame;
+
+		
 		// Map
-		void findMain(), findFirstChoke(), findSecondChoke(), findNatural();
-		TilePosition tStart, firstChoke, natural, secondChoke;
+		void findMain(), findMainChoke(), findNatural(), findNaturalChoke();
+		Position mainPosition, naturalPosition;
+		TilePosition mainTile, naturalTile;		
+		const BWEM::Area * naturalArea;
+		const BWEM::Area * mainArea;
+		const BWEM::ChokePoint * naturalChoke;
+		const BWEM::ChokePoint * mainChoke;
 		set<TilePosition> usedTiles;
-		BWEM::Area const * naturalArea;
-		BWEM::Area const * mainArea;
-		BWEM::ChokePoint const * naturalChoke;
-		Position pStart;
-		bool buildingFits(TilePosition, UnitType, const set<TilePosition>& ={});
 
-		// Station
+		// Stations
 		void findStations();
-		vector<Station> stations;
 		set<TilePosition>& stationDefenses(TilePosition, bool, bool);
 		set<TilePosition> returnValues;
 
@@ -74,68 +97,105 @@ namespace BWEB
 		void draw(), onStart(), onUnitDiscover(Unit), onUnitDestroy(Unit), onUnitMorph(Unit);
 		static Map &Instance();
 
-		UnitType overlapsCurrentWall(TilePosition, int width = 1, int height = 1);
+		/// This is just put here so AStar can use it for now
+		UnitType overlapsCurrentWall(TilePosition tile, int width = 1, int height = 1);
 
-		// Returns the closest build position possible for a building, with optional parameters of what tiles are used already and where you want to build closest to
-		TilePosition getBuildPosition(UnitType, const set<TilePosition>& ={}, TilePosition = Broodwar->self()->getStartLocation());
+		bool overlapsBlocks(TilePosition);
+		bool overlapsStations(TilePosition);
+		bool overlapsNeutrals(TilePosition);
+		bool overlapsMining(TilePosition);
+		bool overlapsWalls(TilePosition);
+		bool overlapsAnything(TilePosition here, int width = 1, int height = 1, bool ignoreBlocks = false);
+		bool isWalkable(TilePosition);
+		int tilesWithinArea(BWEM::Area const *, TilePosition here, int width = 1, int height = 1);
 
-		// Returns the closest build position possible for a defense building, with optional parameters of what tiles are used already and where you want to build closest to
-		TilePosition getDefBuildPosition(UnitType, const set<TilePosition>& ={}, TilePosition = Broodwar->self()->getStartLocation());
+		/// <summary> Returns the closest buildable TilePosition for any type of structure </summary>
+		/// <param name="type"> The UnitType of the structure you want to build. </summary>
+		/// <param name="tile"> The TilePosition you want to build closest to. </summary>
+		TilePosition getBuildPosition(UnitType type, TilePosition tile = Broodwar->self()->getStartLocation());
 
-		// Returns all the walls -- CURRENTLY ONLY NATURAL WALL, use at own risk if not using the BWEB natural area
-		map<BWEM::Area const *, Wall> getWalls() { return areaWalls; }
+		/// <summary> Returns the closest buildable TilePosition for a defensive structure </summary>
+		/// <param name="type"> The UnitType of the structure you want to build. </summary>
+		/// <param name="tile"> The TilePosition you want to build closest to. </summary>
+		TilePosition getDefBuildPosition(UnitType type, TilePosition tile = Broodwar->self()->getStartLocation());
 
-		// Returns the wall for this area if it exists -- CURRENTLY ONLY NATURAL WALL, use at own risk if not using the BWEB natural area
-		Wall* getWall(BWEM::Area const* area);
+		template <class PositionType>
+		/// <summary> Returns the estimated ground distance from one Position type to another Position type.</summary>
+		/// <param name="first"> The first Position. </param>
+		/// <param name="second"> The second Position. </param>
+		double getGroundDistance(PositionType first, PositionType second);
 
-		// Returns the BWEM Area of the natural expansion
-		BWEM::Area const * getNaturalArea() { return naturalArea; }
+		/// <summary> <para> Returns a pointer to a BWEB::Wall if it has been created in the given BWEM::Area and BWEM::ChokePoint. </para>
+		/// <para> Note: If you only pass a BWEM::Area or a BWEM::ChokePoint (not both), it will imply and pick a BWEB::Wall that exists within that Area or blocks that BWEM::ChokePoint. </para></summary>
+		/// <param name="area"> The BWEM::Area that the BWEB::Wall resides in </param>
+		/// <param name="choke"> The BWEM::Chokepoint that the BWEB::Wall blocks </param>
+		const Wall* getWall(BWEM::Area const* area = nullptr, BWEM::ChokePoint const* choke = nullptr);
 
-		// Returns the BWEM Area of the main
-		BWEM::Area const * getMainArea() { return mainArea; }
+		// TODO: Add this
+		Station* getStation(BWEM::Area const* area);
 
-		// Returns the estimated ground distance from a Position to another Position
-		double getGroundDistance(Position, Position);
+		/// <summary> Returns the BWEM::Area of the natural expansion </summary>
+		const BWEM::Area * getNaturalArea() { return naturalArea; }
 
-		// Returns all the BWEB Blocks
-		vector<Block>& Blocks() { return blocks; }
+		/// <summary> Returns the BWEM::Area of the main </summary>
+		const BWEM::Area * getMainArea() { return mainArea; }
 
-		// Returns all the BWEB Stations
-		vector<Station>& Stations() { return stations; }
+		/// <summary> Returns the BWEM::Chokepoint of the natural </summary>
+		const BWEM::ChokePoint * getNaturalChoke() { return naturalChoke; }
 
-		// Returns the closest BWEB Station to the given TilePosition
-		const Station& getClosestStation(TilePosition) const;
+		/// <summary> Returns the BWEM::Chokepoint of the main </summary>
+		const BWEM::ChokePoint * getMainChoke() { return mainChoke; }
 
-		// Returns the TilePosition of the first chokepoint
-		TilePosition getFirstChoke() { return firstChoke; }
+		/// <summary> Returns a vector containing every BWEB::Wall. </summary>
+		vector<Wall> getWalls() const { return walls; }
 
-		// Returns the TilePosition of the second chokepoint
-		TilePosition getSecondChoke() { return secondChoke; }
+		/// <summary> Returns a vector containing every BWEB::Block </summary>
+		vector<Block> Blocks() const { return blocks; }
+
+		/// <summary> Returns a vector containing every BWEB::Station </summary>
+		vector<Station> Stations() const { return stations; }
+
+		/// <summary> Returns the closest BWEB::Station to the given TilePosition. </summary>
+		const Station* getClosestStation(TilePosition) const;
+
+		/// <summary> Returns the closest BWEB::Wall to the given TilePosition. </summary>
+		const Wall* getClosestWall(TilePosition) const;
+
+		/// <summary> Returns the closest BWEB::Block to the given TilePosition. </summary>
+		const Block* getClosestBlock(TilePosition) const;
 
 		// Returns the TilePosition of the natural expansion
-		TilePosition getNatural() { return natural; }
+		TilePosition getNatural() { return naturalTile; }
 
 		// Returns the set of used TilePositions
 		set<TilePosition>& getUsedTiles() { return usedTiles; }
 
-		// Given a UnitType, this will store a position for this UnitType at your natural as a piece of the wall
-		void findWallSegment(UnitType, bool = true);
+		/// <summary> <para> Given a vector of UnitTypes, an Area and a Chokepoint, finds an optimal wall placement, returns true if a valid BWEB::Wall was created. </para>
+		/// <para> Note: Highly recommend that only Terran walls attempt to be walled tight, as most Protoss and Zerg wallins have gaps to allow your units through.</para>
+		/// <para> BWEB makes tight walls very differently from non tight walls and will only create a tight wall if it is completely tight. </para></summary>
+		/// <param name="buildings"> A Vector of UnitTypes that you want the BWEB::Wall to consist of. </param>
+		/// <param name="area"> The BWEM::Area that you want the BWEB::Wall to be contained within. </param>
+		/// <param name="choke"> The BWEM::Chokepoint that you want the BWEB::Wall to block. </param>
+		/// <param name="tight"> (Optional) Decides whether this BWEB::Wall intends to be walled around a specific UnitType. </param>
+		/// <param name="defenses"> A Vector of UnitTypes that you want the BWEB::Wall to have defenses consisting of. </param>
+		void createWall(vector<UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, UnitType tight = UnitTypes::None, const vector<UnitType>& defenses ={});
 
-		// Given a set of UnitTypes, finds an optimal wall placement
-		void findFullWall(vector<UnitType>&);
-
-		// This will store up to 6 small positions for defenses for a wall at your natural
-		void findWallDefenses(UnitType, int = 1);
-
-		// This will create a path that walls cannot be built on, connecting your main to your natural. Call it only once.
+		/// <summary> Adds a UnitType to a currently existing BWEB::Wall. </summary>
+		/// <param name="type"> The UnitType you want to place at the BWEB::Wall. </param>
+		/// <param name="area"> The BWEB::Wall you want to add to. </param>
+		/// <param name="tight"> (Optional) Decides whether this addition to the BWEB::Wall intends to be walled around a specific UnitType. Defaults to none. </param>
+		void addToWall(UnitType type, Wall* wall, UnitType tight = UnitTypes::None);
+				
+		//// <summary> This will create a path that walls cannot be built on, connecting your main choke to your natural choke. Call it only once. </summary>
+		//void findPath(const BWEM::Area *, const BWEM::Area *);
 		void findPath();
 
-		// Erases any blocks at the specified TilePosition
-		void eraseBlock(TilePosition);
+		/// <summary> Erases any blocks at the specified TilePosition. </summary>
+		/// <param name="here"> The TilePosition that you want to delete any BWEB::Block that exists here. </summary>
+		void eraseBlock(TilePosition here);
 
-		// Experimenting with being able to build blocks after building a wall
+		/// <summary> Initializes the building of every BWEB::Block on the map, call it only once per game. </summary>
 		void findBlocks();
-
 	};
 
 }

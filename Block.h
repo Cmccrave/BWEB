@@ -3,6 +3,7 @@
 
 namespace BWEB
 {
+
 	using namespace BWAPI;
 	using namespace std;
 
@@ -14,20 +15,20 @@ namespace BWEB
 	public:
 		Block() { };
 		Block(int width, int height, TilePosition tile) { w = width, h = height, t = tile; }
-		int width() { return w; }
-		int height() { return h; }
+		int width() const { return w; }
+		int height() const { return h; }
 
 		// Returns the top left tile position of this block
-		const TilePosition Location() { return t; }
+		TilePosition Location() const { return t; }
 
 		// Returns the const set of tilepositions that belong to 2x2 (small) buildings
-		const set<TilePosition>& SmallTiles() { return small; }
+		set<TilePosition> SmallTiles() const { return small; }
 
 		// Returns the const set of tilepositions that belong to 3x2 (medium) buildings
-		const set<TilePosition>& MediumTiles() { return medium; }
+		set<TilePosition> MediumTiles() const { return medium; }
 
 		// Returns the const set of tilepositions that belong to 4x3 (large) buildings
-		const set<TilePosition>& LargeTiles() { return large; }
+		set<TilePosition> LargeTiles() const { return large; }
 		
 		void insertSmall(TilePosition here) { small.insert(here); }
 		void insertMedium(TilePosition here) { medium.insert(here); }

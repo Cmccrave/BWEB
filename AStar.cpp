@@ -1,5 +1,4 @@
 #include "AStar.h"
-#include "BWEBUtil.h"
 
 using namespace std::placeholders;
 
@@ -26,12 +25,12 @@ namespace BWEB
 		};
 	}
 
-	vector<TilePosition> AStar::findPath(TilePosition source, TilePosition target, bool diagonal)
+	vector<TilePosition> AStar::findPath(TilePosition source, TilePosition target, bool walling)
 	{
 		Node *current = nullptr;
 		set<Node*> openSet, closedSet;
 		openSet.insert(new Node(source));
-		directions = diagonal ? 8 : 4;
+		directions = walling ? 8 : 4;
 
 		while (!openSet.empty())
 		{
@@ -52,7 +51,8 @@ namespace BWEB
 				TilePosition tile(current->coordinates + direction[i]);
 
 				// Detection collision or skip tiles already added to closed set
-				if (!tile.isValid() || BWEB::BWEBUtil().overlapsBlocks(tile) || BWEB::BWEBUtil().overlapsStations(tile) || BWEB::BWEBUtil().overlapsNeutrals(tile) || BWEB::BWEBUtil().overlapsWalls(tile) || !BWEB::BWEBUtil().isWalkable(tile) || findNodeOnList(closedSet, tile)) continue;
+				if (!tile.isValid() || BWEB::Map::Instance().overlapsNeutrals(tile) || !BWEB::Map::Instance().isWalkable(tile) || findNodeOnList(closedSet, tile)) continue;
+				if (!walling && (BWEB::Map::Instance().overlapsBlocks(tile) || BWEB::Map::Instance().overlapsStations(tile) || BWEB::Map::Instance().overlapsWalls(tile))) continue;
 				if (BWEB::Map::Instance().overlapsCurrentWall(tile) != UnitTypes::None) continue;
 
 				// Cost function?
@@ -76,7 +76,11 @@ namespace BWEB
 			}
 		}
 
+
 		vector<TilePosition> path;
+		if (current->coordinates != target)
+			return path;
+
 		while (current != nullptr)
 		{
 			path.push_back(current->coordinates);
