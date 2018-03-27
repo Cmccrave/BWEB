@@ -14,7 +14,7 @@ namespace BWEB
 		set <TilePosition> small, medium, large;
 	public:
 		Block() { };
-		Block(int width, int height, TilePosition tile) { w = width, h = height, t = tile; }
+		Block(int, int, TilePosition);
 		int width() const { return w; }
 		int height() const { return h; }
 

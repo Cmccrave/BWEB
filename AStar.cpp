@@ -51,12 +51,12 @@ namespace BWEB
 				TilePosition tile(current->coordinates + direction[i]);
 
 				// Detection collision or skip tiles already added to closed set
-				if (!tile.isValid() || BWEB::Map::Instance().overlapsNeutrals(tile) || !BWEB::Map::Instance().isWalkable(tile) || findNodeOnList(closedSet, tile)) continue;
-				if (!walling && (BWEB::Map::Instance().overlapsBlocks(tile) || BWEB::Map::Instance().overlapsStations(tile) || BWEB::Map::Instance().overlapsWalls(tile))) continue;
+				if (!tile.isValid() || /*BWEB::Map::Instance().overlapsNeutrals(tile) ||*/ !BWEB::Map::Instance().isWalkable(tile) || findNodeOnList(closedSet, tile)) continue;
+				//if ((BWEB::Map::Instance().overlapsBlocks(tile) || BWEB::Map::Instance().overlapsStations(tile) || BWEB::Map::Instance().overlapsWalls(tile))) continue;
 				if (BWEB::Map::Instance().overlapsCurrentWall(tile) != UnitTypes::None) continue;
 
 				// Cost function?
-				uint totalCost = current->G + ((i < 4) ? 10 : 14) /*+ log(BWEM::Map::Instance().GetTile(tile).MinAltitude())*/;
+				uint totalCost = current->G + ((i < 4) ? 10 : 14);
 				// Checks if the node has been made already, if not it creates one
 				Node *successor = findNodeOnList(openSet, tile);
 				if (successor == nullptr)

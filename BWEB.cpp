@@ -169,11 +169,6 @@ namespace BWEB
 			for (auto& tile : wall.getDefenses())
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
 		}
-
-		//findCurrentHole(startTile, endTile, naturalChoke);
-		//for (auto &tile : currentPath)
-		//	Broodwar->drawCircleMap(Position(tile) + Position(16,16), 8, Colors::Red);
-
 	}
 
 	template <class PositionType>
@@ -229,6 +224,17 @@ namespace BWEB
 			}
 		}
 		return true;
+	}
+
+	void Map::addOverlap(TilePosition t, int w, int h)
+	{
+		for (int x = t.x; x < t.x + w; x++)
+		{
+			for (int y = t.y; y < t.y + h; y++)
+			{
+				overlapGrid[x][y] = 1;
+			}
+		}
 	}
 
 	Map* Map::BWEBInstance = nullptr;

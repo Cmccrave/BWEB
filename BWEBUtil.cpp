@@ -93,16 +93,33 @@ namespace BWEB
 
 	bool Map::isWalkable(TilePosition here)
 	{
+		vector<WalkPosition> temp;
 		WalkPosition start = WalkPosition(here);
 		for (int x = start.x; x < start.x + 4; x++)
 		{
 			for (int y = start.y; y < start.y + 4; y++)
 			{
-				if (!WalkPosition(x, y).isValid()) return false;
-			//	if (!BWEM::Map::Instance().GetMiniTile(WalkPosition(x, y)).Walkable()) return false;
-				if (!Broodwar->isWalkable(WalkPosition(x, y))) return false;
+				if (!WalkPosition(x, y).isValid() || !Broodwar->isWalkable(WalkPosition(x, y)))
+					temp.push_back(WalkPosition(x, y));
 			}
 		}
+
+		// Top row
+		if (find(temp.begin(), temp.end(), start) != temp.end() && find(temp.begin(), temp.end(), start + WalkPosition(1, 0)) != temp.end())
+			return false;
+
+		// Left column
+		if (find(temp.begin(), temp.end(), start) != temp.end() && find(temp.begin(), temp.end(), start + WalkPosition(0, 1)) != temp.end())
+			return false;
+
+		// Right column
+		if (find(temp.begin(), temp.end(), start + WalkPosition(1,0)) != temp.end() && find(temp.begin(), temp.end(), start + WalkPosition(1, 1)) != temp.end())
+			return false;
+
+		// Bot row
+		if (find(temp.begin(), temp.end(), start + WalkPosition(0, 1)) != temp.end() && find(temp.begin(), temp.end(), start + WalkPosition(1, 1)) != temp.end())
+			return false;
+
 		return true;
 	}
 

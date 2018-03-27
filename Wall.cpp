@@ -26,7 +26,16 @@ namespace BWEB
 
 		// Find our end position for A* pathfinding
 		endTile = thirdArea != nullptr ? (TilePosition)thirdArea->Top() : TilePositions::Invalid;
-		startTile = (TilePosition)mainArea->Top();
+		startTile = naturalTile;
+
+		// diff between nat choke and nat
+		endTile = TilePosition(naturalChoke->Center()) - (naturalTile - TilePosition(naturalChoke->Center()));
+
+		if (!BWEM::Map::Instance().GetArea(endTile))
+		{
+			Broodwar << "no area" << endl;
+			return;
+		}
 
 		// Sort buildings first
 		sort(buildings.begin(), buildings.end());
@@ -52,16 +61,20 @@ namespace BWEB
 
 		double dur = std::chrono::duration <double, std::milli>(std::chrono::high_resolution_clock::now() - start).count();
 		Broodwar << "Wall time: " << dur << endl;
-		Broodwar << visited.size() << endl;
 		return;
 	}
 
 	bool Map::iteratePieces()
 	{
 		// Sort functionality for Pylons by Hannes
-		sort(buildings.begin(), buildings.end(), [](UnitType l, UnitType r){ return (l == UnitTypes::Protoss_Pylon) < (r == UnitTypes::Protoss_Pylon); }); // Moves pylons to end
-		sort(buildings.begin(), find(buildings.begin(), buildings.end(), UnitTypes::Protoss_Pylon)); // Sorts everything before pylons
-
+		if (find(buildings.begin(), buildings.end(), UnitTypes::Protoss_Pylon) != buildings.end())
+		{
+			sort(buildings.begin(), buildings.end(), [](UnitType l, UnitType r){ return (l == UnitTypes::Protoss_Pylon) < (r == UnitTypes::Protoss_Pylon); }); // Moves pylons to end
+			sort(buildings.begin(), find(buildings.begin(), buildings.end(), UnitTypes::Protoss_Pylon)); // Sorts everything before pylons
+		}
+		else
+			sort(buildings.begin(), buildings.end());
+		
 		do {
 			currentWall.clear();
 			typeIterator = buildings.begin();
@@ -99,10 +112,17 @@ namespace BWEB
 				for (int y = 1 + start.y - currentSize.y; y < start.y + parentSize.y; y++)
 				{
 					TilePosition left(xLeft, y); TilePosition right(xRight, y);
-					if (identicalPiece(start, parentType, left, currentType) || ((parentRight + currentLeft < 16 || tight == UnitTypes::None) && testPiece(left)))
-						placePiece(left);
-					if (identicalPiece(start, parentType, right, currentType) || ((parentLeft + currentRight < 16 || tight == UnitTypes::None) && testPiece(right)))
-						placePiece(right);
+
+					if (visited[currentType].location[left.x][left.y] != 2)
+					{
+						if (identicalPiece(start, parentType, left, currentType) || ((parentRight + currentLeft < 16 || tight == UnitTypes::None) && testPiece(left)))
+							placePiece(left);
+					}
+					if (visited[currentType].location[right.x][right.y] != 2)
+					{
+						if (identicalPiece(start, parentType, right, currentType) || ((parentLeft + currentRight < 16 || tight == UnitTypes::None) && testPiece(right)))
+							placePiece(right);
+					}
 				}
 			}
 
@@ -119,47 +139,50 @@ namespace BWEB
 				for (int x = 1 + start.x - currentSize.x; x < start.x + parentSize.x; x++)
 				{
 					TilePosition top(x, yTop); TilePosition bot(x, yBottom);
-					if (identicalPiece(start, parentType, top, currentType) || ((parentTop + currentBottom < 16 || tight == UnitTypes::None) && testPiece(top)))
-						placePiece(top);
-					if (identicalPiece(start, parentType, bot, currentType) || ((parentBottom + currentTop < 16 || tight == UnitTypes::None) && testPiece(bot)))
-						placePiece(bot);
+					if (visited[currentType].location[top.x][top.y] != 2)
+					{
+						if (identicalPiece(start, parentType, top, currentType) || ((parentTop + currentBottom < 16 || tight == UnitTypes::None) && testPiece(top)))
+							placePiece(top);
+					}
+					if (visited[currentType].location[bot.x][bot.y] != 2)
+					{
+						if (identicalPiece(start, parentType, bot, currentType) || ((parentBottom + currentTop < 16 || tight == UnitTypes::None) && testPiece(bot)))
+							placePiece(bot);
+					}
 				}
 			}
 		}
 		// Otherwise we need to start the choke center
 		else
 		{
-			TilePosition chokeCenter(choke->Center());
-			for (int x = chokeCenter.x - 6; x < chokeCenter.x + 6; x++)
-			{
-				for (int y = chokeCenter.y - 6; y < chokeCenter.y + 6; y++)
-				{
+			for (int x = start.x - 4; x < start.x + 4; x++){
+				for (int y = start.y - 4; y < start.y + 4; y++){
+
 					TilePosition t(x, y);
-					if (isWallTight((*typeIterator), t, tight) && testPiece(t))
+					parentSame = false, currentSame = false;
+					if (isWallTight((*typeIterator), t) && testPiece(t))
 						placePiece(t);
 				}
 			}
 		}
-		
 		return true;
 	}
 
 	bool Map::identicalPiece(TilePosition parentTile, UnitType parentType, TilePosition currentTile, UnitType currentType)
 	{
-		// Want to store that it is physically possible to build this piece here (EXCEPT overlapping current wall) - IMPORTANT
-		// If BOTH are true, not only is it physically possible, but also is wall tight
-		parentSame = false; currentSame = false;
+		// Want to store that it is physically possible to build this piece here so we don't waste time checking
+		parentSame = false, currentSame = false;
 		if (parentType != UnitTypes::None)
 		{
 			for (auto& node : visited)
 			{
-				// If previous piece is identical and current piece is identical, move on
-				if (node.type == parentType && node.tile == parentTile)
+				auto& v = node.second;
+				if (node.first == parentType && v.location[parentTile.x][parentTile.y] == 1)
 					parentSame = true;
-				if (node.type == currentType && node.tile == currentTile)
+				if (node.first == currentType && v.location[currentTile.x][currentTile.y] == 1)
 					currentSame = true;
-				if (parentSame && currentSame)
-					return true;
+				if (parentSame && currentSame)	
+					return true;				
 			}
 		}
 		return false;
@@ -169,64 +192,43 @@ namespace BWEB
 	{
 		// If this is not a valid type, not a valid tile, overlaps the current wall, overlaps anything, isn't within the area passed in, isn't placeable or isn't wall tight
 		if (currentSame && parentSame) return true;
-		if (!(*typeIterator).isValid()
-			|| !t.isValid()
-			|| overlapsCurrentWall(t, (*typeIterator).tileWidth(), (*typeIterator).tileHeight()) != UnitTypes::None
-			|| overlapsAnything(t, (*typeIterator).tileWidth(), (*typeIterator).tileHeight(), true)
-			|| tilesWithinArea(area, t, (*typeIterator).tileWidth(), (*typeIterator).tileHeight()) == 0
-			|| !isPlaceable(*typeIterator, t)) return false;
+		if (!(*typeIterator).isValid() || !t.isValid() || overlapsCurrentWall(t, (*typeIterator).tileWidth(), (*typeIterator).tileHeight()) != UnitTypes::None) return false;
+
+		// If we can't place here, regardless of what's currently placed, set as impossible to place
+		if (overlapsAnything(t, (*typeIterator).tileWidth(), (*typeIterator).tileHeight(), true) || tilesWithinArea(area, t, (*typeIterator).tileWidth(), (*typeIterator).tileHeight()) == 0 || !isPlaceable(*typeIterator, t))
+		{
+			visited[(*typeIterator)].location[t.x][t.y] = 2;
+			return false;
+		}
 		return true;
 	}
 
 	bool Map::placePiece(TilePosition t)
 	{
+		// If we haven't tried to place one here, set visited
 		if (!currentSame)
-		{
-			PieceNode newNode;
-			newNode.tile = t;
-			newNode.type = *typeIterator;
-			visited.push_back(newNode);
-		}
+			visited[(*typeIterator)].location[t.x][t.y] = 1;
 
 		currentWall[t] = *typeIterator, typeIterator++;
 
-		// If we haven't placed all the pieces yet, try placing another
-		if (typeIterator != buildings.end())
-		{			
-			checkPiece(t);
-		}
-		else
+		// If we have placed all pieces
+		if (typeIterator == buildings.end())
 		{
 			// Try to find a hole in the wall
-			findCurrentHole(startTile, endTile, choke);
-			double dist = 0.0;
-
-			// If we're not fully walled, check score
-			if (tight == UnitTypes::None)
+			findCurrentHole(startTile, endTile, choke);			
+			if (currentPathSize > bestWallScore)
 			{
-				for (auto& piece : currentWall)
-					dist += piece.first.getDistance((TilePosition)choke->Center());
-				if ((double)currentPath.size() / dist > bestWallScore)
-				{
-					bestWall = currentWall;
-					bestWallScore = (double)currentPath.size() / dist;
-				}
-			}
-
-			// If we are fully walled, check no hole
-			else
-			{
-				if (!currentHole.isValid())
-				{
-					for (auto& piece : currentWall)
-						dist += piece.first.getDistance((TilePosition)choke->Center());
-					if (dist < closest)
-						bestWall = currentWall;
-				}
+				bestWall = currentWall;
+				bestWallScore = currentPathSize;
 			}
 		}
+
+		// Else check for another
+		else
+			checkPiece(t);
+
 		// Erase current tile and reduce iterator
-		currentWall.erase(t);		
+		currentWall.erase(t);
 		typeIterator--;
 		return true;
 	}
@@ -235,11 +237,13 @@ namespace BWEB
 	{
 		currentHole = TilePositions::None;
 		currentPath = BWEB::AStar().findPath(startTile, endTile, true);
+		currentPathSize = (double)currentPath.size();
 
 		// Quick check to see if the path contains our end point
 		if (find(currentPath.begin(), currentPath.end(), endTile) == currentPath.end())
 		{
 			currentHole = TilePositions::None;
+			currentPathSize = 500.0;
 			return;
 		}
 
@@ -430,7 +434,7 @@ namespace BWEB
 		return nullptr;
 	}
 
-	bool Map::isWallTight(UnitType building, TilePosition here, UnitType type)
+	bool Map::isWallTight(UnitType building, TilePosition here)
 	{
 		bool L, R, T, B;
 		L = R = T = B = false;
@@ -439,7 +443,7 @@ namespace BWEB
 		int htSize = building.tileHeight() * 16;
 		int wtSize = building.tileWidth() * 16;
 
-		if (type != UnitTypes::None)
+		if (tight != UnitTypes::None)
 		{
 			if (htSize - building.dimensionDown() - 1 < 16)
 				B = true;

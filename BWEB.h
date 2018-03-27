@@ -35,7 +35,7 @@ namespace BWEB
 		void insertTechBlock(TilePosition, bool, bool);
 
 		// Walls
-		bool isWallTight(UnitType, TilePosition, UnitType);
+		bool isWallTight(UnitType, TilePosition);
 		bool isPlaceable(UnitType, TilePosition);
 		bool isPoweringWall(TilePosition);
 
@@ -52,6 +52,9 @@ namespace BWEB
 		void addWallDefenses(const vector<UnitType>& type, Wall& wall);
 
 		int reservePath[256][256] ={};
+		int overlapGrid[256][256] ={};
+		void addOverlap(TilePosition, int, int);
+
 		bool walled, R, L, T, B;
 		double closest = DBL_MAX;
 		vector<TilePosition> currentPath;
@@ -66,14 +69,14 @@ namespace BWEB
 		const BWEM::Area * area;
 		UnitType tight;
 
-		struct PieceNode
+		struct VisitGrid
 		{
-			UnitType type;
-			TilePosition tile;
+			int location[256][256] ={};
 		};
-		vector<PieceNode> visited;
+		map<UnitType, VisitGrid> visited;
 		bool parentSame, currentSame;
-
+		double currentPathSize;
+		
 		
 		// Map
 		void findMain(), findMainChoke(), findNatural(), findNaturalChoke();
