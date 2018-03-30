@@ -1,15 +1,21 @@
 #include "BWEB.h"
 
 // TODO:
-// Re-add Doors to Walls - NEW
-// Final check on wall tight walls needs to check for tightness against terrain - NEW
-// Reduce number of tiles searched in wall tight search to only buildable tiles - ONGOING
-// Dynamic block addition (insert UnitTypes, get block) - NEW
-// Change findPath to be able to create doors for any walls - NEW
-// Limit number of building sizes per area - NEW
+// Restructure - NEW CRITICAL
+// Wall improvements - NEW HIGH
+// Performance improvements - NEW MEDIUM
+// Block improvements - NEW MEDIUM
+// Dynamic block addition (insert UnitTypes, get block) - NEW MEDIUM
+// Improve logic for mirroring blocks - NEW LOW
+// Code cleanup - NEW LOW
+// Limit number of building sizes per area - ONGOING LOW
 
 // Completed Changes:
+// Re-add Doors to Walls - COMPLETE
+// Improve "Overlap functions", they are probably fairly expensive - COMPLETE
 // Changed Terran stations to reserve room for CC addons - COMPLETE
+// Reduce number of tiles searched in wall tight search to only buildable tiles - COMPLETE
+// Final check on wall tight walls needs to check for tightness against terrain - NFG
 
 
 namespace BWEB
@@ -21,6 +27,9 @@ namespace BWEB
 		findMainChoke();
 		findNaturalChoke();
 		findStations();
+
+		for (auto &unit : Broodwar->neutral()->getUnits())
+			addOverlap(unit->getTilePosition(), unit->getType().tileWidth(), unit->getType().tileHeight());
 	}
 
 	void Map::onUnitDiscover(Unit unit)
@@ -63,7 +72,7 @@ namespace BWEB
 				usedTiles.erase(t);
 			}
 		}
-	}	
+	}
 
 	void Map::findMain()
 	{
@@ -86,10 +95,10 @@ namespace BWEB
 					distBest = dist;
 					naturalArea = base.GetArea();
 					naturalTile = base.Location();
-					naturalPosition = (Position)naturalTile;
+					naturalPosition = (Position)naturalTile + Position(64, 48);
 				}
 			}
-		}		
+		}
 	}
 
 	void Map::findMainChoke()
@@ -156,18 +165,16 @@ namespace BWEB
 		}
 
 		for (auto& wall : walls)
-		{
+		{			
 			for (auto& tile : wall.smallTiles())
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
 			for (auto& tile : wall.mediumTiles())
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(97, 65), Broodwar->self()->getColor());
 			for (auto& tile : wall.largeTiles())
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(129, 97), Broodwar->self()->getColor());
-
-			Broodwar->drawBoxMap(Position(wall.getDoor()), Position(wall.getDoor()) + Position(33, 33), Broodwar->self()->getColor(), true);
-
 			for (auto& tile : wall.getDefenses())
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
+			Broodwar->drawBoxMap(Position(wall.getDoor()), Position(wall.getDoor()) + Position(33, 33), Broodwar->self()->getColor(), true);
 		}
 	}
 
@@ -215,12 +222,15 @@ namespace BWEB
 	{
 		// Placeable is valid if buildable and not overlapping neutrals
 		// Note: Must check neutrals due to the terrain below them technically being buildable
+		int creepCheck = type.requiresCreep() ? 1 : 0;
 		for (int x = location.x; x < location.x + type.tileWidth(); x++)
 		{
-			for (int y = location.y; y < location.y + type.tileHeight(); y++)
+			for (int y = location.y; y < location.y + type.tileHeight() + creepCheck; y++)
 			{
 				TilePosition tile(x, y);
 				if (!tile.isValid() || !Broodwar->isBuildable(tile) || overlapsNeutrals(tile)) return false;
+				if (type.isResourceDepot() && !Broodwar->canBuildHere(tile, type)) return false;
+				if (reserveGrid[x][y] == 1) return false;
 			}
 		}
 		return true;

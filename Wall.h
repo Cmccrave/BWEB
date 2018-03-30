@@ -8,7 +8,8 @@ namespace BWEB
 
 	class Wall
 	{
-		TilePosition wallDoor;
+		TilePosition door;
+		Position centroid;
 		set<TilePosition> defenses, small, medium, large;
 		const BWEM::Area * area;
 		const BWEM::ChokePoint * choke;
@@ -16,8 +17,9 @@ namespace BWEB
 	public:
 		Wall(const BWEM::Area *, const BWEM::ChokePoint *);
 		void insertDefense(TilePosition here) { defenses.insert(here); }
-		void setWallDoor(TilePosition here) { wallDoor = here; }
+		void setWallDoor(TilePosition here) { door = here; }
 		void insertSegment(TilePosition, UnitType);
+		void setCentroid(Position here) { centroid = here; }
 
 		const BWEM::ChokePoint * getChokePoint() const { return choke; }
 		const BWEM::Area * getArea() const { return area; }
@@ -26,7 +28,10 @@ namespace BWEB
 		set<TilePosition> getDefenses() const { return defenses; }
 
 		// Returns the TilePosition belonging to the position where a melee unit should stand to fill the gap of the wall
-		TilePosition getDoor() const { return wallDoor; }
+		TilePosition getDoor() const { return door; }
+
+		// Returns the TilePosition belonging to the centroid of the wall pieces
+		Position getCentroid() const { return centroid; }
 
 		// Returns the TilePosition belonging to large UnitType buildings
 		set<TilePosition> largeTiles() const { return large; }

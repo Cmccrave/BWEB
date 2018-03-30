@@ -5,7 +5,7 @@ namespace BWEB
 {
 	Station::Station(Position newResourceCenter, set<TilePosition> newDefenses, const BWEM::Base* newBase)
 	{
-		resourceCenter = newResourceCenter;
+		resourceCentroid = newResourceCenter;
 		defenses = newDefenses;
 		base = newBase;
 	}
@@ -49,6 +49,7 @@ namespace BWEB
 
 				Station newStation(genCenter, stationDefenses(base.Location(), h, v), &base);
 				stations.push_back(newStation);
+				addOverlap(base.Location(), 4, 3);
 			}
 		}
 
@@ -66,13 +67,25 @@ namespace BWEB
 		}
 		else
 		{
-			if (mirrorHorizontal) returnValues.insert({ here + TilePosition(4, -2), here + TilePosition(0, -2), here + TilePosition(4, 1) });
-			else returnValues.insert({ here + TilePosition(-2, -2), here + TilePosition(2, -2), here + TilePosition(-2, 1) });			
+			if (mirrorHorizontal)
+			{
+				// Temporary fix for CC Addons
+				if (Broodwar->self()->getRace() == Races::Terran)
+					returnValues.insert({ here + TilePosition(4, -2), here + TilePosition(0, -2) });
+				else
+					returnValues.insert({ here + TilePosition(4, -2), here + TilePosition(0, -2), here + TilePosition(4, 1) });
+			}
+			else 
+				returnValues.insert({ here + TilePosition(-2, -2), here + TilePosition(2, -2), here + TilePosition(-2, 1) });			
 		}
 
 		// Temporary fix for CC Addons
 		if (Broodwar->self()->getRace() == Races::Terran)
 			returnValues.insert(here + TilePosition(4, 1));
+
+		for (auto& tile : returnValues)
+			addOverlap(tile, 2, 2);
+
 		return returnValues;
 	}
 

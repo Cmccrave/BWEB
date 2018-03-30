@@ -35,48 +35,40 @@ namespace BWEB
 		void insertTechBlock(TilePosition, bool, bool);
 
 		// Walls
-		bool isWallTight(UnitType, TilePosition);
-		bool isPlaceable(UnitType, TilePosition);
-		bool isPoweringWall(TilePosition);
-
-		int tightState(WalkPosition, UnitType, bool);
-		void findCurrentHole(TilePosition, TilePosition, const BWEM::ChokePoint *);
-
+		bool isWallTight(UnitType, TilePosition);	
+		bool isPoweringWall(TilePosition);				
 		bool iteratePieces();
 		bool checkPiece(TilePosition);
 		bool testPiece(TilePosition);
 		bool placePiece(TilePosition);
 		bool identicalPiece(TilePosition, UnitType, TilePosition, UnitType);
+		void findCurrentHole();
+		void addWallDefenses(const vector<UnitType>& type, Wall& wall);			
+		int reserveGrid[256][256] ={};
+		
 
-
-		void addWallDefenses(const vector<UnitType>& type, Wall& wall);
-
-		int reservePath[256][256] ={};
-		int overlapGrid[256][256] ={};
-		void addOverlap(TilePosition, int, int);
-
-		bool walled, R, L, T, B;
-		double closest = DBL_MAX;
-		vector<TilePosition> currentPath;
 		double bestWallScore = 0.0;
 		TilePosition currentHole, startTile, endTile;
+		vector<TilePosition> currentPath;		
 		vector<UnitType>::iterator typeIterator;		
 		map<TilePosition, UnitType> bestWall;
 		map<TilePosition, UnitType> currentWall;
 
+		// Information that is passed in
 		vector<UnitType> buildings;
 		const BWEM::ChokePoint * choke;
 		const BWEM::Area * area;
 		UnitType tight;
+		bool reservePath;
 
+		// TilePosition grid of what has been visited for wall placement
 		struct VisitGrid
 		{
 			int location[256][256] ={};
 		};
 		map<UnitType, VisitGrid> visited;
 		bool parentSame, currentSame;
-		double currentPathSize;
-		
+		double currentPathSize;		
 		
 		// Map
 		void findMain(), findMainChoke(), findNatural(), findNaturalChoke();
@@ -87,6 +79,8 @@ namespace BWEB
 		const BWEM::ChokePoint * naturalChoke;
 		const BWEM::ChokePoint * mainChoke;
 		set<TilePosition> usedTiles;
+		void addOverlap(TilePosition, int, int);
+		bool isPlaceable(UnitType, TilePosition);
 
 		// Stations
 		void findStations();
@@ -99,6 +93,8 @@ namespace BWEB
 	public:
 		void draw(), onStart(), onUnitDiscover(Unit), onUnitDestroy(Unit), onUnitMorph(Unit);
 		static Map &Instance();
+		int overlapGrid[256][256] ={};
+		int testGrid[256][256] ={};
 
 		/// This is just put here so AStar can use it for now
 		UnitType overlapsCurrentWall(TilePosition tile, int width = 1, int height = 1);
@@ -181,13 +177,14 @@ namespace BWEB
 		/// <param name="choke"> The BWEM::Chokepoint that you want the BWEB::Wall to block. </param>
 		/// <param name="tight"> (Optional) Decides whether this BWEB::Wall intends to be walled around a specific UnitType. </param>
 		/// <param name="defenses"> A Vector of UnitTypes that you want the BWEB::Wall to have defenses consisting of. </param>
-		void createWall(vector<UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, UnitType tight = UnitTypes::None, const vector<UnitType>& defenses ={});
+		/// <param name="reservePath"> Optional parameter to ensure that a path of TilePositions is reserved and not built on. </param>
+		void createWall(vector<UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, UnitType tight = UnitTypes::None, const vector<UnitType>& defenses ={}, bool reservePath = false);
 
 		/// <summary> Adds a UnitType to a currently existing BWEB::Wall. </summary>
 		/// <param name="type"> The UnitType you want to place at the BWEB::Wall. </param>
 		/// <param name="area"> The BWEB::Wall you want to add to. </param>
 		/// <param name="tight"> (Optional) Decides whether this addition to the BWEB::Wall intends to be walled around a specific UnitType. Defaults to none. </param>
-		void addToWall(UnitType type, Wall* wall, UnitType tight = UnitTypes::None);
+		void addToWall(UnitType type, Wall& wall, UnitType tight = UnitTypes::None);
 				
 		//// <summary> This will create a path that walls cannot be built on, connecting your main choke to your natural choke. Call it only once. </summary>
 		//void findPath(const BWEM::Area *, const BWEM::Area *);
