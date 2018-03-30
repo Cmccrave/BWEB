@@ -1,12 +1,12 @@
 #pragma once
 #include "BWEB.h"
 
-using namespace std;
-using namespace BWAPI;
-
 namespace BWEB
 {
 	using uint = unsigned int;
+
+	using namespace BWAPI;
+	using namespace std;
 
 	struct Node
 	{

@@ -1,5 +1,4 @@
 #include "AStar.h"
-#include "BWEBUtil.h"
 
 using namespace std::placeholders;
 
@@ -26,12 +25,12 @@ namespace BWEB
 		};
 	}
 
-	vector<TilePosition> AStar::findPath(TilePosition source, TilePosition target, bool diagonal)
+	vector<TilePosition> AStar::findPath(TilePosition source, TilePosition target, bool walling)
 	{
 		Node *current = nullptr;
 		set<Node*> openSet, closedSet;
 		openSet.insert(new Node(source));
-		directions = diagonal ? 8 : 4;
+		directions = 4;
 
 		while (!openSet.empty())
 		{
@@ -52,11 +51,13 @@ namespace BWEB
 				TilePosition tile(current->coordinates + direction[i]);
 
 				// Detection collision or skip tiles already added to closed set
-				if (!tile.isValid() || BWEB::BWEBUtil().overlapsBlocks(tile) || BWEB::BWEBUtil().overlapsStations(tile) || BWEB::BWEBUtil().overlapsNeutrals(tile) || BWEB::BWEBUtil().overlapsWalls(tile) || !BWEB::BWEBUtil().isWalkable(tile) || findNodeOnList(closedSet, tile)) continue;
+				if (!tile.isValid() || BWEB::Map::Instance().overlapGrid[tile.x][tile.y] > 0 || !BWEB::Map::Instance().isWalkable(tile) || findNodeOnList(closedSet, tile)) continue;
 				if (BWEB::Map::Instance().overlapsCurrentWall(tile) != UnitTypes::None) continue;
-
+				if (BWEM::Map::Instance().GetArea(tile) && BWEM::Map::Instance().GetArea(tile) != BWEM::Map::Instance().GetArea(source) && BWEM::Map::Instance().GetArea(tile) != BWEM::Map::Instance().GetArea(target)) continue;
+				
 				// Cost function?
-				uint totalCost = current->G + ((i < 4) ? 10 : 14) /*+ log(BWEM::Map::Instance().GetTile(tile).MinAltitude())*/;
+				uint totalCost = current->G + ((i < 4) ? 10 : 14);
+
 				// Checks if the node has been made already, if not it creates one
 				Node *successor = findNodeOnList(openSet, tile);
 				if (successor == nullptr)
@@ -76,7 +77,11 @@ namespace BWEB
 			}
 		}
 
+
 		vector<TilePosition> path;
+		if (current->coordinates != target)
+			return path;
+
 		while (current != nullptr)
 		{
 			path.push_back(current->coordinates);
