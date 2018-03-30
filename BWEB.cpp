@@ -229,6 +229,7 @@ namespace BWEB
 			{
 				TilePosition tile(x, y);
 				if (!tile.isValid() || !Broodwar->isBuildable(tile) || overlapsNeutrals(tile)) return false;
+				if (usedTiles.find(tile) != usedTiles.end()) return false;
 				if (type.isResourceDepot() && !Broodwar->canBuildHere(tile, type)) return false;
 				if (reserveGrid[x][y] == 1) return false;
 			}
