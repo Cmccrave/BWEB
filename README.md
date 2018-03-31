@@ -1,5 +1,5 @@
 # BWEB
-## BWEB is currently v1.00
+## BWEB is currently v1.01
 Broodwar Easy Builder or BWEB for short, is a BWEM based building placement addon. The purpose of this addon is to provide easily accesible building management. BWEB started as a decision to create a standard and simple method for bots to optimize their building space and placement.
 
 ## Q: What does BWEB do?
