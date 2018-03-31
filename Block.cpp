@@ -73,7 +73,7 @@ namespace BWEB
 				if (!tile.isValid()) continue;
 
 				const BWEM::Area * area = BWEM::Map::Instance().GetArea(tile);
-				if (!area || area->Bases().empty()) continue;
+				if (!area) continue;
 
 				// Check if we should mirror our blocks - TODO: Improve the decisions for these
 				bool mirrorHorizontal = false, mirrorVertical = false;

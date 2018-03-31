@@ -44,15 +44,16 @@ namespace BWEB
 		bool identicalPiece(TilePosition, UnitType, TilePosition, UnitType);
 		void findCurrentHole();
 		void addWallDefenses(const vector<UnitType>& type, Wall& wall);			
-		int reserveGrid[256][256] ={};
-		
+		int reserveGrid[256][256] ={};		
 
-		double bestWallScore = 0.0;
+		double bestWallScore = 0.0, closest = DBL_MAX;
 		TilePosition currentHole, startTile, endTile;
 		vector<TilePosition> currentPath;		
 		vector<UnitType>::iterator typeIterator;		
 		map<TilePosition, UnitType> bestWall;
 		map<TilePosition, UnitType> currentWall;
+
+		void setStartTile(), setEndTile(), resetStartEndTiles();
 
 		// Information that is passed in
 		vector<UnitType> buildings;
@@ -128,7 +129,7 @@ namespace BWEB
 		/// <para> Note: If you only pass a BWEM::Area or a BWEM::ChokePoint (not both), it will imply and pick a BWEB::Wall that exists within that Area or blocks that BWEM::ChokePoint. </para></summary>
 		/// <param name="area"> The BWEM::Area that the BWEB::Wall resides in </param>
 		/// <param name="choke"> The BWEM::Chokepoint that the BWEB::Wall blocks </param>
-		const Wall* getWall(BWEM::Area const* area = nullptr, BWEM::ChokePoint const* choke = nullptr);
+		Wall* getWall(BWEM::Area const* area = nullptr, BWEM::ChokePoint const* choke = nullptr);
 
 		// TODO: Add this
 		Station* getStation(BWEM::Area const* area);
@@ -185,10 +186,6 @@ namespace BWEB
 		/// <param name="area"> The BWEB::Wall you want to add to. </param>
 		/// <param name="tight"> (Optional) Decides whether this addition to the BWEB::Wall intends to be walled around a specific UnitType. Defaults to none. </param>
 		void addToWall(UnitType type, Wall& wall, UnitType tight = UnitTypes::None);
-				
-		//// <summary> This will create a path that walls cannot be built on, connecting your main choke to your natural choke. Call it only once. </summary>
-		//void findPath(const BWEM::Area *, const BWEM::Area *);
-		void findPath();
 
 		/// <summary> Erases any blocks at the specified TilePosition. </summary>
 		/// <param name="here"> The TilePosition that you want to delete any BWEB::Block that exists here. </summary>
@@ -197,5 +194,4 @@ namespace BWEB
 		/// <summary> Initializes the building of every BWEB::Block on the map, call it only once per game. </summary>
 		void findBlocks();
 	};
-
 }

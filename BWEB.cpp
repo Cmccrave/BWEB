@@ -176,6 +176,22 @@ namespace BWEB
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
 			Broodwar->drawBoxMap(Position(wall.getDoor()), Position(wall.getDoor()) + Position(33, 33), Broodwar->self()->getColor(), true);
 		}
+
+		//for (int x = 0; x < Broodwar->mapWidth()*4; x++)
+		//{
+		//	for (int y = 0; y < Broodwar->mapHeight()*4; y++)
+		//	{
+		//		WalkPosition t(x, y);
+		//		if (!Broodwar->isWalkable(t))
+		//			Broodwar->drawBoxMap(Position(t), Position(t) + Position(9, 9), Broodwar->self()->getColor(), true);
+		//	}
+		//}
+
+		//Broodwar->drawCircleMap(Position(startTile), 8, Colors::Green, true);
+		//Broodwar->drawCircleMap(Position(endTile), 8, Colors::Orange, true);
+		//Broodwar->drawCircleMap(naturalPosition, 8, Colors::Red, true);
+		////Broodwar->drawCircleMap(Position(mainChoke->Center()), 8, Colors::Green, true);
+		//Broodwar->drawCircleMap(Position(naturalChoke->Center()), 8, Colors::Yellow, true);
 	}
 
 	template <class PositionType>
@@ -228,10 +244,10 @@ namespace BWEB
 			for (int y = location.y; y < location.y + type.tileHeight() + creepCheck; y++)
 			{
 				TilePosition tile(x, y);
-				if (!tile.isValid() || !Broodwar->isBuildable(tile) || overlapsNeutrals(tile)) return false;
+				if (!tile.isValid() || !Broodwar->isBuildable(tile)) return false;
+				if (reserveGrid[x][y] > 0 || overlapGrid[x][y] > 0) return false;
 				if (usedTiles.find(tile) != usedTiles.end()) return false;
-				if (type.isResourceDepot() && !Broodwar->canBuildHere(tile, type)) return false;
-				if (reserveGrid[x][y] == 1) return false;
+				if (type.isResourceDepot() && !Broodwar->canBuildHere(tile, type)) return false;				
 			}
 		}
 		return true;

@@ -62,7 +62,13 @@ namespace BWEB
 		returnValues.clear();
 		if (mirrorVertical)
 		{
-			if (mirrorHorizontal) returnValues.insert({ here + TilePosition(4, 0), here + TilePosition(0, 3), here + TilePosition(4, 3) });
+			if (mirrorHorizontal)
+			{
+				if (Broodwar->self()->getRace() == Races::Terran)
+					returnValues.insert({ here + TilePosition(0, 3), here + TilePosition(4, 3) });
+				else
+					returnValues.insert({ here + TilePosition(4, 0), here + TilePosition(0, 3), here + TilePosition(4, 3) });
+			}
 			else returnValues.insert({ here + TilePosition(-2, 3), here + TilePosition(-2, 0), here + TilePosition(2, 3) });
 		}
 		else
