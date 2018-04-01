@@ -43,14 +43,15 @@ namespace BWEB
 		}
 
 		findCurrentHole();
-
-		for (auto& tile : currentPath)
-		{
-			reserveGrid[tile.x][tile.y] = 1;
-			if (!BWEM::Map::Instance().GetArea(tile))
-				newWall.setWallDoor(tile);
+		if (reservePath){
+			for (auto& tile : currentPath)
+			{
+				reserveGrid[tile.x][tile.y] = 1;
+				if (!BWEM::Map::Instance().GetArea(tile)) 
+					newWall.setWallDoor(tile);
+			}
 		}
-
+		
 		// Set the Walls centroid
 		Position centroid;
 		for (auto piece : currentWall)
