@@ -12,9 +12,7 @@ namespace BWEB
 
 	void Map::findStations()
 	{
-		std::chrono::high_resolution_clock clock;
-		chrono::steady_clock::time_point start;
-		start = chrono::high_resolution_clock::now();
+		chrono::steady_clock::time_point const start{ chrono::high_resolution_clock::now() };
 
 		for (auto& area : BWEM::Map::Instance().Areas())
 		{

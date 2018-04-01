@@ -18,9 +18,7 @@ namespace BWEB
 			return;
 
 		// Start a clock to time walls
-		chrono::high_resolution_clock clock;
-		chrono::steady_clock::time_point start;
-		start = chrono::high_resolution_clock::now();
+		chrono::steady_clock::time_point start{chrono::high_resolution_clock::now()};
 
 		// I got sick of passing the parameters everywhere, sue me
 		buildings = _buildings, area = _area, choke = _choke, tight = _tight, reservePath = _reservePath;
@@ -45,20 +43,18 @@ namespace BWEB
 		}
 
 		findCurrentHole();
-		if (true)
+
+		for (auto& tile : currentPath)
 		{
-			for (auto& tile : currentPath)
-			{
-				reserveGrid[tile.x][tile.y] = 1;
-				if (!BWEM::Map::Instance().GetArea(tile))
-					newWall.setWallDoor(tile);
-			}
+			reserveGrid[tile.x][tile.y] = 1;
+			if (!BWEM::Map::Instance().GetArea(tile))
+				newWall.setWallDoor(tile);
 		}
 
 		// Set the Walls centroid
 		Position centroid;
 		for (auto piece : currentWall)
-			centroid += (Position)piece.first + Position(piece.second.tileWidth() * 16, piece.second.tileHeight() * 16);
+			centroid += static_cast<Position>(piece.first) + static_cast<Position>(piece.second.tileSize())/2;
 		newWall.setCentroid(centroid / currentWall.size());
 
 		// Add wall defenses if requested
