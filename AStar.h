@@ -15,15 +15,15 @@ namespace BWEB
 		Node *parent;
 
 		Node(TilePosition tile, Node *parent = nullptr);
-		uint getScore();
+		uint getScore() const;
 	};
 
 	class AStar
 	{
-		Node* findNodeOnList(set<Node*>&, TilePosition);
+		static Node* findNodeOnList(set<Node*>&, TilePosition);
 		vector<TilePosition> direction, walls;
 		uint directions;
-		uint manhattan(TilePosition, TilePosition);
+		uint manhattan(TilePosition, TilePosition) const;
 
 	public:
 		AStar();

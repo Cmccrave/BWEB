@@ -17,7 +17,6 @@
 // Reduce number of tiles searched in wall tight search to only buildable tiles - COMPLETE
 // Final check on wall tight walls needs to check for tightness against terrain - NFG
 
-
 namespace BWEB
 {
 	void Map::onStart()
@@ -32,17 +31,17 @@ namespace BWEB
 			addOverlap(unit->getTilePosition(), unit->getType().tileWidth(), unit->getType().tileHeight());
 	}
 
-	void Map::onUnitDiscover(Unit unit)
+	void Map::onUnitDiscover(const Unit unit)
 	{
 		if (!unit || !unit->exists() || !unit->getType().isBuilding() || unit->isFlying()) return;
 		if (unit->getType() == UnitTypes::Resource_Vespene_Geyser) return;
 
-		TilePosition tile(unit->getTilePosition());
-		UnitType type(unit->getType());
+		const auto tile(unit->getTilePosition());
+		auto type(unit->getType());
 
-		for (int x = tile.x; x < tile.x + type.tileWidth(); x++)
+		for (auto x = tile.x; x < tile.x + type.tileWidth(); x++)
 		{
-			for (int y = tile.y; y < tile.y + type.tileHeight(); y++)
+			for (auto y = tile.y; y < tile.y + type.tileHeight(); y++)
 			{
 				TilePosition t(x, y);
 				if (!t.isValid()) continue;
@@ -51,21 +50,21 @@ namespace BWEB
 		}
 	}
 
-	void Map::onUnitMorph(Unit unit)
+	void Map::onUnitMorph(const Unit unit)
 	{
 		onUnitDiscover(unit);
 	}
 
-	void Map::onUnitDestroy(Unit unit)
+	void Map::onUnitDestroy(const Unit unit)
 	{
 		if (!unit || !unit->getType().isBuilding() || unit->isFlying()) return;
 
-		TilePosition tile(unit->getTilePosition());
-		UnitType type(unit->getType());
+		const auto tile(unit->getTilePosition());
+		auto type(unit->getType());
 
-		for (int x = tile.x; x < tile.x + type.tileWidth(); x++)
+		for (auto x = tile.x; x < tile.x + type.tileWidth(); x++)
 		{
-			for (int y = tile.y; y < tile.y + type.tileHeight(); y++)
+			for (auto y = tile.y; y < tile.y + type.tileHeight(); y++)
 			{
 				TilePosition t(x, y);
 				if (!t.isValid()) continue;
@@ -77,25 +76,25 @@ namespace BWEB
 	void Map::findMain()
 	{
 		mainTile = Broodwar->self()->getStartLocation();
-		mainPosition = (Position)mainTile + Position(64, 48);
+		mainPosition = static_cast<Position>(mainTile) + Position(64, 48);
 		mainArea = BWEM::Map::Instance().GetArea(mainTile);
 	}
 
 	void Map::findNatural()
 	{
-		double distBest = DBL_MAX;
+		auto distBest = DBL_MAX;
 		for (auto& area : BWEM::Map::Instance().Areas())
 		{
 			for (auto& base : area.Bases())
 			{
-				if (base.Starting() || base.Geysers().size() == 0 || area.AccessibleNeighbours().size() == 0) continue;
-				double dist = getGroundDistance(base.Center(), mainPosition);
+				if (base.Starting() || base.Geysers().empty() || area.AccessibleNeighbours().empty()) continue;
+				const auto dist = getGroundDistance(base.Center(), mainPosition);
 				if (dist < distBest)
 				{
 					distBest = dist;
 					naturalArea = base.GetArea();
 					naturalTile = base.Location();
-					naturalPosition = (Position)naturalTile + Position(64, 48);
+					naturalPosition = static_cast<Position>(naturalTile) + Position(64, 48);
 				}
 			}
 		}
@@ -103,10 +102,10 @@ namespace BWEB
 
 	void Map::findMainChoke()
 	{
-		double distBest = DBL_MAX;
+		auto distBest = DBL_MAX;
 		for (auto& choke : naturalArea->ChokePoints())
 		{
-			double dist = getGroundDistance(Position(choke->Center()), mainPosition);
+			const auto dist = getGroundDistance(Position(choke->Center()), mainPosition);
 			if (choke && dist < distBest)
 				mainChoke = choke, distBest = dist;
 		}
@@ -122,12 +121,12 @@ namespace BWEB
 		}
 
 		// Find area that shares the choke we need to defend
-		double distBest = DBL_MAX;
+		auto distBest = DBL_MAX;
 		const BWEM::Area* second = nullptr;
 		for (auto& area : naturalArea->AccessibleNeighbours())
 		{
-			WalkPosition center = area->Top();
-			double dist = Position(center).getDistance(BWEM::Map::Instance().Center());
+			auto center = area->Top();
+			const auto dist = Position(center).getDistance(BWEM::Map::Instance().Center());
 			if (center.isValid() && dist < distBest)
 				second = area, distBest = dist;
 		}
@@ -139,7 +138,7 @@ namespace BWEB
 			if (choke->Center() == mainChoke->Center()) continue;
 			if (choke->Blocked() || choke->Geometry().size() <= 3) continue;
 			if (choke->GetAreas().first != second && choke->GetAreas().second != second) continue;
-			double dist = Position(choke->Center()).getDistance(Position(Broodwar->self()->getStartLocation()));
+			const auto dist = Position(choke->Center()).getDistance(Position(Broodwar->self()->getStartLocation()));
 			if (dist < distBest)
 				naturalChoke = choke, distBest = dist;
 		}
@@ -165,7 +164,7 @@ namespace BWEB
 		}
 
 		for (auto& wall : walls)
-		{			
+		{
 			for (auto& tile : wall.smallTiles())
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
 			for (auto& tile : wall.mediumTiles())
@@ -197,7 +196,7 @@ namespace BWEB
 	template <class PositionType>
 	double Map::getGroundDistance(PositionType start, PositionType end)
 	{
-		double dist = 0.0;
+		auto dist = 0.0;
 		if (!start.isValid() || !end.isValid() || !BWEM::Map::Instance().GetArea(WalkPosition(start)) || !BWEM::Map::Instance().GetArea(WalkPosition(end)))
 			return DBL_MAX;
 
@@ -211,10 +210,10 @@ namespace BWEB
 		return dist += start.getDistance(end);
 	}
 
-	TilePosition Map::getBuildPosition(UnitType type, TilePosition searchCenter)
+	TilePosition Map::getBuildPosition(UnitType type, const TilePosition searchCenter)
 	{
-		double distBest = DBL_MAX;
-		TilePosition tileBest = TilePositions::Invalid;
+		auto distBest = DBL_MAX;
+		auto tileBest = TilePositions::Invalid;
 
 		// Search through each block to find the closest block and valid position
 		for (auto& block : blocks)
@@ -226,7 +225,7 @@ namespace BWEB
 
 			for (auto& tile : placements)
 			{
-				double distToPos = tile.getDistance(searchCenter);
+				const auto distToPos = tile.getDistance(searchCenter);
 				if (distToPos < distBest && isPlaceable(type, tile))
 					distBest = distToPos, tileBest = tile;
 			}
@@ -234,29 +233,31 @@ namespace BWEB
 		return tileBest;
 	}
 
-	bool Map::isPlaceable(UnitType type, TilePosition location)
+	bool Map::isPlaceable(UnitType type, const TilePosition location)
 	{
 		// Placeable is valid if buildable and not overlapping neutrals
 		// Note: Must check neutrals due to the terrain below them technically being buildable
-		int creepCheck = type.requiresCreep() ? 1 : 0;
-		for (int x = location.x; x < location.x + type.tileWidth(); x++)
+		const auto creepCheck = type.requiresCreep() ? 1 : 0;
+		const auto powerCheck = type.requiresPsi();
+		for (auto x = location.x; x < location.x + type.tileWidth(); x++)
 		{
-			for (int y = location.y; y < location.y + type.tileHeight() + creepCheck; y++)
+			for (auto y = location.y; y < location.y + type.tileHeight() + creepCheck; y++)
 			{
 				TilePosition tile(x, y);
+				if (powerCheck && !Broodwar->hasPower(tile)) continue;
 				if (!tile.isValid() || !Broodwar->isBuildable(tile)) return false;
 				if (usedTiles.find(tile) != usedTiles.end()) return false;
-				if (type.isResourceDepot() && !Broodwar->canBuildHere(tile, type)) return false;				
+				if (type.isResourceDepot() && !Broodwar->canBuildHere(tile, type)) return false;
 			}
 		}
 		return true;
 	}
 
-	void Map::addOverlap(TilePosition t, int w, int h)
+	void Map::addOverlap(const TilePosition t, const int w, const int h)
 	{
-		for (int x = t.x; x < t.x + w; x++)
+		for (auto x = t.x; x < t.x + w; x++)
 		{
-			for (int y = t.y; y < t.y + h; y++)
+			for (auto y = t.y; y < t.y + h; y++)
 			{
 				overlapGrid[x][y] = 1;
 			}
