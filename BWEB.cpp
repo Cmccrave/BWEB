@@ -238,13 +238,11 @@ namespace BWEB
 		// Placeable is valid if buildable and not overlapping neutrals
 		// Note: Must check neutrals due to the terrain below them technically being buildable
 		const auto creepCheck = type.requiresCreep() ? 1 : 0;
-		const auto powerCheck = type.requiresPsi();
 		for (auto x = location.x; x < location.x + type.tileWidth(); x++)
 		{
 			for (auto y = location.y; y < location.y + type.tileHeight() + creepCheck; y++)
 			{
 				TilePosition tile(x, y);
-				if (powerCheck && !Broodwar->hasPower(tile)) continue;
 				if (!tile.isValid() || !Broodwar->isBuildable(tile)) return false;
 				if (usedTiles.find(tile) != usedTiles.end()) return false;
 				if (type.isResourceDepot() && !Broodwar->canBuildHere(tile, type)) return false;
