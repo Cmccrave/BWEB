@@ -7,16 +7,16 @@ namespace BWEB
 	using namespace std;
 
 	class Station
-	{		
+	{
 		const BWEM::Base * base;
 		set<TilePosition> defenses;
-		Position resourceCentroid;	
-		
+		Position resourceCentroid;
+
 	public:
-		Station(Position, set<TilePosition>, const BWEM::Base*);
+		Station(Position, const set<TilePosition>&, const BWEM::Base*);
 
 		// Returns the central position of the resources associated with this base including geysers
-		const Position ResourceCentroid() const { return resourceCentroid; }
+		Position ResourceCentroid() const { return resourceCentroid; }
 
 		// Returns the set of defense locations associated with this base
 		const set<TilePosition>& DefenseLocations() const { return defenses; }

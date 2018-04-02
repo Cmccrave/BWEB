@@ -5,19 +5,19 @@ namespace BWEB
 {
 	void Map::findStartBlock()
 	{
-		bool h, v;
-		h = v = false;
+		bool v;
+		auto h = (v = false);
 
 		TilePosition tileBest;
-		double distBest = DBL_MAX;
-		for (int x = mainTile.x - 8; x <= mainTile.x + 5; x++)
+		auto distBest = DBL_MAX;
+		for (auto x = mainTile.x - 8; x <= mainTile.x + 5; x++)
 		{
-			for (int y = mainTile.y - 5; y <= mainTile.y + 4; y++)
+			for (auto y = mainTile.y - 5; y <= mainTile.y + 4; y++)
 			{
-				TilePosition tile = TilePosition(x, y);
+				auto tile = TilePosition(x, y);
 				if (!tile.isValid()) continue;
-				Position blockCenter = Position(tile) + Position(128, 80);
-				double dist = blockCenter.getDistance(mainPosition) + blockCenter.getDistance(Position(mainChoke->Center()));
+				auto blockCenter = Position(tile) + Position(128, 80);
+				const auto dist = blockCenter.getDistance(mainPosition) + blockCenter.getDistance(Position(mainChoke->Center()));
 				if (dist < distBest && ((Broodwar->self()->getRace() == Races::Protoss && canAddBlock(tile, 8, 5, true)) || (Broodwar->self()->getRace() == Races::Terran && canAddBlock(tile, 6, 5, true))))
 				{
 					tileBest = tile;
@@ -26,8 +26,6 @@ namespace BWEB
 					if (blockCenter.x < mainPosition.x) h = true;
 					if (blockCenter.y < mainPosition.y) v = true;
 				}
-
-
 			}
 		}
 
@@ -37,16 +35,16 @@ namespace BWEB
 
 	void Map::findHiddenTechBlock()
 	{
-		double distBest = 0.0;
+		auto distBest = 0.0;
 		TilePosition best;
-		for (int x = mainTile.x - 30; x <= mainTile.x + 30; x++)
+		for (auto x = mainTile.x - 30; x <= mainTile.x + 30; x++)
 		{
-			for (int y = mainTile.y - 30; y <= mainTile.y + 30; y++)
+			for (auto y = mainTile.y - 30; y <= mainTile.y + 30; y++)
 			{
-				TilePosition tile = TilePosition(x, y);
+				auto tile = TilePosition(x, y);
 				if (!tile.isValid() || BWEM::Map::Instance().GetArea(tile) != mainArea) continue;
-				Position blockCenter = Position(tile) + Position(80, 64);
-				double dist = blockCenter.getDistance(Position(mainChoke->Center()));
+				auto blockCenter = Position(tile) + Position(80, 64);
+				const auto dist = blockCenter.getDistance(Position(mainChoke->Center()));
 				if (dist > distBest && canAddBlock(tile, 5, 4, true))
 				{
 					best = tile;
@@ -59,24 +57,23 @@ namespace BWEB
 
 	void Map::findBlocks()
 	{
-		chrono::steady_clock::time_point start;
-		start = chrono::high_resolution_clock::now();
+		const auto start = chrono::high_resolution_clock::now();
 		findStartBlock();
 		map<const BWEM::Area *, int> typePerArea;
 
 		// Iterate every tile
-		for (int y = 0; y <= Broodwar->mapHeight(); y++)
+		for (auto y = 0; y <= Broodwar->mapHeight(); y++)
 		{
-			for (int x = 0; x <= Broodwar->mapWidth(); x++)
+			for (auto x = 0; x <= Broodwar->mapWidth(); x++)
 			{
 				TilePosition tile(x, y);
 				if (!tile.isValid()) continue;
 
-				const BWEM::Area * area = BWEM::Map::Instance().GetArea(tile);
+				auto area = BWEM::Map::Instance().GetArea(tile);
 				if (!area) continue;
 
 				// Check if we should mirror our blocks - TODO: Improve the decisions for these
-				bool mirrorHorizontal = false, mirrorVertical = false;
+				auto mirrorHorizontal = false, mirrorVertical = false;
 				if (BWEM::Map::Instance().Center().x > mainPosition.x) mirrorHorizontal = true;
 				if (BWEM::Map::Instance().Center().y > mainPosition.y) mirrorVertical = true;
 
@@ -86,59 +83,59 @@ namespace BWEB
 					{
 						typePerArea[area] += 4;
 						insertLargeBlock(tile, mirrorHorizontal, mirrorVertical);
-						x+=9;
+						x += 9;
 					}
 					else if (canAddBlock(tile, 6, 8, false) && typePerArea[area] < 12)
 					{
 						typePerArea[area] += 2;
 						insertMediumBlock(tile, mirrorHorizontal, mirrorVertical);
-						x+=5;
+						x += 5;
 					}
 					else if (canAddBlock(tile, 4, 5, false))
 					{
 						typePerArea[area] += 1;
 						insertSmallBlock(tile, mirrorHorizontal, mirrorVertical);
-						x+=3;
+						x += 3;
 					}
 					else if (canAddBlock(tile, 5, 2, false))
 					{
 						insertTinyBlock(tile, mirrorHorizontal, mirrorVertical);
-						x+=4;
+						x += 4;
 					}
 				}
 				else if (Broodwar->self()->getRace() == Races::Terran)
 				{
 					if (canAddBlock(tile, 8, 6, false))
 					{
-						x+=7;
+						x += 7;
 						insertLargeBlock(tile, mirrorHorizontal, mirrorVertical);
 					}
 
 					else if (canAddBlock(tile, 7, 6, false))
 					{
-						x+=6;
+						x += 6;
 						insertMediumBlock(tile, mirrorHorizontal, mirrorVertical);
 					}
 
 					else if (canAddBlock(tile, 6, 6, false))
 					{
-						x+=5;
+						x += 5;
 						insertSmallBlock(tile, mirrorHorizontal, mirrorVertical);
 					}
 					else if (canAddBlock(tile, 6, 4, false))
 					{
-						x+=5;
+						x += 5;
 						insertTinyBlock(tile, mirrorHorizontal, mirrorVertical);
 					}
 				}
 			}
 		}
 
-		double dur = std::chrono::duration <double, std::milli>(std::chrono::high_resolution_clock::now() - start).count();
+		const auto dur = std::chrono::duration <double, std::milli>(std::chrono::high_resolution_clock::now() - start).count();
 		Broodwar << "Block time:" << dur << endl;
 	}
 
-	bool Map::canAddBlock(TilePosition here, int width, int height, bool lowReq)
+	bool Map::canAddBlock(const TilePosition here, const int width, const int height, const bool lowReq)
 	{
 		// Check 4 corners before checking the rest
 		TilePosition one(here.x, here.y);
@@ -152,11 +149,11 @@ namespace BWEB
 		if (!BWEM::Map::Instance().GetTile(three).Buildable() || overlapsAnything(three)) return false;
 		if (!BWEM::Map::Instance().GetTile(four).Buildable() || overlapsAnything(four)) return false;
 
-		int offset = lowReq ? 0 : 1;
+		const auto offset = lowReq ? 0 : 1;
 		// Check if a block of specified size would overlap any bases, resources or other blocks
-		for (int x = here.x - offset; x < here.x + width + offset; x++)
+		for (auto x = here.x - offset; x < here.x + width + offset; x++)
 		{
-			for (int y = here.y - offset; y < here.y + height + offset; y++)
+			for (auto y = here.y - offset; y < here.y + height + offset; y++)
 			{
 				TilePosition tile(x, y);
 				if (tile == one || tile == two || tile == three || tile == four) continue;
@@ -168,7 +165,7 @@ namespace BWEB
 		return true;
 	}
 
-	void Map::insertTinyBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void Map::insertTinyBlock(const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
@@ -190,7 +187,7 @@ namespace BWEB
 		}
 	}
 
-	void Map::insertSmallBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void Map::insertSmallBlock(const TilePosition here, bool mirrorHorizontal, const bool mirrorVertical)
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
@@ -209,7 +206,6 @@ namespace BWEB
 				newBlock.insertLarge(here);
 			}
 			blocks.push_back(newBlock);
-
 		}
 		else if (Broodwar->self()->getRace() == Races::Terran)
 		{
@@ -221,10 +217,9 @@ namespace BWEB
 			newBlock.insertLarge(here + TilePosition(0, 3));
 			blocks.push_back(newBlock);
 		}
-
 	}
 
-	void Map::insertMediumBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void Map::insertMediumBlock(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
@@ -291,7 +286,7 @@ namespace BWEB
 		}
 	}
 
-	void Map::insertLargeBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void Map::insertLargeBlock(const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
 		if (Broodwar->self()->getRace() == Races::Protoss)
 		{
@@ -318,7 +313,7 @@ namespace BWEB
 		}
 	}
 
-	void Map::insertStartBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void Map::insertStartBlock(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
 	{
 		// TODO -- mirroring
 		if (Broodwar->self()->getRace() == Races::Protoss)
@@ -400,9 +395,9 @@ namespace BWEB
 		}
 	}
 
-	void Map::eraseBlock(TilePosition here)
+	void Map::eraseBlock(const TilePosition here)
 	{
-		for (auto it = blocks.begin(); it != blocks.end(); it++)
+		for (auto it = blocks.begin(); it != blocks.end(); ++it)
 		{
 			auto&  block = *it;
 			if (here.x >= block.Location().x && here.x < block.Location().x + block.width() && here.y >= block.Location().y && here.y < block.Location().y + block.height())
@@ -420,8 +415,8 @@ namespace BWEB
 		const Block* bestBlock = nullptr;
 		for (auto& block : blocks)
 		{
-			TilePosition tile = block.Location() + TilePosition(block.width() / 2, block.height() / 2);
-			double dist = here.getDistance(tile);
+			const auto tile = block.Location() + TilePosition(block.width() / 2, block.height() / 2);
+			const auto dist = here.getDistance(tile);
 
 			if (dist < distBest)
 			{
@@ -432,9 +427,8 @@ namespace BWEB
 		return bestBlock;
 	}
 
-	Block::Block(int width, int height, TilePosition tile)
+	Block::Block(const int width, const int height, const TilePosition tile)
 	{
 		w = width, h = height, t = tile;
 	}
-
 }
