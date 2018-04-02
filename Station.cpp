@@ -12,7 +12,7 @@ namespace BWEB
 
 	void Map::findStations()
 	{
-		auto const start{ chrono::high_resolution_clock::now() };
+		const auto start = chrono::steady_clock::now();
 
 		for (auto& area : BWEM::Map::Instance().Areas())
 		{
@@ -51,7 +51,7 @@ namespace BWEB
 			}
 		}
 
-		const auto dur = std::chrono::duration <double, std::milli>(std::chrono::high_resolution_clock::now() - start).count();
+		const auto dur = chrono::duration <double, milli>(chrono::steady_clock::now() - start).count();
 		Broodwar << "Station time: " << dur << endl;
 	}
 

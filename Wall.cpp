@@ -18,7 +18,7 @@ namespace BWEB
 			return;
 
 		// Start a clock to time walls
-		const auto start{ chrono::high_resolution_clock::now() };
+		const auto start = chrono::steady_clock::now();
 
 		// I got sick of passing the parameters everywhere, sue me
 		this->buildings = buildings, this->area = area, this->choke = choke, this->tight = tight, this->reservePath = reservePath;
@@ -66,7 +66,7 @@ namespace BWEB
 		walls.push_back(newWall);
 
 		// Print time
-		const auto dur = chrono::duration <double, milli>(chrono::high_resolution_clock::now() - start).count();
+		const auto dur = chrono::duration <double, milli>(chrono::steady_clock::now() - start).count();
 		Broodwar << "Wall time: " << dur << endl;
 	}
 
