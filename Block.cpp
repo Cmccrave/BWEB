@@ -4,6 +4,14 @@ namespace BWEB
 {
 	void Map::findStartBlock()
 	{
+		findStartBlock(Broodwar->self());
+	}
+	void Map::findStartBlock(BWAPI::Player player)
+	{
+		findStartBlock(player->getRace());
+	}
+	void Map::findStartBlock(BWAPI::Race race)
+	{
 		bool v;
 		auto h = (v = false);
 
@@ -17,7 +25,7 @@ namespace BWEB
 				if (!tile.isValid()) continue;
 				auto blockCenter = Position(tile) + Position(128, 80);
 				const auto dist = blockCenter.getDistance(mainPosition) + blockCenter.getDistance(Position(mainChoke->Center()));
-				if (dist < distBest && ((Broodwar->self()->getRace() == Races::Protoss && canAddBlock(tile, 8, 5, true)) || (Broodwar->self()->getRace() == Races::Terran && canAddBlock(tile, 6, 5, true))))
+				if (dist < distBest && ((race == Races::Protoss && canAddBlock(tile, 8, 5, true)) || (race == Races::Terran && canAddBlock(tile, 6, 5, true))))
 				{
 					tileBest = tile;
 					distBest = dist;
@@ -29,10 +37,18 @@ namespace BWEB
 		}
 
 		if (tileBest.isValid())
-			insertStartBlock(tileBest, h, v);
+			insertStartBlock(race, tileBest, h, v);
 	}
 
 	void Map::findHiddenTechBlock()
+	{
+		findHiddenTechBlock(Broodwar->self());
+	}
+	void Map::findHiddenTechBlock(BWAPI::Player player)
+	{
+		findHiddenTechBlock(player->getRace());
+	}
+	void Map::findHiddenTechBlock(BWAPI::Race race)
 	{
 		auto distBest = 0.0;
 		TilePosition best;
@@ -51,12 +67,20 @@ namespace BWEB
 				}
 			}
 		}
-		insertTechBlock(best, false, false);
+		insertTechBlock(race, best, false, false);
 	}
 
 	void Map::findBlocks()
 	{
-		findStartBlock();
+		findBlocks(Broodwar->self());
+	}
+	void Map::findBlocks(BWAPI::Player player)
+	{
+		findBlocks(player->getRace());
+	}
+	void Map::findBlocks(BWAPI::Race race)
+	{
+		findStartBlock(race);
 		map<const BWEM::Area *, int> typePerArea;
 
 		// Iterate every tile
@@ -75,18 +99,18 @@ namespace BWEB
 				if (BWEM::Map::Instance().Center().x > mainPosition.x) mirrorHorizontal = true;
 				if (BWEM::Map::Instance().Center().y > mainPosition.y) mirrorVertical = true;
 
-				if (Broodwar->self()->getRace() == Races::Protoss)
+				if (race == Races::Protoss)
 				{
 					if (canAddBlock(tile, 10, 6, false) && typePerArea[area] < 12)
 					{
 						typePerArea[area] += 4;
-						insertLargeBlock(tile, mirrorHorizontal, mirrorVertical);
+						insertLargeBlock(race, tile, mirrorHorizontal, mirrorVertical);
 						x += 9;
 					}
 					else if (canAddBlock(tile, 6, 8, false) && typePerArea[area] < 12)
 					{
 						typePerArea[area] += 2;
-						insertMediumBlock(tile, mirrorHorizontal, mirrorVertical);
+						insertMediumBlock(race, tile, mirrorHorizontal, mirrorVertical);
 						x += 5;
 					}
 					else if (canAddBlock(tile, 4, 5, false))
@@ -101,18 +125,18 @@ namespace BWEB
 						x += 4;
 					}
 				}
-				else if (Broodwar->self()->getRace() == Races::Terran)
+				else if (race == Races::Terran)
 				{
 					if (canAddBlock(tile, 8, 6, false))
 					{
 						x += 7;
-						insertLargeBlock(tile, mirrorHorizontal, mirrorVertical);
+						insertLargeBlock(race, tile, mirrorHorizontal, mirrorVertical);
 					}
 
 					else if (canAddBlock(tile, 7, 6, false))
 					{
 						x += 6;
-						insertMediumBlock(tile, mirrorHorizontal, mirrorVertical);
+						insertMediumBlock(race, tile, mirrorHorizontal, mirrorVertical);
 					}
 
 					else if (canAddBlock(tile, 6, 6, false))
@@ -162,7 +186,15 @@ namespace BWEB
 
 	void Map::insertTinyBlock(const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
-		if (Broodwar->self()->getRace() == Races::Protoss)
+		insertTinyBlock(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
+	}
+	void Map::insertTinyBlock(BWAPI::Player player, const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	{
+		insertTinyBlock(player->getRace(), here, mirrorHorizontal, mirrorVertical);
+	}
+	void Map::insertTinyBlock(BWAPI::Race race, const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	{
+		if (race == Races::Protoss)
 		{
 			Block newBlock(5, 2, here);
 			addOverlap(here, 5, 2);
@@ -170,7 +202,7 @@ namespace BWEB
 			newBlock.insertMedium(here + TilePosition(2, 0));
 			blocks.push_back(newBlock);
 		}
-		else if (Broodwar->self()->getRace() == Races::Terran)
+		else if (race == Races::Terran)
 		{
 			Block newBlock(6, 4, here);
 			addOverlap(here, 6, 4);
@@ -184,7 +216,15 @@ namespace BWEB
 
 	void Map::insertSmallBlock(const TilePosition here, bool mirrorHorizontal, const bool mirrorVertical)
 	{
-		if (Broodwar->self()->getRace() == Races::Protoss)
+		insertSmallBlock(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
+	}
+	void Map::insertSmallBlock(BWAPI::Player player, const TilePosition here, bool mirrorHorizontal, const bool mirrorVertical)
+	{
+		insertSmallBlock(player->getRace(), here, mirrorHorizontal, mirrorVertical);
+	}
+	void Map::insertSmallBlock(BWAPI::Race race, const TilePosition here, bool mirrorHorizontal, const bool mirrorVertical)
+	{
+		if (race == Races::Protoss)
 		{
 			Block newBlock(4, 5, here);
 			addOverlap(here, 4, 5);
@@ -202,7 +242,7 @@ namespace BWEB
 			}
 			blocks.push_back(newBlock);
 		}
-		else if (Broodwar->self()->getRace() == Races::Terran)
+		else if (race == Races::Terran)
 		{
 			Block newBlock(6, 6, here);
 			addOverlap(here, 6, 6);
@@ -216,7 +256,15 @@ namespace BWEB
 
 	void Map::insertMediumBlock(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
 	{
-		if (Broodwar->self()->getRace() == Races::Protoss)
+		insertMediumBlock(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
+	}
+	void Map::insertMediumBlock(BWAPI::Player player, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
+	{
+		insertMediumBlock(player->getRace(), here, mirrorHorizontal, mirrorVertical);
+	}
+	void Map::insertMediumBlock(BWAPI::Race race, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
+	{
+		if (race == Races::Protoss)
 		{
 			Block newBlock(6, 8, here);
 			addOverlap(here, 6, 8);
@@ -268,7 +316,7 @@ namespace BWEB
 			}
 			blocks.push_back(newBlock);
 		}
-		else if (Broodwar->self()->getRace() == Races::Terran)
+		else if (race == Races::Terran)
 		{
 			Block newBlock(7, 6, here);
 			addOverlap(here, 7, 6);
@@ -283,7 +331,15 @@ namespace BWEB
 
 	void Map::insertLargeBlock(const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
-		if (Broodwar->self()->getRace() == Races::Protoss)
+		insertLargeBlock(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
+	}
+	void Map::insertLargeBlock(BWAPI::Player player, const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	{
+		insertLargeBlock(player->getRace(), here, mirrorHorizontal, mirrorVertical);
+	}
+	void Map::insertLargeBlock(BWAPI::Race race, const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	{
+		if (race == Races::Protoss)
 		{
 			Block newBlock(10, 6, here);
 			addOverlap(here, 10, 6);
@@ -296,7 +352,7 @@ namespace BWEB
 			newBlock.insertSmall(here + TilePosition(4, 4));
 			blocks.push_back(newBlock);
 		}
-		else if (Broodwar->self()->getRace() == Races::Terran)
+		else if (race == Races::Terran)
 		{
 			Block newBlock(8, 6, here);
 			addOverlap(here, 8, 6);
@@ -310,8 +366,18 @@ namespace BWEB
 
 	void Map::insertStartBlock(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
 	{
+		insertStartBlock(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
+	}
+
+	void Map::insertStartBlock(BWAPI::Player player, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
+	{
+		insertStartBlock(player->getRace(), here, mirrorHorizontal, mirrorVertical);
+	}
+
+	void Map::insertStartBlock(BWAPI::Race race, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
+	{
 		// TODO -- mirroring
-		if (Broodwar->self()->getRace() == Races::Protoss)
+		if (race == Races::Protoss)
 		{
 			if (mirrorHorizontal)
 			{
@@ -364,7 +430,7 @@ namespace BWEB
 				}
 			}
 		}
-		else if (Broodwar->self()->getRace() == Races::Terran)
+		else if (race == Races::Terran)
 		{
 			Block newBlock(6, 5, here);
 			addOverlap(here, 6, 5);
@@ -378,7 +444,15 @@ namespace BWEB
 
 	void Map::insertTechBlock(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
 	{
-		if (Broodwar->self()->getRace() == Races::Protoss)
+		insertTechBlock(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
+	}
+	void Map::insertTechBlock(BWAPI::Player player, TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	{
+		insertTechBlock(player->getRace(), here, mirrorHorizontal, mirrorVertical);
+	}
+	void Map::insertTechBlock(BWAPI::Race race, TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	{
+		if (race == Races::Protoss)
 		{
 			Block newBlock(5, 4, here);
 			addOverlap(here, 5, 4);

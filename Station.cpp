@@ -51,12 +51,20 @@ namespace BWEB
 
 	set<TilePosition>& Map::stationDefenses(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
 	{
+		return stationDefenses(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
+	}
+	set<TilePosition>& Map::stationDefenses(BWAPI::Player player, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
+	{
+		return stationDefenses(player->getRace(), here, mirrorHorizontal, mirrorVertical);
+	}
+	set<TilePosition>& Map::stationDefenses(BWAPI::Race race, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
+	{
 		returnValues.clear();
 		if (mirrorVertical)
 		{
 			if (mirrorHorizontal)
 			{
-				if (Broodwar->self()->getRace() == Races::Terran)
+				if (race == Races::Terran)
 					returnValues.insert({ here + TilePosition(0, 3), here + TilePosition(4, 3) });
 				else
 					returnValues.insert({ here + TilePosition(4, 0), here + TilePosition(0, 3), here + TilePosition(4, 3) });
@@ -68,7 +76,7 @@ namespace BWEB
 			if (mirrorHorizontal)
 			{
 				// Temporary fix for CC Addons
-				if (Broodwar->self()->getRace() == Races::Terran)
+				if (race == Races::Terran)
 					returnValues.insert({ here + TilePosition(4, -2), here + TilePosition(0, -2) });
 				else
 					returnValues.insert({ here + TilePosition(4, -2), here + TilePosition(0, -2), here + TilePosition(4, 1) });
@@ -78,7 +86,7 @@ namespace BWEB
 		}
 
 		// Temporary fix for CC Addons
-		if (Broodwar->self()->getRace() == Races::Terran)
+		if (race == Races::Terran)
 			returnValues.insert(here + TilePosition(4, 1));
 
 		for (auto& tile : returnValues)
