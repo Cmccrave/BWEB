@@ -93,7 +93,7 @@ namespace BWEB
 		static Map* BWEBInstance;
 
 	public:
-		Map(BWEM::Map& map = BWEM::Map::Instance());
+		Map(BWEM::Map& map);
 		void draw(), onStart(), onUnitDiscover(Unit), onUnitDestroy(Unit), onUnitMorph(Unit);
 		static Map &Instance();
 		int overlapGrid[256][256] = {};
