@@ -39,7 +39,7 @@ void McRaveModule::onStart()
   mapBWEB.onStart();
   mapBWEB.findBlocks();
 ```
-You will need to put onDiscover, onMorph and onDestroy from BWEB into their respective events in your code as well if you wish to take advantage of how BWEB handles TilePositions that are used. If you use BWEBs getBuildLocation function, it is necessary to include these two.
+You will need to put onDiscover, onMorph and onDestroy from BWEB into their respective events in your code as well if you wish to take advantage of how BWEB handles TilePositions that are used. If you use BWEBs getBuildLocation function, it is necessary to include these.
 
 ``` 
 void McRaveModule::onUnitDiscover(Unit unit)
