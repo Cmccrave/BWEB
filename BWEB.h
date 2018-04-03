@@ -3,7 +3,7 @@
 #include <set>
 
 #include <BWAPI.h>
-#include "..\BWEM\bwem.h"
+#include <bwem.h>
 #include "Station.h"
 #include "Block.h"
 #include "Wall.h"
