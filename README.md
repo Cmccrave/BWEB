@@ -77,6 +77,4 @@ Here is an example of implementing a Wall for each race, which McRave uses for i
 ```
 
 All other BWEB functions have full comments describing their use and what parameters are required or optional. GL HF!
-
-If you have any questions, feel free to email me at christianmccrave@gmail.com or message me on BWAPI Discord @Fawx.
-BWEB is created by Christian McCrave and Daniel Maize. 
+If you have any questions, feel free to ask on BWAPI Discord.
