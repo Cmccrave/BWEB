@@ -1,7 +1,6 @@
 #include "Wall.h"
 #include "AStar.h"
 #include <tuple>
-#include <chrono>
 
 namespace BWEB
 {
@@ -16,9 +15,6 @@ namespace BWEB
 	{
 		if (!area || !choke || buildings.empty())
 			return;
-
-		// Start a clock to time walls
-		const auto start = chrono::steady_clock::now();
 
 		// I got sick of passing the parameters everywhere, sue me
 		this->buildings = buildings, this->area = area, this->choke = choke, this->tight = tight, this->reservePath = reservePath;
@@ -64,10 +60,6 @@ namespace BWEB
 
 		// Push wall into the vector
 		walls.push_back(newWall);
-
-		// Print time
-		const auto dur = chrono::duration <double, milli>(chrono::steady_clock::now() - start).count();
-		Broodwar << "Wall time: " << dur << endl;
 	}
 
 	bool Map::iteratePieces()

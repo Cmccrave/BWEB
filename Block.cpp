@@ -1,5 +1,4 @@
 #include "Block.h"
-#include <chrono>
 
 namespace BWEB
 {
@@ -57,7 +56,6 @@ namespace BWEB
 
 	void Map::findBlocks()
 	{
-		const auto start = chrono::high_resolution_clock::now();
 		findStartBlock();
 		map<const BWEM::Area *, int> typePerArea;
 
@@ -130,9 +128,6 @@ namespace BWEB
 				}
 			}
 		}
-
-		const auto dur = std::chrono::duration <double, std::milli>(std::chrono::high_resolution_clock::now() - start).count();
-		Broodwar << "Block time:" << dur << endl;
 	}
 
 	bool Map::canAddBlock(const TilePosition here, const int width, const int height, const bool lowReq)
