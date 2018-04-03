@@ -4,7 +4,7 @@ namespace BWEB
 {
 	bool Map::overlapsStations(const TilePosition here)
 	{
-		for (auto& station : BWEB::Map::Instance().Stations())
+		for (auto& station : Stations())
 		{
 			const auto tile = station.BWEMBase()->Location();
 			if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 3) return true;
@@ -16,7 +16,7 @@ namespace BWEB
 
 	bool Map::overlapsBlocks(const TilePosition here)
 	{
-		for (auto& block : BWEB::Map::Instance().Blocks())
+		for (auto& block : Blocks())
 		{
 			if (here.x >= block.Location().x && here.x < block.Location().x + block.width() && here.y >= block.Location().y && here.y < block.Location().y + block.height()) return true;
 		}
@@ -25,26 +25,26 @@ namespace BWEB
 
 	bool Map::overlapsMining(TilePosition here)
 	{
-		for (auto& station : BWEB::Map::Instance().Stations())
+		for (auto& station : Stations())
 			if (here.getDistance(TilePosition(station.ResourceCentroid())) < 5) return true;
 		return false;
 	}
 
 	bool Map::overlapsNeutrals(const TilePosition here)
 	{
-		for (auto& m : BWEM::Map::Instance().Minerals())
+		for (auto& m : map.Minerals())
 		{
 			const auto tile = m->TopLeft();
 			if (here.x >= tile.x && here.x < tile.x + 2 && here.y >= tile.y && here.y < tile.y + 1) return true;
 		}
 
-		for (auto& g : BWEM::Map::Instance().Geysers())
+		for (auto& g : map.Geysers())
 		{
 			const auto tile = g->TopLeft();
 			if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 2) return true;
 		}
 
-		for (auto& n : BWEM::Map::Instance().StaticBuildings())
+		for (auto& n : map.StaticBuildings())
 		{
 			const auto tile = n->TopLeft();
 			if (here.x >= tile.x && here.x < tile.x + n->Type().tileWidth() && here.y >= tile.y && here.y < tile.y + n->Type().tileHeight()) return true;
@@ -63,7 +63,7 @@ namespace BWEB
 		const auto x = here.x;
 		const auto y = here.y;
 
-		for (auto& wall : Instance().getWalls())
+		for (auto& wall : getWalls())
 		{
 			for (const auto tile : wall.smallTiles())
 				if (x >= tile.x && x < tile.x + 2 && y >= tile.y && y < tile.y + 2) return true;
@@ -114,10 +114,40 @@ namespace BWEB
 			{
 				TilePosition t(x, y);
 				if (!t.isValid()) return false;
-				if (BWEM::Map::Instance().GetArea(t) == area || !BWEM::Map::Instance().GetArea(t))
+				if (map.GetArea(t) == area || !map.GetArea(t))
 					cnt++;
 			}
 		}
 		return cnt;
+	}
+
+	bool Utils::overlapsBlocks(const TilePosition here)
+	{
+		return BWEB::Map::Instance().overlapsBlocks(here);
+	}
+
+	bool Utils::overlapsStations(const TilePosition here)
+	{
+		return BWEB::Map::Instance().overlapsStations(here);
+	}
+
+	bool Utils::overlapsNeutrals(const TilePosition here)
+	{
+		return BWEB::Map::Instance().overlapsNeutrals(here);
+	}
+
+	bool Utils::overlapsMining(TilePosition here)
+	{
+		return BWEB::Map::Instance().overlapsMining(here);
+	}
+
+	bool Utils::overlapsWalls(const TilePosition here)
+	{
+		return BWEB::Map::Instance().overlapsWalls(here);
+	}
+
+	int Utils::tilesWithinArea(BWEM::Area const * area, const TilePosition here, const int width, const int height)
+	{
+		return BWEB::Map::Instance().tilesWithinArea(area, here, width, height);
 	}
 }

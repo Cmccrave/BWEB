@@ -19,6 +19,11 @@
 
 namespace BWEB
 {
+	Map::Map(BWEM::Map& map)
+		: map(map)
+	{
+	}
+
 	void Map::onStart()
 	{
 		findMain();
@@ -77,13 +82,13 @@ namespace BWEB
 	{
 		mainTile = Broodwar->self()->getStartLocation();
 		mainPosition = static_cast<Position>(mainTile) + Position(64, 48);
-		mainArea = BWEM::Map::Instance().GetArea(mainTile);
+		mainArea = map.GetArea(mainTile);
 	}
 
 	void Map::findNatural()
 	{
 		auto distBest = DBL_MAX;
-		for (auto& area : BWEM::Map::Instance().Areas())
+		for (auto& area : map.Areas())
 		{
 			for (auto& base : area.Bases())
 			{
@@ -114,7 +119,7 @@ namespace BWEB
 	void Map::findNaturalChoke()
 	{
 		// Exception for maps with a natural behind the main such as Crossing Fields
-		if (getGroundDistance(mainPosition, BWEM::Map::Instance().Center()) < getGroundDistance(Position(naturalTile), BWEM::Map::Instance().Center()))
+		if (getGroundDistance(mainPosition, map.Center()) < getGroundDistance(Position(naturalTile), map.Center()))
 		{
 			naturalChoke = mainChoke;
 			return;
@@ -126,7 +131,7 @@ namespace BWEB
 		for (auto& area : naturalArea->AccessibleNeighbours())
 		{
 			auto center = area->Top();
-			const auto dist = Position(center).getDistance(BWEM::Map::Instance().Center());
+			const auto dist = Position(center).getDistance(map.Center());
 			if (center.isValid() && dist < distBest)
 				second = area, distBest = dist;
 		}
@@ -197,10 +202,10 @@ namespace BWEB
 	double Map::getGroundDistance(PositionType start, PositionType end)
 	{
 		auto dist = 0.0;
-		if (!start.isValid() || !end.isValid() || !BWEM::Map::Instance().GetArea(WalkPosition(start)) || !BWEM::Map::Instance().GetArea(WalkPosition(end)))
+		if (!start.isValid() || !end.isValid() || !map.GetArea(WalkPosition(start)) || !map.GetArea(WalkPosition(end)))
 			return DBL_MAX;
 
-		for (auto& cpp : BWEM::Map::Instance().GetPath(start, end))
+		for (auto& cpp : map.GetPath(start, end))
 		{
 			auto center = Position{ cpp->Center() };
 			dist += start.getDistance(center);
@@ -266,7 +271,7 @@ namespace BWEB
 
 	Map & Map::Instance()
 	{
-		if (!BWEBInstance) BWEBInstance = new Map();
+		if (!BWEBInstance) BWEBInstance = new Map(BWEM::Map::Instance());
 		return *BWEBInstance;
 	}
 }

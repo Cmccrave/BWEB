@@ -11,7 +11,7 @@ namespace BWEB
 
 	void Map::findStations()
 	{
-		for (auto& area : BWEM::Map::Instance().Areas())
+		for (auto& area : map.Areas())
 		{
 			for (auto& base : area.Bases())
 			{

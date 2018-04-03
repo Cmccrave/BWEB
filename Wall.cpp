@@ -43,7 +43,7 @@ namespace BWEB
 			for (auto& tile : currentPath)
 			{
 				reserveGrid[tile.x][tile.y] = 1;
-				if (!BWEM::Map::Instance().GetArea(tile))
+				if (!map.GetArea(tile))
 					newWall.setWallDoor(tile);
 			}
 		}
@@ -258,7 +258,7 @@ namespace BWEB
 
 		// Reset hole and get a new path
 		currentHole = TilePositions::None;
-		currentPath = AStar().findPath(startTile, endTile, true);
+		currentPath = AStar().findPath(map, *this, startTile, endTile, true);
 		currentPathSize = static_cast<double>(currentPath.size());
 
 		// Quick check to see if the path contains our end point
@@ -324,7 +324,7 @@ namespace BWEB
 
 				const auto dist = center.getDistance(hold);
 
-				if (BWEM::Map::Instance().GetArea(TilePosition(center)) != wall.getArea()) continue;
+				if (map.GetArea(TilePosition(center)) != wall.getArea()) continue;
 				if (p.getDistance(Position(endTile)) < wall.getCentroid().getDistance(Position(endTile))) continue;
 
 				if (dist < distance)
@@ -497,7 +497,7 @@ namespace BWEB
 	void Map::setStartTile()
 	{
 		auto distBest = DBL_MAX;
-		if (!BWEM::Map::Instance().GetArea(startTile) || !isWalkable(startTile))
+		if (!map.GetArea(startTile) || !isWalkable(startTile))
 		{
 			for (auto x = startTile.x - 2; x < startTile.x + 2; x++)
 			{
@@ -506,7 +506,7 @@ namespace BWEB
 					TilePosition t(x, y);
 					const auto dist = t.getDistance(endTile);
 					if (overlapsCurrentWall(t) != UnitTypes::None) continue;
-					if (BWEM::Map::Instance().GetArea(t) == area && dist < distBest)
+					if (map.GetArea(t) == area && dist < distBest)
 						startTile = TilePosition(x, y), distBest = dist;
 				}
 			}
@@ -516,7 +516,7 @@ namespace BWEB
 	void Map::setEndTile()
 	{
 		auto distBest = 0.0;
-		if (!BWEM::Map::Instance().GetArea(endTile) || !isWalkable(endTile))
+		if (!map.GetArea(endTile) || !isWalkable(endTile))
 		{
 			for (auto x = endTile.x - 2; x < endTile.x + 2; x++)
 			{
@@ -525,7 +525,7 @@ namespace BWEB
 					TilePosition t(x, y);
 					const auto dist = t.getDistance(startTile);
 					if (overlapsCurrentWall(t) != UnitTypes::None) continue;
-					if (BWEM::Map::Instance().GetArea(t) && dist > distBest)
+					if (map.GetArea(t) && dist > distBest)
 						endTile = TilePosition(x, y), distBest = dist;
 				}
 			}
