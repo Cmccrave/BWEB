@@ -27,6 +27,6 @@ namespace BWEB
 
 	public:
 		AStar();
-		vector<TilePosition> findPath(TilePosition, TilePosition, bool);
+		vector<TilePosition> findPath(BWEM::Map&, BWEB::Map&, TilePosition, TilePosition, bool);
 	};
 }
