@@ -25,14 +25,31 @@ namespace BWEB
 		vector<Block> blocks;
 
 		// Blocks
-		void findStartBlock(), findHiddenTechBlock();
+		void findStartBlock();
+		void findStartBlock(BWAPI::Player);
+		void findStartBlock(BWAPI::Race);
+		void findHiddenTechBlock();
+		void findHiddenTechBlock(BWAPI::Player);
+		void findHiddenTechBlock(BWAPI::Race);
 		bool canAddBlock(TilePosition, int, int, bool);
 		void insertTinyBlock(TilePosition, bool, bool);
+		void insertTinyBlock(BWAPI::Player, TilePosition, bool, bool);
+		void insertTinyBlock(BWAPI::Race, TilePosition, bool, bool);
 		void insertSmallBlock(TilePosition, bool, bool);
+		void insertSmallBlock(BWAPI::Player, TilePosition, bool, bool);
+		void insertSmallBlock(BWAPI::Race, TilePosition, bool, bool);
 		void insertMediumBlock(TilePosition, bool, bool);
+		void insertMediumBlock(BWAPI::Player, TilePosition, bool, bool);
+		void insertMediumBlock(BWAPI::Race, TilePosition, bool, bool);
 		void insertLargeBlock(TilePosition, bool, bool);
+		void insertLargeBlock(BWAPI::Player, TilePosition, bool, bool);
+		void insertLargeBlock(BWAPI::Race, TilePosition, bool, bool);
 		void insertStartBlock(TilePosition, bool, bool);
+		void insertStartBlock(BWAPI::Player, TilePosition, bool, bool);
+		void insertStartBlock(BWAPI::Race, TilePosition, bool, bool);
 		void insertTechBlock(TilePosition, bool, bool);
+		void insertTechBlock(BWAPI::Player, TilePosition, bool, bool);
+		void insertTechBlock(BWAPI::Race, TilePosition, bool, bool);
 
 		// Walls
 		bool isWallTight(UnitType, TilePosition);
@@ -86,6 +103,8 @@ namespace BWEB
 
 		// Stations
 		void findStations();
+		set<TilePosition>& stationDefenses(BWAPI::Race, TilePosition, bool, bool);
+		set<TilePosition>& stationDefenses(BWAPI::Player, TilePosition, bool, bool);
 		set<TilePosition>& stationDefenses(TilePosition, bool, bool);
 		set<TilePosition> returnValues;
 
@@ -194,6 +213,8 @@ namespace BWEB
 		void eraseBlock(TilePosition here);
 
 		/// <summary> Initializes the building of every BWEB::Block on the map, call it only once per game. </summary>
+		void findBlocks(BWAPI::Player);
+		void findBlocks(BWAPI::Race);
 		void findBlocks();
 	};
 
