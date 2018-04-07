@@ -32,19 +32,19 @@ namespace BWEB
 
 	bool Map::overlapsNeutrals(const TilePosition here)
 	{
-		for (auto& m : map.Minerals())
+		for (auto& m : mapBWEM.Minerals())
 		{
 			const auto tile = m->TopLeft();
 			if (here.x >= tile.x && here.x < tile.x + 2 && here.y >= tile.y && here.y < tile.y + 1) return true;
 		}
 
-		for (auto& g : map.Geysers())
+		for (auto& g : mapBWEM.Geysers())
 		{
 			const auto tile = g->TopLeft();
 			if (here.x >= tile.x && here.x < tile.x + 4 && here.y >= tile.y && here.y < tile.y + 2) return true;
 		}
 
-		for (auto& n : map.StaticBuildings())
+		for (auto& n : mapBWEM.StaticBuildings())
 		{
 			const auto tile = n->TopLeft();
 			if (here.x >= tile.x && here.x < tile.x + n->Type().tileWidth() && here.y >= tile.y && here.y < tile.y + n->Type().tileHeight()) return true;
@@ -114,7 +114,7 @@ namespace BWEB
 			{
 				TilePosition t(x, y);
 				if (!t.isValid()) return false;
-				if (map.GetArea(t) == area || !map.GetArea(t))
+				if (mapBWEM.GetArea(t) == area || !mapBWEM.GetArea(t))
 					cnt++;
 			}
 		}

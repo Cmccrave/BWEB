@@ -57,7 +57,7 @@ namespace BWEB
 			for (auto y = mainTile.y - 30; y <= mainTile.y + 30; y++)
 			{
 				auto tile = TilePosition(x, y);
-				if (!tile.isValid() || map.GetArea(tile) != mainArea) continue;
+				if (!tile.isValid() || mapBWEM.GetArea(tile) != mainArea) continue;
 				auto blockCenter = Position(tile) + Position(80, 64);
 				const auto dist = blockCenter.getDistance(Position(mainChoke->Center()));
 				if (dist > distBest && canAddBlock(tile, 5, 4, true))
@@ -82,72 +82,35 @@ namespace BWEB
 	{
 		findStartBlock(race);
 		map<const BWEM::Area *, int> typePerArea;
+		vector<int> heights;
+		vector<int> widths;
+
+		if (race == Races::Protoss) {
+			heights.insert(heights.end(), { 2, 5, 6, 8 });
+			widths.insert(widths.end(), { 2, 4, 5, 8, 10 });
+		}
+		else if (race == Races::Terran) {
+			heights.insert(heights.end(), { 2, 4, 5, 6 });
+			widths.insert(widths.end(), { 3, 6, 8 });
+		}
 
 		// Iterate every tile
-		for (auto y = 0; y <= Broodwar->mapHeight(); y++)
-		{
-			for (auto x = 0; x <= Broodwar->mapWidth(); x++)
-			{
-				TilePosition tile(x, y);
-				if (!tile.isValid()) continue;
+		for (int i = 10; i > 0; i--) {
+			for (int j = 10; j > 0; j--) {
+				for (auto y = 0; y <= Broodwar->mapHeight(); y++) {
+					for (auto x = 0; x <= Broodwar->mapWidth(); x++) {
+						if (find(heights.begin(), heights.end(), j) == heights.end() || find(widths.begin(), widths.end(), i) == widths.end()) continue;
 
-				auto area = map.GetArea(tile);
-				if (!area) continue;
+						TilePosition tile(x, y);
+						if (!tile.isValid()) continue;
 
-				// Check if we should mirror our blocks - TODO: Improve the decisions for these
-				auto mirrorHorizontal = false, mirrorVertical = false;
-				if (map.Center().x > mainPosition.x) mirrorHorizontal = true;
-				if (map.Center().y > mainPosition.y) mirrorVertical = true;
+						auto area = mapBWEM.GetArea(tile);
+						if (!area) continue;
 
-				if (race == Races::Protoss)
-				{
-					if (canAddBlock(tile, 10, 6, false) && typePerArea[area] < 12)
-					{
-						typePerArea[area] += 4;
-						insertLargeBlock(race, tile, mirrorHorizontal, mirrorVertical);
-						x += 9;
-					}
-					else if (canAddBlock(tile, 6, 8, false) && typePerArea[area] < 12)
-					{
-						typePerArea[area] += 2;
-						insertMediumBlock(race, tile, mirrorHorizontal, mirrorVertical);
-						x += 5;
-					}
-					else if (canAddBlock(tile, 4, 5, false))
-					{
-						typePerArea[area] += 1;
-						insertSmallBlock(tile, mirrorHorizontal, mirrorVertical);
-						x += 3;
-					}
-					else if (canAddBlock(tile, 5, 2, false))
-					{
-						insertTinyBlock(tile, mirrorHorizontal, mirrorVertical);
-						x += 4;
-					}
-				}
-				else if (race == Races::Terran)
-				{
-					if (canAddBlock(tile, 8, 6, false))
-					{
-						x += 7;
-						insertLargeBlock(race, tile, mirrorHorizontal, mirrorVertical);
-					}
-
-					else if (canAddBlock(tile, 7, 6, false))
-					{
-						x += 6;
-						insertMediumBlock(race, tile, mirrorHorizontal, mirrorVertical);
-					}
-
-					else if (canAddBlock(tile, 6, 6, false))
-					{
-						x += 5;
-						insertSmallBlock(tile, mirrorHorizontal, mirrorVertical);
-					}
-					else if (canAddBlock(tile, 6, 4, false))
-					{
-						x += 5;
-						insertTinyBlock(tile, mirrorHorizontal, mirrorVertical);
+						if (canAddBlock(tile, i, j, false)) {
+							insertBlock(race, tile, i, j);
+							x += i+1;
+						}
 					}
 				}
 			}
@@ -163,10 +126,10 @@ namespace BWEB
 		TilePosition four(here.x + width - 1, here.y + height - 1);
 
 		if (!one.isValid() || !two.isValid() || !three.isValid() || !four.isValid()) return false;
-		if (!map.GetTile(one).Buildable() || overlapsAnything(one)) return false;
-		if (!map.GetTile(two).Buildable() || overlapsAnything(two)) return false;
-		if (!map.GetTile(three).Buildable() || overlapsAnything(three)) return false;
-		if (!map.GetTile(four).Buildable() || overlapsAnything(four)) return false;
+		if (!mapBWEM.GetTile(one).Buildable() || overlapsAnything(one)) return false;
+		if (!mapBWEM.GetTile(two).Buildable() || overlapsAnything(two)) return false;
+		if (!mapBWEM.GetTile(three).Buildable() || overlapsAnything(three)) return false;
+		if (!mapBWEM.GetTile(four).Buildable() || overlapsAnything(four)) return false;
 
 		const auto offset = lowReq ? 0 : 1;
 		// Check if a block of specified size would overlap any bases, resources or other blocks
@@ -177,192 +140,116 @@ namespace BWEB
 				TilePosition tile(x, y);
 				if (tile == one || tile == two || tile == three || tile == four) continue;
 				if (!tile.isValid()) return false;
-				if (!map.GetTile(TilePosition(x, y)).Buildable()) return false;
-				if (overlapGrid[x][y] > 0) return false;
+				if (!mapBWEM.GetTile(TilePosition(x, y)).Buildable()) return false;
+				if (overlapGrid[x][y] > 0 || overlapsMining(tile)) return false;
 			}
 		}
 		return true;
 	}
 
-	void Map::insertTinyBlock(const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
+	void Map::insertBlock(BWAPI::Race race, TilePosition here, int width, int height)
 	{
-		insertTinyBlock(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
-	}
-	void Map::insertTinyBlock(BWAPI::Player player, const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
-	{
-		insertTinyBlock(player->getRace(), here, mirrorHorizontal, mirrorVertical);
-	}
-	void Map::insertTinyBlock(BWAPI::Race race, const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
-	{
+		Block newBlock(width, height, here);
 		if (race == Races::Protoss)
 		{
-			Block newBlock(5, 2, here);
-			addOverlap(here, 5, 2);
-			newBlock.insertSmall(here);
-			newBlock.insertMedium(here + TilePosition(2, 0));
-			blocks.push_back(newBlock);
-		}
-		else if (race == Races::Terran)
-		{
-			Block newBlock(6, 4, here);
-			addOverlap(here, 6, 4);
-			newBlock.insertMedium(here);
-			newBlock.insertMedium(here + TilePosition(0, 2));
-			newBlock.insertMedium(here + TilePosition(3, 0));
-			newBlock.insertMedium(here + TilePosition(3, 2));
-			blocks.push_back(newBlock);
-		}
-	}
-
-	void Map::insertSmallBlock(const TilePosition here, bool mirrorHorizontal, const bool mirrorVertical)
-	{
-		insertSmallBlock(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
-	}
-	void Map::insertSmallBlock(BWAPI::Player player, const TilePosition here, bool mirrorHorizontal, const bool mirrorVertical)
-	{
-		insertSmallBlock(player->getRace(), here, mirrorHorizontal, mirrorVertical);
-	}
-	void Map::insertSmallBlock(BWAPI::Race race, const TilePosition here, bool mirrorHorizontal, const bool mirrorVertical)
-	{
-		if (race == Races::Protoss)
-		{
-			Block newBlock(4, 5, here);
-			addOverlap(here, 4, 5);
-			if (mirrorVertical)
-			{
-				newBlock.insertSmall(here);
-				newBlock.insertSmall(here + TilePosition(2, 0));
-				newBlock.insertLarge(here + TilePosition(0, 2));
-			}
-			else
-			{
-				newBlock.insertSmall(here + TilePosition(0, 3));
-				newBlock.insertSmall(here + TilePosition(2, 3));
-				newBlock.insertLarge(here);
-			}
-			blocks.push_back(newBlock);
-		}
-		else if (race == Races::Terran)
-		{
-			Block newBlock(6, 6, here);
-			addOverlap(here, 6, 6);
-			newBlock.insertSmall(here + TilePosition(4, 1));
-			newBlock.insertSmall(here + TilePosition(4, 4));
-			newBlock.insertLarge(here);
-			newBlock.insertLarge(here + TilePosition(0, 3));
-			blocks.push_back(newBlock);
-		}
-	}
-
-	void Map::insertMediumBlock(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
-	{
-		insertMediumBlock(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
-	}
-	void Map::insertMediumBlock(BWAPI::Player player, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
-	{
-		insertMediumBlock(player->getRace(), here, mirrorHorizontal, mirrorVertical);
-	}
-	void Map::insertMediumBlock(BWAPI::Race race, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
-	{
-		if (race == Races::Protoss)
-		{
-			Block newBlock(6, 8, here);
-			addOverlap(here, 6, 8);
-			if (mirrorHorizontal)
-			{
-				if (mirrorVertical)
-				{
-					newBlock.insertSmall(here + TilePosition(0, 2));
-					newBlock.insertSmall(here + TilePosition(0, 4));
-					newBlock.insertSmall(here + TilePosition(0, 6));
-					newBlock.insertMedium(here);
-					newBlock.insertMedium(here + TilePosition(3, 0));
-					newBlock.insertLarge(here + TilePosition(2, 2));
-					newBlock.insertLarge(here + TilePosition(2, 5));
-				}
-				else
-				{
+			if (height == 2) {
+				// Just a pylon
+				if (width == 2) {
 					newBlock.insertSmall(here);
-					newBlock.insertSmall(here + TilePosition(0, 2));
-					newBlock.insertSmall(here + TilePosition(0, 4));
-					newBlock.insertMedium(here + TilePosition(0, 6));
-					newBlock.insertMedium(here + TilePosition(3, 6));
-					newBlock.insertLarge(here + TilePosition(2, 0));
-					newBlock.insertLarge(here + TilePosition(2, 3));
 				}
+				// Pylon and medium
+				else if (width == 5) {
+					newBlock.insertSmall(here);
+					newBlock.insertMedium(here + TilePosition(2, 0));
+				}
+				else return;
 			}
-			else
-			{
-				if (mirrorVertical)
-				{
-					newBlock.insertSmall(here + TilePosition(4, 2));
-					newBlock.insertSmall(here + TilePosition(4, 4));
-					newBlock.insertSmall(here + TilePosition(4, 6));
-					newBlock.insertMedium(here);
-					newBlock.insertMedium(here + TilePosition(3, 0));
-					newBlock.insertLarge(here + TilePosition(0, 2));
-					newBlock.insertLarge(here + TilePosition(0, 5));
+
+			else if (height == 5) {
+				// Gate and 2 Pylons
+				if (width == 4) {
+					newBlock.insertLarge(here);
+					newBlock.insertSmall(here + TilePosition(0, 3));
+					newBlock.insertSmall(here + TilePosition(2, 3));
 				}
-				else
-				{
+				else return;
+			}
+
+			else  if (height == 8) {
+				// 4 Gates and 4 Pylons
+				if (width == 8) {
+					newBlock.insertSmall(here + TilePosition(0, 3));
+					newBlock.insertSmall(here + TilePosition(2, 3));
+					newBlock.insertSmall(here + TilePosition(4, 3));
+					newBlock.insertSmall(here + TilePosition(6, 3));
+					newBlock.insertLarge(here);
+					newBlock.insertLarge(here + TilePosition(4, 0));
+					newBlock.insertLarge(here + TilePosition(0, 5));
+					newBlock.insertLarge(here + TilePosition(4, 5));
+				}
+				else return;
+			}
+
+			else if (height == 6) {
+				// 4 Gates and 3 Pylons
+				if (width == 10) {
 					newBlock.insertSmall(here + TilePosition(4, 0));
 					newBlock.insertSmall(here + TilePosition(4, 2));
 					newBlock.insertSmall(here + TilePosition(4, 4));
-					newBlock.insertMedium(here + TilePosition(0, 6));
-					newBlock.insertMedium(here + TilePosition(3, 6));
 					newBlock.insertLarge(here);
 					newBlock.insertLarge(here + TilePosition(0, 3));
+					newBlock.insertLarge(here + TilePosition(6, 0));
+					newBlock.insertLarge(here + TilePosition(6, 3));
 				}
+				else return;
 			}
-			blocks.push_back(newBlock);
+			else return;
 		}
-		else if (race == Races::Terran)
+		if (race == Races::Terran)
 		{
-			Block newBlock(7, 6, here);
-			addOverlap(here, 7, 6);
-			newBlock.insertMedium(here);
-			newBlock.insertMedium(here + TilePosition(0, 2));
-			newBlock.insertMedium(here + TilePosition(0, 4));
-			newBlock.insertLarge(here + TilePosition(3, 0));
-			newBlock.insertLarge(here + TilePosition(3, 3));
-			blocks.push_back(newBlock);
+			if (height == 2) {
+				if (width == 3) {
+					newBlock.insertMedium(here);
+				}
+				else return;
+			}
+			else if (height == 4) {
+				if (width == 3) {
+					newBlock.insertMedium(here);
+					newBlock.insertMedium(here + TilePosition(0, 2));
+				}
+				else if (width == 6) {
+					newBlock.insertMedium(here);
+					newBlock.insertMedium(here + TilePosition(0, 2));
+					newBlock.insertMedium(here + TilePosition(3, 0));
+					newBlock.insertMedium(here + TilePosition(3, 2));
+				}
+				else return;
+			}
+			else if (height == 5) {
+				if (width == 6) {
+					newBlock.insertLarge(here);
+					newBlock.insertSmall(here + TilePosition(4, 1));
+					newBlock.insertMedium(here + TilePosition(0, 3));
+					newBlock.insertMedium(here + TilePosition(3, 3));
+				}
+				else return;
+			}
+			else if (height == 6) {
+				if (width == 8) {
+					newBlock.insertLarge(here);
+					newBlock.insertLarge(here + TilePosition(4, 0));
+					newBlock.insertLarge(here + TilePosition(0, 3));
+					newBlock.insertLarge(here + TilePosition(4, 3));
+				}
+				else return;
+			}
+			else return;
 		}
+		blocks.push_back(newBlock);
+		addOverlap(here, width, height);
 	}
 
-	void Map::insertLargeBlock(const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
-	{
-		insertLargeBlock(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
-	}
-	void Map::insertLargeBlock(BWAPI::Player player, const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
-	{
-		insertLargeBlock(player->getRace(), here, mirrorHorizontal, mirrorVertical);
-	}
-	void Map::insertLargeBlock(BWAPI::Race race, const TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
-	{
-		if (race == Races::Protoss)
-		{
-			Block newBlock(10, 6, here);
-			addOverlap(here, 10, 6);
-			newBlock.insertLarge(here);
-			newBlock.insertLarge(here + TilePosition(0, 3));
-			newBlock.insertLarge(here + TilePosition(6, 0));
-			newBlock.insertLarge(here + TilePosition(6, 3));
-			newBlock.insertSmall(here + TilePosition(4, 0));
-			newBlock.insertSmall(here + TilePosition(4, 2));
-			newBlock.insertSmall(here + TilePosition(4, 4));
-			blocks.push_back(newBlock);
-		}
-		else if (race == Races::Terran)
-		{
-			Block newBlock(8, 6, here);
-			addOverlap(here, 8, 6);
-			newBlock.insertLarge(here);
-			newBlock.insertLarge(here + TilePosition(0, 3));
-			newBlock.insertLarge(here + TilePosition(4, 0));
-			newBlock.insertLarge(here + TilePosition(4, 3));
-			blocks.push_back(newBlock);
-		}
-	}
 
 	void Map::insertStartBlock(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
 	{

@@ -25,6 +25,7 @@ namespace BWEB
 		vector<Block> blocks;
 
 		// Blocks
+		void insertBlock(BWAPI::Race, TilePosition, int, int);
 		void findStartBlock();
 		void findStartBlock(BWAPI::Player);
 		void findStartBlock(BWAPI::Race);
@@ -32,21 +33,11 @@ namespace BWEB
 		void findHiddenTechBlock(BWAPI::Player);
 		void findHiddenTechBlock(BWAPI::Race);
 		bool canAddBlock(TilePosition, int, int, bool);
-		void insertTinyBlock(TilePosition, bool, bool);
-		void insertTinyBlock(BWAPI::Player, TilePosition, bool, bool);
-		void insertTinyBlock(BWAPI::Race, TilePosition, bool, bool);
-		void insertSmallBlock(TilePosition, bool, bool);
-		void insertSmallBlock(BWAPI::Player, TilePosition, bool, bool);
-		void insertSmallBlock(BWAPI::Race, TilePosition, bool, bool);
-		void insertMediumBlock(TilePosition, bool, bool);
-		void insertMediumBlock(BWAPI::Player, TilePosition, bool, bool);
-		void insertMediumBlock(BWAPI::Race, TilePosition, bool, bool);
-		void insertLargeBlock(TilePosition, bool, bool);
-		void insertLargeBlock(BWAPI::Player, TilePosition, bool, bool);
-		void insertLargeBlock(BWAPI::Race, TilePosition, bool, bool);
+		
 		void insertStartBlock(TilePosition, bool, bool);
 		void insertStartBlock(BWAPI::Player, TilePosition, bool, bool);
 		void insertStartBlock(BWAPI::Race, TilePosition, bool, bool);
+
 		void insertTechBlock(TilePosition, bool, bool);
 		void insertTechBlock(BWAPI::Player, TilePosition, bool, bool);
 		void insertTechBlock(BWAPI::Race, TilePosition, bool, bool);
@@ -76,7 +67,7 @@ namespace BWEB
 		vector<UnitType> buildings;
 		const BWEM::ChokePoint * choke{};
 		const BWEM::Area * area{};
-		BWEM::Map& map;
+		BWEM::Map& mapBWEM;
 		UnitType tight;
 		bool reservePath{};
 

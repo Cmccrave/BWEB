@@ -16,7 +16,7 @@ namespace BWEB
 		return G + H;
 	}
 
-	AStar::AStar() : directions(0)
+	AStar::AStar()
 	{
 		direction =
 		{
@@ -25,7 +25,7 @@ namespace BWEB
 		};
 	}
 
-	vector<TilePosition> AStar::findPath(BWEM::Map& bwem, BWEB::Map& map, const TilePosition source, const TilePosition target, bool walling)
+	vector<TilePosition> AStar::findPath(BWEM::Map& bwem, BWEB::Map& bweb, const TilePosition source, const TilePosition target, bool walling)
 	{
 		Node *current = nullptr;
 		set<Node*> openSet, closedSet;
@@ -51,9 +51,12 @@ namespace BWEB
 				auto tile(current->coordinates + direction[i]);
 
 				// Detection collision or skip tiles already added to closed set
-				if (!tile.isValid() || map.overlapGrid[tile.x][tile.y] > 0 || !BWEB::Map::isWalkable(tile) || findNodeOnList(closedSet, tile)) continue;
-				if (map.overlapsCurrentWall(tile) != UnitTypes::None) continue;
-				if (bwem.GetArea(tile) && bwem.GetArea(tile) != bwem.GetArea(source) && bwem.GetArea(tile) != bwem.GetArea(target)) continue;
+				if (!tile.isValid() || bweb.overlapGrid[tile.x][tile.y] > 0 || !bweb.isWalkable(tile) || findNodeOnList(closedSet, tile)) continue;
+				if (bweb.overlapsCurrentWall(tile) != UnitTypes::None) continue;
+				//if (bwem.GetArea(tile) && bwem.GetArea(tile) != bwem.GetArea(source) && bwem.GetArea(tile) != bwem.GetArea(target)) continue;
+				
+				// Added this because BW pathing is awful through mineral lines
+				//if (bweb.overlapsMining(tile)) continue;
 
 				// Cost function?
 				const auto totalCost = current->G + ((i < 4) ? 10 : 14);
