@@ -39,7 +39,7 @@ namespace BWEB
 		}
 
 		findCurrentHole();
-		if (true) {
+		if (reservePath) {
 			for (auto& tile : currentPath)
 			{
 				reserveGrid[tile.x][tile.y] = 1;
