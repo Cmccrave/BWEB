@@ -1,8 +1,11 @@
 # BWEB
-## BWEB is currently v1.01
+## BWEB is currently v1.02
 Broodwar Easy Builder or BWEB for short, is a BWEM based building placement addon. The purpose of this addon is to provide easily accesible building management. BWEB started as a decision to create a standard and simple method for bots to optimize their building space and placement.
 
-## Q: What does BWEB do?
+## What's New?
+Block generation has improved drastically in terms of efficiency and speed. It used to take a few seconds to generate the blocks, now only taking a few milliseconds. I would highly suggest using Blocks and being very cautious about using Walls right now if you're playing Terran, they're not pixel perfect yet.
+
+## What does BWEB do?
 BWEB has 3 classes of information, Walls, Blocks and Stations.
 
 Walls are made by permutating through a vector of UnitTypes in as many combinations as possible and measuring an A* path length to find a wall that is either wall tight or minimizes enemy movement. Walls can be created using any UnitTypes and have optional parameters to pass in; what UnitType you want to be wall tight against, a vector of UnitTypes for defenses, or a reserve path can be created to ensure your units can leave the BWEM::Area that the Wall is being created in.
@@ -11,15 +14,15 @@ Blocks are used for all building types and are modifiable for any race and build
 
 Stations are placed on every BWEM::Base and include defense positions that provide coverage for all your workers.
 
-## Q: Why use BWEB?
+## Why use BWEB?
 Building placement is a very important aspect of Broodwar. Decisions such as hiding tech, walling a choke or finding more optimal use of your space are possible using BWEB. Most Broodwar bots suffer from many issues stemming from building placement, such as; timeouts, building where it's not safe, trapping units, and lack of fast expand options due to poor wall placement.
 
-## Q: How do I install BWEB?
+## How do I install BWEB?
 1) Clone the repository or download a copy.
 2) In your source code, create a BWEB folder and store the files in there.
 3) In Visual Studio, add the files to your project and edit the properties of your projects include directory to include BWEBs folder.
 
-## Q: How do I use BWEB?
+## How do I use BWEB?
 
 In your main header file, you will need to include the BWEB header file.
 
