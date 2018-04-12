@@ -25,6 +25,8 @@ namespace BWEB
 		vector<Block> blocks;
 
 		// Blocks
+		// TODO: Add this function. This would be used to create a block that makes room for a specific type (possibly better generation than floodfill)
+		// void createBlock(BWAPI::Race, UnitType, BWEM::Area const *, TilePosition);
 		void insertBlock(BWAPI::Race, TilePosition, int, int);
 		void findStartBlock();
 		void findStartBlock(BWAPI::Player);
@@ -70,6 +72,8 @@ namespace BWEB
 		BWEM::Map& mapBWEM;
 		UnitType tight;
 		bool reservePath{};
+		bool requireTight;
+		int chokeWidth;
 
 		// TilePosition grid of what has been visited for wall placement
 		struct VisitGrid
@@ -112,6 +116,7 @@ namespace BWEB
 		/// This is just put here so AStar can use it for now
 		UnitType overlapsCurrentWall(TilePosition tile, int width = 1, int height = 1);
 
+		vector<TilePosition> findBuildableBorderTiles(const BWEM::Map &, WalkPosition, const BWEM::Area *);
 		bool overlapsBlocks(TilePosition);
 		bool overlapsStations(TilePosition);
 		bool overlapsNeutrals(TilePosition);
@@ -191,7 +196,8 @@ namespace BWEB
 		/// <param name="tight"> (Optional) Decides whether this BWEB::Wall intends to be walled around a specific UnitType. </param>
 		/// <param name="defenses"> A Vector of UnitTypes that you want the BWEB::Wall to have defenses consisting of. </param>
 		/// <param name="reservePath"> Optional parameter to ensure that a path of TilePositions is reserved and not built on. </param>
-		void createWall(vector<UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, UnitType tight = UnitTypes::None, const vector<UnitType>& defenses = {}, bool reservePath = false);
+		/// <param name="requireTight"> Optional parameter to ensure that the Wall must be walltight. </param>
+		void createWall(vector<UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, UnitType tight = UnitTypes::None, const vector<UnitType>& defenses = {}, bool reservePath = false, bool requireTight = false);
 
 		/// <summary> Adds a UnitType to a currently existing BWEB::Wall. </summary>
 		/// <param name="type"> The UnitType you want to place at the BWEB::Wall. </param>

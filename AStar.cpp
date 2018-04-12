@@ -35,7 +35,7 @@ namespace BWEB
 		while (!openSet.empty())
 		{
 			current = *openSet.begin();
-			for (auto node : openSet)
+			for (auto& node : openSet)
 			{
 				if (node->getScore() <= current->getScore())
 					current = node;
@@ -53,10 +53,10 @@ namespace BWEB
 				// Detection collision or skip tiles already added to closed set
 				if (!tile.isValid() || bweb.overlapGrid[tile.x][tile.y] > 0 || !bweb.isWalkable(tile) || findNodeOnList(closedSet, tile)) continue;
 				if (bweb.overlapsCurrentWall(tile) != UnitTypes::None) continue;
-				//if (bwem.GetArea(tile) && bwem.GetArea(tile) != bwem.GetArea(source) && bwem.GetArea(tile) != bwem.GetArea(target)) continue;
+				if (bwem.GetArea(tile) && bwem.GetArea(tile) != bwem.GetArea(source) && bwem.GetArea(tile) != bwem.GetArea(target)) continue;
 				
 				// Added this because BW pathing is awful through mineral lines
-				//if (bweb.overlapsMining(tile)) continue;
+				if (bweb.overlapsMining(tile)) continue;
 
 				// Cost function?
 				const auto totalCost = current->G + ((i < 4) ? 10 : 14);
@@ -97,7 +97,7 @@ namespace BWEB
 
 	Node* AStar::findNodeOnList(set<Node*>& nodes, const TilePosition coordinates)
 	{
-		for (auto node : nodes) {
+		for (auto& node : nodes) {
 			if (node->coordinates == coordinates) {
 				return node;
 			}

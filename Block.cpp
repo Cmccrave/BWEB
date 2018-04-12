@@ -91,7 +91,7 @@ namespace BWEB
 		}
 		else if (race == Races::Terran) {
 			heights.insert(heights.end(), { 2, 4, 5, 6 });
-			widths.insert(widths.end(), { 3, 6, 8 });
+			widths.insert(widths.end(), { 3, 6, 10 });
 		}
 
 		// Iterate every tile
@@ -236,11 +236,13 @@ namespace BWEB
 				else return;
 			}
 			else if (height == 6) {
-				if (width == 8) {
+				if (width == 10) {
 					newBlock.insertLarge(here);
 					newBlock.insertLarge(here + TilePosition(4, 0));
 					newBlock.insertLarge(here + TilePosition(0, 3));
 					newBlock.insertLarge(here + TilePosition(4, 3));
+					newBlock.insertSmall(here + TilePosition(8, 1));
+					newBlock.insertSmall(here + TilePosition(8, 4));
 				}
 				else return;
 			}
@@ -249,7 +251,6 @@ namespace BWEB
 		blocks.push_back(newBlock);
 		addOverlap(here, width, height);
 	}
-
 
 	void Map::insertStartBlock(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
 	{

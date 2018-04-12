@@ -11,13 +11,16 @@ namespace BWEB
 		door = TilePositions::Invalid;
 	}
 
-	void Map::createWall(vector<UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, const UnitType tight, const vector<UnitType>& defenses, const bool reservePath)
+	void Map::createWall(vector<UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, const UnitType tight, const vector<UnitType>& defenses, const bool reservePath, const bool requireTight)
 	{
 		if (!area || !choke || buildings.empty())
 			return;
 
 		// I got sick of passing the parameters everywhere, sue me
 		this->buildings = buildings, this->area = area, this->choke = choke, this->tight = tight, this->reservePath = reservePath;
+		this->requireTight = requireTight;
+
+		chokeWidth = max(6, int(choke->Pos(choke->end1).getDistance(choke->Pos(choke->end2)) / 8));
 
 		// Create a new wall object
 		Wall newWall(area, choke);
@@ -30,40 +33,71 @@ namespace BWEB
 		// Iterate pieces, try to find best location
 		if (iteratePieces())
 		{
-			for (auto& placement : bestWall)
-			{
+			for (auto& placement : bestWall) {
 				newWall.insertSegment(placement.first, placement.second);
 				addOverlap(placement.first, placement.second.tileWidth(), placement.second.tileHeight());
 			}
-			currentWall = bestWall;
-		}
 
-		findCurrentHole();
-		if (reservePath) {
-			for (auto& tile : currentPath)
-			{
-				reserveGrid[tile.x][tile.y] = 1;
+			currentWall = bestWall;
+			findCurrentHole();
+
+			if (requireTight && currentHole.isValid())
+				return;
+
+			for (auto& tile : currentPath) {
+				if (reservePath)
+					reserveGrid[tile.x][tile.y] = 1;
 				if (!mapBWEM.GetArea(tile))
 					newWall.setWallDoor(tile);
 			}
+
+			// Set the Walls centroid
+			Position centroid;
+			int sizeWall = currentWall.size();
+			for (auto& piece : currentWall) {
+				if (piece.second != UnitTypes::Protoss_Pylon)
+					centroid += static_cast<Position>(piece.first) + static_cast<Position>(piece.second.tileSize()) / 2;
+				else
+					sizeWall--;
+			}
+			newWall.setCentroid(centroid / sizeWall);
+
+			// Add wall defenses if requested
+			if (!defenses.empty())
+				addWallDefenses(defenses, newWall);
+
+			// Push wall into the vector
+			walls.push_back(newWall);
 		}
-
-		// Set the Walls centroid
-		Position centroid;
-		for (auto& piece : currentWall)
-			centroid += static_cast<Position>(piece.first) + static_cast<Position>(piece.second.tileSize()) / 2;
-		newWall.setCentroid(centroid / currentWall.size());
-
-		// Add wall defenses if requested
-		if (!defenses.empty())
-			addWallDefenses(defenses, newWall);
-
-		// Push wall into the vector
-		walls.push_back(newWall);
 	}
 
 	bool Map::iteratePieces()
 	{
+		TilePosition start = static_cast<TilePosition>(choke->Center());
+
+		int i = 0;
+		while (!Broodwar->isBuildable(start))
+		{
+			if (i == 10)
+				break;
+
+			double distBest = DBL_MAX;
+			TilePosition test = start;
+			for (int x = test.x - 1; x <= test.x + 1; x++) {
+				for (int y = test.y - 1; y <= test.y + 1; y++) {
+					TilePosition t(x, y);
+					if (!t.isValid()) continue;
+					double dist = Position(t).getDistance((Position)area->Top());
+
+					if (dist < distBest) {
+						distBest = dist;
+						start = t;
+					}
+				}
+			}
+			i++;
+		}
+
 		// Sort functionality for Pylons by Hannes
 		if (find(buildings.begin(), buildings.end(), UnitTypes::Protoss_Pylon) != buildings.end())
 		{
@@ -76,7 +110,7 @@ namespace BWEB
 		do {
 			currentWall.clear();
 			typeIterator = buildings.begin();
-			checkPiece(static_cast<TilePosition>(choke->Center()));
+			checkPiece(start);			
 		} while (next_permutation(buildings.begin(), find(buildings.begin(), buildings.end(), UnitTypes::Protoss_Pylon)));
 
 		return !bestWall.empty();
@@ -93,8 +127,7 @@ namespace BWEB
 			currentSize = ((*typeIterator).tileSize());
 
 		// If we have a previous piece, only iterate the pieces around it
-		if (parentType != UnitTypes::None && currentType != UnitTypes::Protoss_Pylon)
-		{
+		if (parentType != UnitTypes::None && currentType != UnitTypes::Protoss_Pylon) {
 			const auto parentSize = (parentType.tileSize());
 
 			const auto parentRight = (parentSize.x * 16) - parentType.dimensionRight() - 1;
@@ -103,23 +136,19 @@ namespace BWEB
 			const auto currentRight = (currentSize.x * 16) - (*typeIterator).dimensionRight() - 1;
 
 			// Left edge and right edge
-			if (parentRight + currentLeft < tightnessFactor || parentLeft + currentRight < tightnessFactor)
-			{
+			if (parentRight + currentLeft < tightnessFactor || parentLeft + currentRight < tightnessFactor) {
 				const auto xLeft = start.x - currentSize.x;
 				const auto xRight = start.x + parentSize.x;
-				for (auto y = 1 + start.y - currentSize.y; y < start.y + parentSize.y; y++)
-				{
+				for (auto y = 1 + start.y - currentSize.y; y < start.y + parentSize.y; y++) {
 					const TilePosition left(xLeft, y);
 					const TilePosition right(xRight, y);
 
-					if (visited[currentType].location[left.x][left.y] != 2)
-					{
-						if (identicalPiece(start, parentType, left, currentType) || (parentRight + currentLeft < tightnessFactor && testPiece(left)))
+					if (left.isValid() && visited[currentType].location[left.x][left.y] != 2) {
+						if (parentLeft + currentRight < tightnessFactor && testPiece(left))
 							placePiece(left);
 					}
-					if (visited[currentType].location[right.x][right.y] != 2)
-					{
-						if (identicalPiece(start, parentType, right, currentType) || (parentLeft + currentRight < tightnessFactor && testPiece(right)))
+					if (right.isValid() && visited[currentType].location[right.x][right.y] != 2) {
+						if (parentRight + currentLeft < tightnessFactor && testPiece(right))
 							placePiece(right);
 					}
 				}
@@ -131,44 +160,50 @@ namespace BWEB
 			const auto parentBottom = (parentSize.y * 16) - parentType.dimensionDown() - 1;
 			const auto currentTop = (currentSize.y * 16) - (*typeIterator).dimensionUp();
 
-			if (parentTop + currentBottom < tightnessFactor || parentBottom + currentTop < tightnessFactor)
-			{
+			if (parentTop + currentBottom < tightnessFactor || parentBottom + currentTop < tightnessFactor) {
 				const auto yTop = start.y - currentSize.y;
 				const auto yBottom = start.y + parentSize.y;
-				for (auto x = 1 + start.x - currentSize.x; x < start.x + parentSize.x; x++)
-				{
+				for (auto x = 1 + start.x - currentSize.x; x < start.x + parentSize.x; x++) {
 					const TilePosition top(x, yTop);
 					const TilePosition bot(x, yBottom);
-					if (visited[currentType].location[top.x][top.y] != 2)
-					{
-						if (identicalPiece(start, parentType, top, currentType) || (parentTop + currentBottom < tightnessFactor && testPiece(top)))
+					if (top.isValid() && visited[currentType].location[top.x][top.y] != 2) {
+						if (parentTop + currentBottom < tightnessFactor && testPiece(top))
 							placePiece(top);
 					}
-					if (visited[currentType].location[bot.x][bot.y] != 2)
-					{
-						if (identicalPiece(start, parentType, bot, currentType) || (parentBottom + currentTop < tightnessFactor && testPiece(bot)))
+					if (bot.isValid() && visited[currentType].location[bot.x][bot.y] != 2) {
+						if (parentBottom + currentTop < tightnessFactor && testPiece(bot))
 							placePiece(bot);
 					}
 				}
 			}
 		}
+
 		// Otherwise we need to start the choke center
-		else
-		{
-			const auto width = int(choke->Pos(choke->end1).getDistance(choke->Pos(choke->end2)) / 8);
-			
-			for (auto x = start.x - width; x < start.x + width; x++)
-			{
-				for (auto y = start.y - width; y < start.y + width; y++)
-				{
+		else {
+			for (auto x = start.x - chokeWidth; x < start.x + chokeWidth; x++) {
+				for (auto y = start.y - chokeWidth; y < start.y + chokeWidth; y++) {
 					const TilePosition t(x, y);
 					parentSame = false, currentSame = false;
-					if ((isWallTight((*typeIterator), t) || currentType == UnitTypes::Protoss_Pylon) && testPiece(t))
+					if (t.isValid() && testPiece(t) && (isWallTight((*typeIterator), t) || currentType == UnitTypes::Protoss_Pylon))
 						placePiece(t);
-					
+
 				}
 			}
 		}
+		/*else {
+			vector<TilePosition> testTiles;
+
+			for (auto& t : findBuildableBorderTiles(mapBWEM, choke->Pos(choke->end1), area))
+				testTiles.push_back(t);
+			for (auto& t : findBuildableBorderTiles(mapBWEM, choke->Pos(choke->end2), area))
+				testTiles.push_back(t);
+
+			for (auto& t : testTiles) {
+				parentSame = false, currentSame = false;
+				if (testPiece(t) && (isWallTight((*typeIterator), t) || currentType == UnitTypes::Protoss_Pylon))
+					placePiece(t);
+			}
+		}*/
 		return true;
 	}
 
@@ -196,9 +231,13 @@ namespace BWEB
 
 	bool Map::testPiece(TilePosition t)
 	{
+		UnitType currentType = *typeIterator;
+		Position c = Position(t) + Position(currentType.tileSize());
+
 		// If this is not a valid type, not a valid tile, overlaps the current wall, overlaps anything, isn't within the area passed in, isn't placeable or isn't wall tight
-		if ((*typeIterator) == UnitTypes::Protoss_Pylon && !isPoweringWall(t)) return false;
-		if (!(*typeIterator).isValid() || !t.isValid() || overlapsCurrentWall(t, (*typeIterator).tileWidth(), (*typeIterator).tileHeight()) != UnitTypes::None) return false;
+		if (currentType == UnitTypes::Protoss_Pylon && !isPoweringWall(t)) return false;
+		if (!currentType.isValid() || !t.isValid() || overlapsCurrentWall(t, currentType.tileWidth(), currentType.tileHeight()) != UnitTypes::None) return false;
+		//if (currentType == UnitTypes::Terran_Supply_Depot && chokeWidth < 4 && c.getDistance((Position)choke->Center()) < 48) return false;
 
 		// If we can't place here, regardless of what's currently placed, set as impossible to place
 		if (overlapsAnything(t, (*typeIterator).tileWidth(), (*typeIterator).tileHeight(), true) || !isPlaceable(*typeIterator, t) || tilesWithinArea(area, t, (*typeIterator).tileWidth(), (*typeIterator).tileHeight()) == 0)
@@ -215,7 +254,11 @@ namespace BWEB
 		if (!currentSame)
 			visited[(*typeIterator)].location[t.x][t.y] = 1;
 
+		if (typeIterator == buildings.end() - 1 && requireTight && !isWallTight(*typeIterator, t))
+			return false;
+
 		currentWall[t] = *typeIterator, ++typeIterator;
+
 
 		// If we have placed all pieces
 		if (typeIterator == buildings.end())
@@ -260,7 +303,7 @@ namespace BWEB
 
 		// Reset hole and get a new path
 		currentHole = TilePositions::None;
-		currentPath = AStar().findPath(mapBWEM, *this, startTile, endTile, true);		
+		currentPath = AStar().findPath(mapBWEM, *this, startTile, endTile, true);
 
 		// Quick check to see if the path contains our end point
 		if (find(currentPath.begin(), currentPath.end(), endTile) == currentPath.end())
@@ -330,7 +373,7 @@ namespace BWEB
 
 				const auto dist = center.getDistance(hold);
 
-				if (mapBWEM.GetArea(TilePosition(center)) != wall.getArea()) continue;
+				if (tilesWithinArea(area, t, 2, 2) == 0) continue;
 				if (p.getDistance(Position(endTile)) < wall.getCentroid().getDistance(Position(endTile))) continue;
 
 				if (dist < distance)
@@ -444,16 +487,17 @@ namespace BWEB
 		const auto width = building.tileWidth() * 4;
 		const auto htSize = building.tileHeight() * 16;
 		const auto wtSize = building.tileWidth() * 16;
+		const auto tightnessFactor = tight == UnitTypes::None ? 32 : min(tight.width(), tight.height());
 
 		if (tight != UnitTypes::None)
 		{
-			if (htSize - building.dimensionDown() - 1 < 16)
+			if (htSize - building.dimensionDown() - 1 < tightnessFactor)
 				B = true;
-			if (htSize - building.dimensionUp() < 16)
+			if (htSize - building.dimensionUp() < tightnessFactor)
 				T = true;
-			if (wtSize - building.dimensionLeft() < 16)
+			if (wtSize - building.dimensionLeft() < tightnessFactor)
 				L = true;
-			if (wtSize - building.dimensionRight() - 1 < 16)
+			if (wtSize - building.dimensionRight() - 1 < tightnessFactor)
 				R = true;
 		}
 		else
@@ -471,7 +515,7 @@ namespace BWEB
 			const auto x = right.x;
 			WalkPosition w(x, y);
 			TilePosition t(w);
-			if (R && (!w.isValid() || !Broodwar->isWalkable(w) || overlapGrid[t.x][t.y] > 0)) return true;
+			if (R && (!w.isValid() || !Broodwar->isWalkable(w) /*|| overlapGrid[t.x][t.y] > 0*/)) return true;
 		}
 
 		for (auto y = left.y; y < left.y + height; y++)
@@ -479,7 +523,7 @@ namespace BWEB
 			const auto x = left.x;
 			WalkPosition w(x, y);
 			TilePosition t(w);
-			if (L && (!w.isValid() || !Broodwar->isWalkable(w) || overlapGrid[t.x][t.y] > 0)) return true;
+			if (L && (!w.isValid() || !Broodwar->isWalkable(w) /*|| overlapGrid[t.x][t.y] > 0*/)) return true;
 		}
 
 		for (auto x = top.x; x < top.x + width; x++)
@@ -487,7 +531,7 @@ namespace BWEB
 			const auto y = top.y;
 			WalkPosition w(x, y);
 			TilePosition t(w);
-			if (T && (!w.isValid() || !Broodwar->isWalkable(w) || overlapGrid[t.x][t.y] > 0)) return true;
+			if (T && (!w.isValid() || !Broodwar->isWalkable(w)/* || overlapGrid[t.x][t.y] > 0*/)) return true;
 		}
 
 		for (auto x = bottom.x; x < bottom.x + width; x++)
@@ -495,7 +539,7 @@ namespace BWEB
 			const auto y = bottom.y;
 			WalkPosition w(x, y);
 			TilePosition t(w);
-			if (B && (!w.isValid() || !Broodwar->isWalkable(w) || overlapGrid[t.x][t.y] > 0)) return true;
+			if (B && (!w.isValid() || !Broodwar->isWalkable(w) /*|| overlapGrid[t.x][t.y] > 0*/)) return true;
 		}
 		return false;
 	}

@@ -10,13 +10,6 @@
 // Code cleanup - NEW LOW
 // Limit number of building sizes per area - ONGOING LOW
 
-// Completed Changes:
-// Re-add Doors to Walls - COMPLETE
-// Improve "Overlap functions", they are probably fairly expensive - COMPLETE
-// Changed Terran stations to reserve room for CC addons - COMPLETE
-// Reduce number of tiles searched in wall tight search to only buildable tiles - COMPLETE
-// Final check on wall tight walls needs to check for tightness against terrain - NFG
-
 namespace BWEB
 {
 	Map::Map(BWEM::Map& map)
@@ -180,22 +173,6 @@ namespace BWEB
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
 			Broodwar->drawBoxMap(Position(wall.getDoor()), Position(wall.getDoor()) + Position(33, 33), Broodwar->self()->getColor(), true);
 		}
-
-		//for (int x = 0; x < Broodwar->mapWidth()*4; x++)
-		//{
-		//	for (int y = 0; y < Broodwar->mapHeight()*4; y++)
-		//	{
-		//		WalkPosition t(x, y);
-		//		if (!Broodwar->isWalkable(t))
-		//			Broodwar->drawBoxMap(Position(t), Position(t) + Position(9, 9), Broodwar->self()->getColor(), true);
-		//	}
-		//}
-
-		//Broodwar->drawCircleMap(Position(startTile), 8, Colors::Green, true);
-		//Broodwar->drawCircleMap(Position(endTile), 8, Colors::Orange, true);
-		//Broodwar->drawCircleMap(naturalPosition, 8, Colors::Red, true);
-		//Broodwar->drawCircleMap(Position(mainChoke->Center()), 8, Colors::Green, true);
-		//Broodwar->drawCircleMap(Position(naturalChoke->Center()), 8, Colors::Yellow, true);
 	}
 
 	template <class PositionType>

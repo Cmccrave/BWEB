@@ -150,4 +150,60 @@ namespace BWEB
 	{
 		return BWEB::Map::Instance().tilesWithinArea(area, here, width, height);
 	}
+
+	// Ported this from BWEM
+	//vector<TilePosition> Map::findBuildableBorderTiles(const BWEM::Map & theMap, WalkPosition cpEnd, const BWEM::Area * area)
+	//{
+	//	vector<TilePosition> BuildableBorderTiles;
+
+	//	// Although we want Tiles, we need to use MiniTiles for accuracy.
+	//	vector<WalkPosition> Visited;
+	//	queue<WalkPosition> ToVisit;
+
+	//	ToVisit.push(cpEnd);
+	//	Visited.push_back(cpEnd);
+	//	int seasideCount = 0;
+
+	//	while (!ToVisit.empty())
+	//	{
+	//		WalkPosition current = ToVisit.front();
+	//		ToVisit.pop();
+	//		for (WalkPosition delta : {	WalkPosition(-1, -1), WalkPosition(0, -1), WalkPosition(+1, -1),
+	//			WalkPosition(-1, 0), WalkPosition(+1, 0),
+	//			WalkPosition(-1, +1), WalkPosition(0, +1), WalkPosition(+1, +1)})
+	//		{
+	//			WalkPosition next = current + delta;
+	//			if (next.isValid())
+	//				if (find(Visited.begin(), Visited.end(), next) == Visited.end())
+	//				{
+	//					const BWEM::MiniTile & Next = theMap.GetMiniTile(next);
+	//					const BWEM::Tile & NextTile = theMap.GetTile(TilePosition(next));
+
+	//					const bool seaside = (Next.Altitude() <= (seasideCount <= 8 ? 24 : 11)) &&
+	//						(area ? Next.AreaId() == area->Id() : Next.AreaId() > 0);
+	//					if (seaside || NextTile.GetNeutral())
+	//					{
+	//						ToVisit.push(next);
+	//						Visited.push_back(next);
+	//						if (seaside) ++seasideCount;
+	//						if (seasideCount > (area ? 130 : 260)) return BuildableBorderTiles;
+
+	//						// Uncomment this to see the visited MiniTiles
+	//						///	bw->drawBoxMap(Position(next), Position(next) + 8, Colors::White);
+
+	//						if (NextTile.Buildable() && !NextTile.GetNeutral() && (Next.Altitude() <= 11))
+	//						{
+	//							if (find(BuildableBorderTiles.begin(), BuildableBorderTiles.end(), TilePosition(next)) == BuildableBorderTiles.end())
+	//								BuildableBorderTiles.push_back(TilePosition(next));
+
+	//							if (BuildableBorderTiles.size() >= 3 && TilePosition(next).getDistance(TilePosition(cpEnd)) > 12)
+	//								return BuildableBorderTiles;
+	//						}
+	//					}
+	//				}
+	//		}
+	//	}
+
+	//	return BuildableBorderTiles;
+	//}
 }
