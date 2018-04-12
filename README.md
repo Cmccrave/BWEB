@@ -15,14 +15,16 @@ Stations are placed on every BWEM::Base and include defense positions that provi
 Building placement is a very important aspect of Broodwar. Decisions such as hiding tech, walling a choke or finding more optimal use of your space are possible using BWEB. Most Broodwar bots suffer from many issues stemming from building placement, such as; timeouts, building where it's not safe, trapping units, and lack of fast expand options due to poor wall placement.
 
 ## Q: How do I install BWEB?
-BWEB requires the use of BWEM. To install BWEB you can either: download a copy of BWEB and move the folders into your directory, or clone the git and add it to your project in Visual Studio.
+1) Clone the repository or download a copy.
+2) In your source code, create a BWEB folder and store the files in there.
+3) In Visual Studio, add the files to your project and edit the properties of your projects include directory to include BWEBs folder.
 
 ## Q: How do I use BWEB?
 
 In your main header file, you will need to include the BWEB header file.
 
 ```
-#include "..\BWEB\BWEB.h"
+#include "BWEB.h"
 ```
 
 There is a singleton instance accessor function that allows you to access BWEB easily, this will also go in your main header file.
@@ -58,22 +60,6 @@ void McRaveModule::onUnitMorph(Unit unit)
 ```
 void McRaveModule::onFrame()
   mapBWEB.draw();
-```
-
-Here is an example of implementing a Wall for each race, which McRave uses for its Wall placement:
-
-```
-	if (Broodwar->self()->getRace() == Races::Protoss)	
-		mapBWEB.createWall(types, mapBWEB.getNaturalArea(), mapBWEB.getNaturalChoke(), UnitTypes::None, defenses, true);	
-
-	else if (Broodwar->self()->getRace() == Races::Terran)
-	{
-		UnitType wallTight = Broodwar->enemy()->getRace() == Races::Protoss ? UnitTypes::Protoss_Zealot : UnitTypes::Zerg_Zergling;
-		mapBWEB.createWall(types, mapBWEB.getNaturalArea(), mapBWEB.getNaturalChoke(), wallTight, defenses);
-	}
-
-	else if (Broodwar->self()->getRace() == Races::Zerg)	
-		mapBWEB.createWall(types, mapBWEB.getNaturalArea(), mapBWEB.getNaturalChoke(), UnitTypes::None, defenses);
 ```
 
 All other BWEB functions have full comments describing their use and what parameters are required or optional. GL HF!
