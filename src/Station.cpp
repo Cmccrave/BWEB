@@ -31,20 +31,33 @@ namespace BWEB
 					cnt++;
 				}
 
-				if (cnt > 0) genCenter = genCenter / cnt;
+				if (cnt > 0)
+					genCenter = genCenter / cnt;
 
-				if (base.Center().x < sCenter.x) h = true;
-				if (base.Center().y < sCenter.y) v = true;
+				if (base.Center().x < sCenter.x)
+					h = true;
+				if (base.Center().y < sCenter.y)
+					v = true;
 
 				auto here = base.Location();
 				set<Unit> minerals, geysers;
 
-				for (auto m : base.Minerals()) { minerals.insert(m->Unit()); }
-				for (auto g : base.Geysers()) { geysers.insert(g->Unit()); }
+				for (auto& m : base.Minerals()) { minerals.insert(m->Unit()); }
+				for (auto& g : base.Geysers()) { geysers.insert(g->Unit()); }
 
 				const Station newStation(genCenter, stationDefenses(base.Location(), h, v), &base);
 				stations.push_back(newStation);
 				addOverlap(base.Location(), 4, 3);
+
+				TilePosition start(genCenter);
+				for (int x = start.x - 4; x < start.x + 4; x++) {
+					for (int y = start.y - 4; y < start.y + 4; y++) {
+						TilePosition t(x, y);
+						if (!t.isValid()) continue;
+						if (t.getDistance(start) < 4)
+							addOverlap(t,1,1);
+					}
+				}
 			}
 		}
 	}

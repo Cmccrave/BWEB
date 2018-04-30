@@ -26,7 +26,7 @@ namespace BWEB
 	bool Map::overlapsMining(TilePosition here)
 	{
 		for (auto& station : Stations())
-			if (here.getDistance(TilePosition(station.ResourceCentroid())) < 5) return true;
+			if (here.getDistance(TilePosition(station.ResourceCentroid())) < 3) return true;
 		return false;
 	}
 

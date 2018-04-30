@@ -31,8 +31,7 @@ namespace BWEB
 		setEndTile();
 
 		// Iterate pieces, try to find best location
-		if (iteratePieces())
-		{
+		if (iteratePieces()){
 			for (auto& placement : bestWall) {
 				newWall.insertSegment(placement.first, placement.second);
 				addOverlap(placement.first, placement.second.tileWidth(), placement.second.tileHeight());
@@ -76,8 +75,8 @@ namespace BWEB
 		TilePosition start = static_cast<TilePosition>(choke->Center());
 
 		int i = 0;
-		while (!Broodwar->isBuildable(start))
-		{
+		while (!Broodwar->isBuildable(start)){
+
 			if (i == 10)
 				break;
 
@@ -99,8 +98,7 @@ namespace BWEB
 		}
 
 		// Sort functionality for Pylons by Hannes
-		if (find(buildings.begin(), buildings.end(), UnitTypes::Protoss_Pylon) != buildings.end())
-		{
+		if (find(buildings.begin(), buildings.end(), UnitTypes::Protoss_Pylon) != buildings.end()) {
 			sort(buildings.begin(), buildings.end(), [](UnitType l, UnitType r) { return (l == UnitTypes::Protoss_Pylon) < (r == UnitTypes::Protoss_Pylon); }); // Moves pylons to end
 			sort(buildings.begin(), find(buildings.begin(), buildings.end(), UnitTypes::Protoss_Pylon)); // Sorts everything before pylons
 		}
@@ -110,7 +108,7 @@ namespace BWEB
 		do {
 			currentWall.clear();
 			typeIterator = buildings.begin();
-			checkPiece(start);			
+			checkPiece(start);
 		} while (next_permutation(buildings.begin(), find(buildings.begin(), buildings.end(), UnitTypes::Protoss_Pylon)));
 
 		return !bestWall.empty();
@@ -211,19 +209,15 @@ namespace BWEB
 	{
 		// Want to store that it is physically possible to build this piece here so we don't waste time checking
 		parentSame = false, currentSame = false;
-		if (parentType != UnitTypes::None)
-		{
-			for (auto& node : visited)
-			{
+		if (parentType != UnitTypes::None) {
+			for (auto& node : visited) {
 				auto& v = node.second;
 				if (node.first == parentType && v.location[parentTile.x][parentTile.y] == 1)
 					parentSame = true;
 				if (node.first == currentType && v.location[currentTile.x][currentTile.y] == 1)
 					currentSame = true;
 				if (parentSame && currentSame)
-				{
 					return overlapsCurrentWall(currentTile, currentType.tileWidth(), currentType.tileHeight()) == UnitTypes::None;
-				}
 			}
 		}
 		return false;
@@ -237,7 +231,7 @@ namespace BWEB
 		// If this is not a valid type, not a valid tile, overlaps the current wall, overlaps anything, isn't within the area passed in, isn't placeable or isn't wall tight
 		if (currentType == UnitTypes::Protoss_Pylon && !isPoweringWall(t)) return false;
 		if (!currentType.isValid() || !t.isValid() || overlapsCurrentWall(t, currentType.tileWidth(), currentType.tileHeight()) != UnitTypes::None) return false;
-		//if (currentType == UnitTypes::Terran_Supply_Depot && chokeWidth < 4 && c.getDistance((Position)choke->Center()) < 48) return false;
+		if (currentType == UnitTypes::Terran_Supply_Depot && chokeWidth < 4 && c.getDistance((Position)choke->Center()) < 48) return false;
 
 		// If we can't place here, regardless of what's currently placed, set as impossible to place
 		if (overlapsAnything(t, (*typeIterator).tileWidth(), (*typeIterator).tileHeight(), true) || !isPlaceable(*typeIterator, t) || tilesWithinArea(area, t, (*typeIterator).tileWidth(), (*typeIterator).tileHeight()) == 0)
@@ -261,25 +255,20 @@ namespace BWEB
 
 
 		// If we have placed all pieces
-		if (typeIterator == buildings.end())
-		{
-			if (currentWall.size() == buildings.size())
-			{
+		if (typeIterator == buildings.end()) {
+			if (currentWall.size() == buildings.size()) {
 				findCurrentHole();
 				double dist = 1.0;
-				for (auto& piece : currentWall)
-				{
+				for (auto& piece : currentWall) {
 					if (piece.second == UnitTypes::Protoss_Pylon)
-						dist += piece.first.getDistance(startTile);
+						dist += piece.first.getDistance(startTile) / mapBWEM.GetTile(t).MinAltitude();
 					else
 						dist += piece.first.getDistance(static_cast<TilePosition>(choke->Center()));
 				}
 
 				const auto score = currentPathSize / dist;
-				if (score > bestWallScore && (!reservePath || currentHole != TilePositions::None))
-				{
-					bestWall = currentWall;
-					bestWallScore = score;
+				if (score > bestWallScore && (!reservePath || currentHole != TilePositions::None)) {
+					bestWall = currentWall, bestWallScore = score;
 				}
 			}
 		}
@@ -306,8 +295,7 @@ namespace BWEB
 		currentPath = AStar().findPath(mapBWEM, *this, startTile, endTile, true);
 
 		// Quick check to see if the path contains our end point
-		if (find(currentPath.begin(), currentPath.end(), endTile) == currentPath.end())
-		{
+		if (find(currentPath.begin(), currentPath.end(), endTile) == currentPath.end()) {
 			currentHole = TilePositions::None;
 			currentPathSize = DBL_MAX;
 			resetStartEndTiles();
@@ -315,11 +303,9 @@ namespace BWEB
 		}
 
 		// Otherwise iterate all tiles and locate the hole
-		for (auto& tile : currentPath)
-		{
+		for (auto& tile : currentPath) {
 			double closestGeo = DBL_MAX;
-			for (auto& geo : choke->Geometry())
-			{
+			for (auto& geo : choke->Geometry()) {
 				if (overlapsCurrentWall(tile) == UnitTypes::None && TilePosition(geo) == tile && tile.getDistance(startTile) < closestGeo)
 					currentHole = tile, closestGeo = tile.getDistance(startTile);
 			}
@@ -330,12 +316,9 @@ namespace BWEB
 
 	UnitType Map::overlapsCurrentWall(const TilePosition here, const int width, const int height)
 	{
-		for (auto x = here.x; x < here.x + width; x++)
-		{
-			for (auto y = here.y; y < here.y + height; y++)
-			{
-				for (auto& placement : currentWall)
-				{
+		for (auto x = here.x; x < here.x + width; x++) {
+			for (auto y = here.y; y < here.y + height; y++) {
+				for (auto& placement : currentWall) {
 					const auto tile = placement.first;
 					if (x >= tile.x && x < tile.x + placement.second.tileWidth() && y >= tile.y && y < tile.y + placement.second.tileHeight())
 						return placement.second;
@@ -352,37 +335,33 @@ namespace BWEB
 		TilePosition start(wall.getCentroid());
 
 		if (wall.getDoor().isValid())
-			start = TilePosition(wall.getDoor());
-
-		if (building.requiresPsi())
-			start = TilePosition(*wall.smallTiles().begin());
-
-		for (auto x = start.x - 6; x <= start.x + 6; x++)
-		{
-			for (auto y = start.y - 6; y <= start.y + 6; y++)
-			{
+			start = wall.getDoor();
+		
+		for (auto x = start.x - 6; x <= start.x + 6; x++) {
+			for (auto y = start.y - 6; y <= start.y + 6; y++) {
 				const TilePosition t(x, y);
-				Position p(t);
+				const Position center = Position(t) + Position(32, 32);
 
-				if (!TilePosition(x, y).isValid()) continue;
-				if (overlapsAnything(TilePosition(x, y), building.tileWidth(), building.tileHeight(), true) || overlapsWalls(t)) continue;
-				if (!isPlaceable(building, TilePosition(x, y)) || overlapsCurrentWall(TilePosition(x, y), building.tileWidth(), building.tileHeight()) != UnitTypes::None) continue;
-
-				auto center = Position(t) + Position(32, 32);
+				if (!t.isValid())
+					continue;
+				if (overlapsAnything(t, building.tileWidth(), building.tileHeight()))
+					continue;
+				if (!isPlaceable(building, t))
+					continue;
+				if (tilesWithinArea(area, t, 2, 2) == 0)
+					continue;
+				if (center.getDistance(Position(endTile)) < wall.getCentroid().getDistance(Position(endTile)))
+					continue;				
+				
 				const auto hold = Position(start);
-
 				const auto dist = center.getDistance(hold);
-
-				if (tilesWithinArea(area, t, 2, 2) == 0) continue;
-				if (p.getDistance(Position(endTile)) < wall.getCentroid().getDistance(Position(endTile))) continue;
 
 				if (dist < distance)
 					tileBest = TilePosition(x, y), distance = dist;
 			}
 		}
 
-		if (tileBest.isValid())
-		{
+		if (tileBest.isValid())	{
 			currentWall[tileBest] = building;
 			wall.insertDefense(tileBest);
 			addOverlap(tileBest, building.tileWidth(), building.tileHeight());
@@ -397,44 +376,34 @@ namespace BWEB
 
 	bool Map::isPoweringWall(const TilePosition here)
 	{
-		for (auto& piece : currentWall)
-		{
+		for (auto& piece : currentWall) {
 			const auto tile(piece.first);
 			auto type(piece.second);
-			if (type.tileWidth() == 4)
-			{
+			if (type.tileWidth() == 4) {
 				auto powersThis = false;
-				if (tile.y - here.y == -5 || tile.y - here.y == 4)
-				{
+				if (tile.y - here.y == -5 || tile.y - here.y == 4) {
 					if (tile.x - here.x >= -4 && tile.x - here.x <= 1) powersThis = true;
 				}
-				if (tile.y - here.y == -4 || tile.y - here.y == 3)
-				{
+				if (tile.y - here.y == -4 || tile.y - here.y == 3) {
 					if (tile.x - here.x >= -7 && tile.x - here.x <= 4) powersThis = true;
 				}
-				if (tile.y - here.y == -3 || tile.y - here.y == 2)
-				{
+				if (tile.y - here.y == -3 || tile.y - here.y == 2) {
 					if (tile.x - here.x >= -8 && tile.x - here.x <= 5) powersThis = true;
 				}
-				if (tile.y - here.y >= -2 && tile.y - here.y <= 1)
-				{
+				if (tile.y - here.y >= -2 && tile.y - here.y <= 1) {
 					if (tile.x - here.x >= -8 && tile.x - here.x <= 6) powersThis = true;
 				}
 				if (!powersThis) return false;
 			}
-			else
-			{
+			else {
 				auto powersThis = false;
-				if (tile.y - here.y == 4)
-				{
+				if (tile.y - here.y == 4) {
 					if (tile.x - here.x >= -3 && tile.x - here.x <= 2) powersThis = true;
 				}
-				if (tile.y - here.y == -4 || tile.y - here.y == 3)
-				{
+				if (tile.y - here.y == -4 || tile.y - here.y == 3) {
 					if (tile.x - here.x >= -6 && tile.x - here.x <= 5) powersThis = true;
 				}
-				if (tile.y - here.y >= -3 && tile.y - here.y <= 2)
-				{
+				if (tile.y - here.y >= -3 && tile.y - here.y <= 2) {
 					if (tile.x - here.x >= -7 && tile.x - here.x <= 6) powersThis = true;
 				}
 				if (!powersThis) return false;
@@ -445,34 +414,34 @@ namespace BWEB
 
 	void Wall::insertSegment(const TilePosition here, UnitType building)
 	{
-		if (building.tileWidth() >= 4) large.insert(here);
-		else if (building.tileWidth() >= 3) medium.insert(here);
-		else small.insert(here);
+		if (building.tileWidth() >= 4)
+			large.insert(here);
+		else if (building.tileWidth() >= 3)
+			medium.insert(here);
+		else
+			small.insert(here);
 	}
 
 	const Wall * Map::getClosestWall(TilePosition here) const
 	{
 		double distBest = DBL_MAX;
 		const Wall * bestWall = nullptr;
-		for (auto& wall : walls)
-		{
+		for (auto& wall : walls) {
 			const auto dist = here.getDistance(static_cast<TilePosition>(wall.getChokePoint()->Center()));
 
 			if (dist < distBest)
-			{
-				distBest = dist;
-				bestWall = &wall;
-			}
+				distBest = dist, bestWall = &wall;
+
 		}
 		return bestWall;
 	}
 
 	Wall* Map::getWall(const BWEM::Area * area, const BWEM::ChokePoint * choke)
 	{
-		if (!area && !choke) return nullptr;
+		if (!area && !choke)
+			return nullptr;
 
-		for (auto& wall : walls)
-		{
+		for (auto& wall : walls) {
 			if ((!area || wall.getArea() == area) && (!choke || wall.getChokePoint() == choke))
 				return &wall;
 		}
@@ -489,8 +458,7 @@ namespace BWEB
 		const auto wtSize = building.tileWidth() * 16;
 		const auto tightnessFactor = tight == UnitTypes::None ? 32 : min(tight.width(), tight.height());
 
-		if (tight != UnitTypes::None)
-		{
+		if (tight != UnitTypes::None) {
 			if (htSize - building.dimensionDown() - 1 < tightnessFactor)
 				B = true;
 			if (htSize - building.dimensionUp() < tightnessFactor)
@@ -501,45 +469,43 @@ namespace BWEB
 				R = true;
 		}
 		else
-		{
 			L = R = T = B = true;
-		}
 
 		const auto right = WalkPosition(here) + WalkPosition(width, 0);
 		const auto left = WalkPosition(here) - WalkPosition(1, 0);
 		const auto top = WalkPosition(here) - WalkPosition(0, 1);
 		const auto bottom = WalkPosition(here) + WalkPosition(0, height);
 
-		for (auto y = right.y; y < right.y + height; y++)
-		{
+		for (auto y = right.y; y < right.y + height; y++) {
 			const auto x = right.x;
 			WalkPosition w(x, y);
 			TilePosition t(w);
-			if (R && (!w.isValid() || !Broodwar->isWalkable(w) /*|| overlapGrid[t.x][t.y] > 0*/)) return true;
+			if (R && (!w.isValid() || !Broodwar->isWalkable(w) /*|| overlapGrid[t.x][t.y] > 0*/))
+				return true;
 		}
 
-		for (auto y = left.y; y < left.y + height; y++)
-		{
+		for (auto y = left.y; y < left.y + height; y++) {
 			const auto x = left.x;
 			WalkPosition w(x, y);
 			TilePosition t(w);
-			if (L && (!w.isValid() || !Broodwar->isWalkable(w) /*|| overlapGrid[t.x][t.y] > 0*/)) return true;
+			if (L && (!w.isValid() || !Broodwar->isWalkable(w) /*|| overlapGrid[t.x][t.y] > 0*/))
+				return true;
 		}
 
-		for (auto x = top.x; x < top.x + width; x++)
-		{
+		for (auto x = top.x; x < top.x + width; x++) {
 			const auto y = top.y;
 			WalkPosition w(x, y);
 			TilePosition t(w);
-			if (T && (!w.isValid() || !Broodwar->isWalkable(w)/* || overlapGrid[t.x][t.y] > 0*/)) return true;
+			if (T && (!w.isValid() || !Broodwar->isWalkable(w) /*|| overlapGrid[t.x][t.y] > 0*/))
+				return true;
 		}
 
-		for (auto x = bottom.x; x < bottom.x + width; x++)
-		{
+		for (auto x = bottom.x; x < bottom.x + width; x++) {
 			const auto y = bottom.y;
 			WalkPosition w(x, y);
 			TilePosition t(w);
-			if (B && (!w.isValid() || !Broodwar->isWalkable(w) /*|| overlapGrid[t.x][t.y] > 0*/)) return true;
+			if (B && (!w.isValid() || !Broodwar->isWalkable(w) /*|| overlapGrid[t.x][t.y] > 0*/))
+				return true;
 		}
 		return false;
 	}
@@ -547,15 +513,14 @@ namespace BWEB
 	void Map::setStartTile()
 	{
 		auto distBest = DBL_MAX;
-		if (!mapBWEM.GetArea(startTile) || !isWalkable(startTile))
-		{
-			for (auto x = startTile.x - 2; x < startTile.x + 2; x++)
-			{
-				for (auto y = startTile.y - 2; y < startTile.y + 2; y++)
-				{
+		if (!mapBWEM.GetArea(startTile) || !isWalkable(startTile)) {
+			for (auto x = startTile.x - 2; x < startTile.x + 2; x++) {
+				for (auto y = startTile.y - 2; y < startTile.y + 2; y++) {
 					TilePosition t(x, y);
 					const auto dist = t.getDistance(endTile);
-					if (overlapsCurrentWall(t) != UnitTypes::None) continue;
+					if (overlapsCurrentWall(t) != UnitTypes::None)
+						continue;
+
 					if (mapBWEM.GetArea(t) == area && dist < distBest)
 						startTile = TilePosition(x, y), distBest = dist;
 				}
@@ -566,15 +531,14 @@ namespace BWEB
 	void Map::setEndTile()
 	{
 		auto distBest = 0.0;
-		if (!mapBWEM.GetArea(endTile) || !isWalkable(endTile))
-		{
-			for (auto x = endTile.x - 4; x < endTile.x + 4; x++)
-			{
-				for (auto y = endTile.y - 4; y < endTile.y + 4; y++)
-				{
+		if (!mapBWEM.GetArea(endTile) || !isWalkable(endTile)) {
+			for (auto x = endTile.x - 4; x < endTile.x + 4; x++) {
+				for (auto y = endTile.y - 4; y < endTile.y + 4; y++) {
 					TilePosition t(x, y);
 					const auto dist = t.getDistance(startTile);
-					if (overlapsCurrentWall(t) != UnitTypes::None || !isWalkable(t)) continue;
+					if (overlapsCurrentWall(t) != UnitTypes::None || !isWalkable(t))
+						continue;
+
 					if (mapBWEM.GetArea(t) && dist > distBest)
 						endTile = TilePosition(x, y), distBest = dist;
 				}
@@ -589,21 +553,18 @@ namespace BWEB
 		// Finding start and end points of our pathing
 		auto mc = static_cast<Position>(mainChoke->Center());
 		const auto nc = static_cast<Position>(naturalChoke->Center());
-		if (area == naturalArea)
-		{
+		if (area == naturalArea) {
 			const auto slope1 = double(nc.x - naturalPosition.x) / 32.0;
 			const auto slope2 = double(nc.y - naturalPosition.y) / 32.0;
 
 			startTile = (TilePosition(mainChoke->Center()) + TilePosition(mainChoke->Center()) + TilePosition(mainChoke->Center()) + naturalTile) / 4;
 			endTile = TilePosition(nc + Position(int(32.0 * slope1), int(32.0 * slope2)));
 		}
-		else if (area == mainArea)
-		{
+		else if (area == mainArea) {
 			startTile = (TilePosition(mainChoke->Center()) + mainTile) / 2;
 			endTile = (TilePosition(mainChoke->Center()) + naturalTile) / 2;
 		}
-		else
-		{
+		else {
 			startTile = static_cast<TilePosition>(area->Top());
 			endTile = static_cast<TilePosition>(thirdArea->Top());
 		}

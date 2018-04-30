@@ -30,20 +30,21 @@ namespace BWEB
 		Node *current = nullptr;
 		set<Node*> openSet, closedSet;
 		openSet.insert(new Node(source));
-		directions = 4;
+		directions = 4;		
+		count++;
 
-		while (!openSet.empty())
-		{
+		while (!openSet.empty()) {
 			current = *openSet.begin();
-			for (auto& node : openSet)
-			{
+			for (auto& node : openSet) {
 				if (node->getScore() <= current->getScore())
 					current = node;
 			}
 
-			if (current->coordinates == target) break;
+			if (current->coordinates == target) 
+				break;
 
 			closedSet.insert(current);
+			test[current->coordinates.x][current->coordinates.y] = count;
 			openSet.erase(find(openSet.begin(), openSet.end(), current));
 
 			for (uint i = 0; i < directions; ++i)
@@ -51,16 +52,13 @@ namespace BWEB
 				auto tile(current->coordinates + direction[i]);
 
 				// Detection collision or skip tiles already added to closed set
-				if (!tile.isValid() || bweb.overlapGrid[tile.x][tile.y] > 0 || !bweb.isWalkable(tile) || findNodeOnList(closedSet, tile)) continue;
+				if (!tile.isValid() || bweb.overlapGrid[tile.x][tile.y] > 0 || !bweb.isWalkable(tile) || test[tile.x][tile.y] == count) continue;
 				if (bweb.overlapsCurrentWall(tile) != UnitTypes::None) continue;
-				if (bwem.GetArea(tile) && bwem.GetArea(tile) != bwem.GetArea(source) && bwem.GetArea(tile) != bwem.GetArea(target)) continue;
+				//if (bwem.GetArea(tile) && bwem.GetArea(tile) != bwem.GetArea(source) && bwem.GetArea(tile) != bwem.GetArea(target)) continue;
 				
-				// Added this because BW pathing is awful through mineral lines
-				if (bweb.overlapsMining(tile)) continue;
-
 				// Cost function?
 				const auto totalCost = current->G + ((i < 4) ? 10 : 14);
-
+				
 				// Checks if the node has been made already, if not it creates one
 				auto successor = findNodeOnList(openSet, tile);
 				if (successor == nullptr)

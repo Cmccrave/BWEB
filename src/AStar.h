@@ -23,7 +23,9 @@ namespace BWEB
 		static Node* findNodeOnList(set<Node*>&, TilePosition);
 		vector<TilePosition> direction, walls;
 		uint directions;
-		uint manhattan(TilePosition, TilePosition) const;
+		uint manhattan(TilePosition, TilePosition) const;	
+		int test[256][256]{};
+		int count = 0;
 
 	public:
 		AStar();

@@ -144,8 +144,7 @@ namespace BWEB
 
 	void Map::draw()
 	{
-		for (auto& block : blocks)
-		{
+		for (auto& block : blocks) {
 			for (auto& tile : block.SmallTiles())
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
 			for (auto& tile : block.MediumTiles())
@@ -154,15 +153,13 @@ namespace BWEB
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(129, 97), Broodwar->self()->getColor());
 		}
 
-		for (auto& station : stations)
-		{
+		for (auto& station : stations) {
 			for (auto& tile : station.DefenseLocations())
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
 			Broodwar->drawBoxMap(Position(station.BWEMBase()->Location()), Position(station.BWEMBase()->Location()) + Position(129, 97), Broodwar->self()->getColor());
 		}
 
-		for (auto& wall : walls)
-		{
+		for (auto& wall : walls) {
 			for (auto& tile : wall.smallTiles())
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
 			for (auto& tile : wall.mediumTiles())
@@ -173,6 +170,22 @@ namespace BWEB
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
 			Broodwar->drawBoxMap(Position(wall.getDoor()), Position(wall.getDoor()) + Position(33, 33), Broodwar->self()->getColor(), true);
 		}
+
+		/*for (int x = 0; x < Broodwar->mapWidth(); x++)
+		{
+			for (int y = 0; y < Broodwar->mapHeight(); y++)
+			{
+				TilePosition t(x, y);
+				if (!isWalkable(t))
+					Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Cyan, false);
+			}
+		}*/
+
+		//Broodwar->drawCircleMap(Position(startTile), 8, Colors::Green, true);
+		//Broodwar->drawCircleMap(Position(endTile), 8, Colors::Orange, true);
+		//Broodwar->drawCircleMap(naturalPosition, 8, Colors::Red, true);
+		//Broodwar->drawCircleMap(Position(mainChoke->Center()), 8, Colors::Green, true);
+		//Broodwar->drawCircleMap(Position(naturalChoke->Center()), 8, Colors::Yellow, true);
 	}
 
 	template <class PositionType>

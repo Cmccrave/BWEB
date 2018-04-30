@@ -34,7 +34,7 @@ namespace BWEB
 		void findHiddenTechBlock();
 		void findHiddenTechBlock(BWAPI::Player);
 		void findHiddenTechBlock(BWAPI::Race);
-		bool canAddBlock(TilePosition, int, int, bool);
+		bool canAddBlock(TilePosition, int, int);
 		
 		void insertStartBlock(TilePosition, bool, bool);
 		void insertStartBlock(BWAPI::Player, TilePosition, bool, bool);
@@ -43,6 +43,7 @@ namespace BWEB
 		void insertTechBlock(TilePosition, bool, bool);
 		void insertTechBlock(BWAPI::Player, TilePosition, bool, bool);
 		void insertTechBlock(BWAPI::Race, TilePosition, bool, bool);
+		map<const BWEM::Area *, int> typePerArea;
 
 		// Walls
 		bool isWallTight(UnitType, TilePosition);
@@ -181,10 +182,13 @@ namespace BWEB
 		/// <summary> Returns the closest BWEB::Block to the given TilePosition. </summary>
 		const Block* getClosestBlock(TilePosition) const;
 
-		// Returns the TilePosition of the natural expansion
+		/// Returns the TilePosition of the natural expansion
 		TilePosition getNatural() const { return naturalTile; }
 
-		// Returns the set of used TilePositions
+		/// Returns the TilePosition of the main
+		TilePosition getMain() const { return mainTile; }
+
+		/// Returns the set of used TilePositions
 		set<TilePosition>& getUsedTiles() { return usedTiles; }
 
 		/// <summary> <para> Given a vector of UnitTypes, an Area and a Chokepoint, finds an optimal wall placement, returns true if a valid BWEB::Wall was created. </para>
