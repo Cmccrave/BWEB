@@ -1,5 +1,4 @@
 #include "Wall.h"
-#include "AStar.h"
 #include <tuple>
 
 namespace BWEB
