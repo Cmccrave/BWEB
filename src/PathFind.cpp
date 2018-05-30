@@ -17,14 +17,22 @@ namespace BWEB
 			return abs(source.x - target.x) + abs(source.y - target.y);
 		};
 
-		const auto collision = [](BWEB::Map& bweb, const TilePosition tile, bool ignoreOverlap, bool ignoreWalls) {
+		const auto collision = [&]const TilePosition tile) {
 			return !tile.isValid()
 				|| (!ignoreOverlap && bweb.overlapGrid[tile.x][tile.y] > 0)
 				|| !bweb.isWalkable(tile)
 				|| (!ignoreWalls && bweb.overlapsCurrentWall(tile) != UnitTypes::None);
 		};
+		
+		TilePosition parentGrid[256][256];
+		
+		for (int i = 0; i < 256; ++i) {
+			for (int j = 0; j < 256; ++j) {
+				parentGrid[i][j] = BWAPI::TilePositions::None;
+			}
+		}
 
-		const auto createPath = [](const Node& current, const TilePosition source, const TilePosition target, TilePosition parentGrid[256][256]) {
+		const auto createPath = [&](const Node& current, const TilePosition source, const TilePosition target) {
 			vector<TilePosition> path;
 			path.push_back(target);
 			TilePosition check = current.parent;
@@ -47,12 +55,6 @@ namespace BWEB
 
 		std::queue<Node> nodeQueue;
 		nodeQueue.emplace(source, 0, source);
-		TilePosition parentGrid[256][256];
-		for (int i = 0; i < 256; ++i) {
-			for (int j = 0; j < 256; ++j) {
-				parentGrid[i][j] = BWAPI::TilePositions::None;
-			}
-		}
 
 		// While not empty, pop off top the closest TilePosition to target
 		while (!nodeQueue.empty()) {
