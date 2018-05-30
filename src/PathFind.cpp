@@ -8,7 +8,7 @@ namespace BWEB
 	{
 		if(source == target) return { target };
 		
-		const auto collision = [&]const TilePosition tile) {
+		const auto collision = [&](const TilePosition tile) {
 			return !tile.isValid()
 				|| (!ignoreOverlap && bweb.overlapGrid[tile.x][tile.y] > 0)
 				|| !bweb.isWalkable(tile)
@@ -27,7 +27,7 @@ namespace BWEB
 		const auto createPath = [&]() {
 			vector<TilePosition> path;
 			path.push_back(target);
-			TilePosition check = target.parent;
+			TilePosition check = parentGrid[target.x][target.y];
 
 			do {
 				path.push_back(check);
