@@ -13,9 +13,11 @@ namespace BWEB
 		set<TilePosition> defenses, small, medium, large;
 		const BWEM::Area * area;
 		const BWEM::ChokePoint * choke;
+
+		vector<UnitType> rawBuildings, rawDefenses;
 		
 	public:
-		Wall(const BWEM::Area *, const BWEM::ChokePoint *);
+		Wall(const BWEM::Area *, const BWEM::ChokePoint *, vector<UnitType>, vector<UnitType>);
 		void insertDefense(TilePosition here) { defenses.insert(here); }
 		void setWallDoor(TilePosition here) { door = here; }
 		void insertSegment(TilePosition, UnitType);
@@ -41,5 +43,11 @@ namespace BWEB
 
 		// Returns the TilePosition belonging to small UnitType buildings
 		set<TilePosition> smallTiles() const { return small; }
+
+		// Returns the raw vector of the buildings passed in
+		vector<UnitType>& getRawBuildings() { return rawBuildings; }
+
+		// Returns the raw vector of the defenses passed in
+		vector<UnitType>& getRawDefenses() { return rawDefenses; }
 	};	
 }

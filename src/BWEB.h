@@ -19,7 +19,7 @@ namespace BWEB
 	class Map
 	{
 	private:
-
+		
 		vector<Station> stations;
 		vector<Wall> walls;
 		vector<Block> blocks;
@@ -31,46 +31,39 @@ namespace BWEB
 		void findStartBlock();
 		void findStartBlock(BWAPI::Player);
 		void findStartBlock(BWAPI::Race);
-		void findHiddenTechBlock();
-		void findHiddenTechBlock(BWAPI::Player);
-		void findHiddenTechBlock(BWAPI::Race);
 		bool canAddBlock(TilePosition, int, int);
-		
+
 		void insertStartBlock(TilePosition, bool, bool);
 		void insertStartBlock(BWAPI::Player, TilePosition, bool, bool);
 		void insertStartBlock(BWAPI::Race, TilePosition, bool, bool);
-
-		void insertTechBlock(TilePosition, bool, bool);
-		void insertTechBlock(BWAPI::Player, TilePosition, bool, bool);
-		void insertTechBlock(BWAPI::Race, TilePosition, bool, bool);
 		map<const BWEM::Area *, int> typePerArea;
 
 		// Walls
 		bool isWallTight(UnitType, TilePosition);
 		bool isPoweringWall(TilePosition);
-		bool iteratePieces();
-		bool checkPiece(TilePosition);
-		bool testPiece(TilePosition);
-		bool placePiece(TilePosition);
+		bool iteratePieces(Wall&);
+		bool checkPiece(Wall&, TilePosition);
+		bool testPiece(Wall&, TilePosition);
+		bool placePiece(Wall&, TilePosition);
 		bool identicalPiece(TilePosition, UnitType, TilePosition, UnitType);
-		void findCurrentHole(bool ignoreOverlap = false);
-		void addWallDefenses(const vector<UnitType>& type, Wall& wall);
-		int reserveGrid[256][256] = {};
-		int testGrid[256][256] = {};
+		void findCurrentHole(Wall&, bool ignoreOverlap = false);
+		void setStartTile(Wall&), setEndTile(Wall&), resetStartEndTiles(Wall&);
 
-		double bestWallScore = 0.0, closest = DBL_MAX;
+		void addDoor(Wall&);
+		void addReservePath(Wall&);
+		void addDefenses(Wall&);
+		void addCentroid(Wall&);
+		int reserveGrid[256][256] = {};
+
+		double bestWallScore = 0.0;
 		TilePosition currentHole, startTile, endTile;
 		vector<TilePosition> currentPath;
 		vector<UnitType>::iterator typeIterator;
 		map<TilePosition, UnitType> bestWall;
 		map<TilePosition, UnitType> currentWall;
 
-		void setStartTile(), setEndTile(), resetStartEndTiles();
 
 		// Information that is passed in
-		vector<UnitType> buildings;
-		const BWEM::ChokePoint * choke{};
-		const BWEM::Area * area{};
 		BWEM::Map& mapBWEM;
 		UnitType tight;
 		bool reservePath{};
@@ -88,7 +81,7 @@ namespace BWEB
 		double currentPathSize{};
 
 		// Map
-		void findMain(), findMainChoke(), findNatural(), findNaturalChoke();
+		void findMain(), findMainChoke(), findNatural(), findNaturalChoke(), findNeutrals();
 		Position mainPosition, naturalPosition;
 		TilePosition mainTile, naturalTile;
 		const BWEM::Area * naturalArea{};
@@ -101,29 +94,25 @@ namespace BWEB
 
 		// Stations
 		void findStations();
-		set<TilePosition>& stationDefenses(BWAPI::Race, TilePosition, bool, bool);
-		set<TilePosition>& stationDefenses(BWAPI::Player, TilePosition, bool, bool);
-		set<TilePosition>& stationDefenses(TilePosition, bool, bool);
-		set<TilePosition> returnValues;
+		set<TilePosition> stationDefenses(BWAPI::Race, TilePosition, bool, bool);
+		set<TilePosition> stationDefenses(BWAPI::Player, TilePosition, bool, bool);
+		set<TilePosition> stationDefenses(TilePosition, bool, bool);
 
 		// General
 		static Map* BWEBInstance;
+		
 
 	public:
 		Map(BWEM::Map& map);
 		void draw(), onStart(), onUnitDiscover(Unit), onUnitDestroy(Unit), onUnitMorph(Unit);
 		static Map &Instance();
 		int overlapGrid[256][256] = {};
+		int usedGrid[256][256] ={};
 
 		/// This is just put here so AStar can use it for now
 		UnitType overlapsCurrentWall(TilePosition tile, int width = 1, int height = 1);
 
 		//vector<TilePosition> findBuildableBorderTiles(const BWEM::Map &, WalkPosition, const BWEM::Area *);
-		bool overlapsBlocks(TilePosition);
-		bool overlapsStations(TilePosition);
-		bool overlapsNeutrals(TilePosition);
-		bool overlapsMining(TilePosition);
-		bool overlapsWalls(TilePosition);
 		bool overlapsAnything(TilePosition here, int width = 1, int height = 1, bool ignoreBlocks = false);
 		static bool isWalkable(TilePosition);
 		int tilesWithinArea(BWEM::Area const *, TilePosition here, int width = 1, int height = 1);
@@ -138,11 +127,11 @@ namespace BWEB
 		/// <param name="tile"> The TilePosition you want to build closest to. </param>
 		TilePosition getDefBuildPosition(UnitType type, TilePosition tile = Broodwar->self()->getStartLocation());
 
-		template <class PositionType>
+		template <class T>
 		/// <summary> Returns the estimated ground distance from one Position type to another Position type.</summary>
 		/// <param name="first"> The first Position. </param>
 		/// <param name="second"> The second Position. </param>
-		double getGroundDistance(PositionType start, PositionType end);
+		double getGroundDistance(T start, T end);
 
 		/// <summary> <para> Returns a pointer to a BWEB::Wall if it has been created in the given BWEM::Area and BWEM::ChokePoint. </para>
 		/// <para> Note: If you only pass a BWEM::Area or a BWEM::ChokePoint (not both), it will imply and pick a BWEB::Wall that exists within that Area or blocks that BWEM::ChokePoint. </para></summary>
@@ -184,10 +173,16 @@ namespace BWEB
 		const Block* getClosestBlock(TilePosition) const;
 
 		/// Returns the TilePosition of the natural expansion
-		TilePosition getNatural() const { return naturalTile; }
+		TilePosition getNaturalTile() const { return naturalTile; }
+
+		/// Returns the Position of the natural expansion
+		Position getNaturalPosition() const { return naturalPosition; }
 
 		/// Returns the TilePosition of the main
-		TilePosition getMain() const { return mainTile; }
+		TilePosition getMainTile() const { return mainTile; }
+
+		/// Returns the Position of the main
+		Position getMainPosition() const { return mainPosition; }
 
 		/// Returns the set of used TilePositions
 		set<TilePosition>& getUsedTiles() { return usedTiles; }
@@ -217,9 +212,18 @@ namespace BWEB
 		/// <summary> Initializes the building of every BWEB::Block on the map, call it only once per game. </summary>
 		void findBlocks(BWAPI::Player);
 		void findBlocks(BWAPI::Race);
-		void findBlocks();
+		void findBlocks();		
+	};
 
-		vector<TilePosition> findPath(BWEM::Map&, BWEB::Map&, const TilePosition, const TilePosition, bool ignoreOverlap = false, bool ignoreWalls = false, bool diagonal = false);
+	class Path {
+		vector<TilePosition> tiles;
+		double dist;		
+	public:
+		Path();
+		vector<TilePosition>& getTiles() { return tiles; }
+		double getDistance() { return dist; }
+		
+		void createWallPath(BWEB::Map&, BWEM::Map&, const TilePosition, const TilePosition);
 	};
 
 	// This namespace contains functions which could be used for backward compatibility
@@ -228,11 +232,6 @@ namespace BWEB
 	// replace all usages of Map::overlapsBlocks with just overlapsBlocks
 	namespace Utils
 	{
-		static bool overlapsBlocks(TilePosition);
-		static bool overlapsStations(TilePosition);
-		static bool overlapsNeutrals(TilePosition);
-		static bool overlapsMining(TilePosition);
-		static bool overlapsWalls(TilePosition);
 		static int tilesWithinArea(BWEM::Area const *, TilePosition here, int width = 1, int height = 1);
 	}
 }

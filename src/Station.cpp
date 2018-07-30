@@ -11,21 +11,34 @@ namespace BWEB
 
 	void Map::findStations()
 	{
-		for (auto& area : mapBWEM.Areas())
-		{
-			for (auto& base : area.Bases())
-			{
-				auto h = false, v = false;
+		const auto addResourceOverlap = [&](Position genCenter) {
+			TilePosition start(genCenter);
+			for (int x = start.x - 4; x < start.x + 4; x++) {
+				for (int y = start.y - 4; y < start.y + 4; y++) {
+					TilePosition t(x, y);
+					if (!t.isValid())
+						continue;
+					if (t.getDistance(start) < 6)
+						addOverlap(t, 1, 1);
+				}
+			}
+		};
 
+		for (auto &area : mapBWEM.Areas()) {
+			for (auto &base : area.Bases()) {
+				auto h = false, v = false;
 				Position genCenter, sCenter;
 				auto cnt = 0;
-				for (auto& mineral : base.Minerals())
-					genCenter += mineral->Pos(), cnt++;
 
-				if (cnt > 0) sCenter = genCenter / cnt;
+				for (auto &mineral : base.Minerals()) {
+					genCenter += mineral->Pos();
+					cnt++;
+				}
 
-				for (auto& gas : base.Geysers())
-				{
+				if (cnt > 0)
+					sCenter = genCenter / cnt;
+
+				for (auto &gas : base.Geysers()) {
 					sCenter = (sCenter + gas->Pos()) / 2;
 					genCenter += gas->Pos();
 					cnt++;
@@ -34,90 +47,142 @@ namespace BWEB
 				if (cnt > 0)
 					genCenter = genCenter / cnt;
 
-				if (base.Center().x < sCenter.x)
-					h = true;
-				if (base.Center().y < sCenter.y)
-					v = true;
+				h = base.Center().x < sCenter.x;
+				v = base.Center().y < sCenter.y;
 
-				auto here = base.Location();
-				set<Unit> minerals, geysers;
+				for (auto &m : base.Minerals())
+					addOverlap(m->TopLeft(), 2, 1);
 
-				for (auto& m : base.Minerals()) { minerals.insert(m->Unit()); }
-				for (auto& g : base.Geysers()) { geysers.insert(g->Unit()); }
+				for (auto &g : base.Geysers())
+					addOverlap(g->TopLeft(), 4, 2);
 
 				const Station newStation(genCenter, stationDefenses(base.Location(), h, v), &base);
 				stations.push_back(newStation);
 				addOverlap(base.Location(), 4, 3);
-
-				TilePosition start(genCenter);
-				for (int x = start.x - 4; x < start.x + 4; x++) {
-					for (int y = start.y - 4; y < start.y + 4; y++) {
-						TilePosition t(x, y);
-						if (!t.isValid()) continue;
-						if (t.getDistance(start) < 4)
-							addOverlap(t,1,1);
-					}
-				}
+				addResourceOverlap(genCenter);
 			}
 		}
 	}
 
-	set<TilePosition>& Map::stationDefenses(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
+	set<TilePosition> Map::stationDefenses(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
 	{
 		return stationDefenses(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
 	}
-	set<TilePosition>& Map::stationDefenses(BWAPI::Player player, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
+	set<TilePosition> Map::stationDefenses(BWAPI::Player player, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
 	{
 		return stationDefenses(player->getRace(), here, mirrorHorizontal, mirrorVertical);
 	}
-	set<TilePosition>& Map::stationDefenses(BWAPI::Race race, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
+	set<TilePosition> Map::stationDefenses(BWAPI::Race race, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
 	{
-		returnValues.clear();
-		if (mirrorVertical)
-		{
-			if (mirrorHorizontal)
-			{
-				if (race == Races::Terran)
-					returnValues.insert({ here + TilePosition(0, 3), here + TilePosition(4, 3) });
-				else
-					returnValues.insert({ here + TilePosition(4, 0), here + TilePosition(0, 3), here + TilePosition(4, 3) });
+		set<TilePosition> defenses;
+
+		const auto &offset = [&](int x, int y) {
+			return here + TilePosition(x, y);
+		};
+
+		const auto &topLeft = [&]() {
+			defenses.insert({
+				offset(-2, -2),
+				offset(2, -2),
+				offset(-2, 1) });
+			if (here != mainTile && here != naturalTile)
+				defenses.insert({
+				offset(4, -1),
+				offset(4, 1),
+				offset(4, 3),
+				offset(0,3),
+				offset(2, 3) });
+		};
+
+		const auto &topRight = [&]() {
+			if (race == Races::Terran)
+				defenses.insert({
+				offset(4, -2),
+				offset(0, -2) });
+			else {
+				defenses.insert({
+				offset(4, -2),
+				offset(0, -2),
+				offset(4, 1) });
+
+				if (here != mainTile && here != naturalTile)
+					defenses.insert({
+					offset(-2, -1),
+					offset(-2, 1),
+					offset(-2, 3),
+					offset(0, 3),
+					offset(2, 3) });
 			}
-			else returnValues.insert({ here + TilePosition(-2, 3), here + TilePosition(-2, 0), here + TilePosition(2, 3) });
-		}
-		else
-		{
-			if (mirrorHorizontal)
-			{
-				// Temporary fix for CC Addons
-				if (race == Races::Terran)
-					returnValues.insert({ here + TilePosition(4, -2), here + TilePosition(0, -2) });
-				else
-					returnValues.insert({ here + TilePosition(4, -2), here + TilePosition(0, -2), here + TilePosition(4, 1) });
+		};
+
+		const auto &bottomLeft = [&]() {
+			defenses.insert({
+				offset(-2, 3),
+				offset(-2, 0),
+				offset(2, 3) });
+
+			if (here != mainTile && here != naturalTile)
+				defenses.insert({
+				offset(0, -2),
+				offset(2, -2),
+				offset(4, -2),
+				offset(4, 0),
+				offset(4, 2) });
+		};
+
+		const auto &bottomRight = [&]() {
+			if (race == Races::Terran)
+				defenses.insert({
+				offset(0, 3),
+				offset(4, 3) });
+			else {
+				defenses.insert({
+				offset(4, 0),
+				offset(0, 3),
+				offset(4, 3) });
+
+				if (here != mainTile && here != naturalTile)
+					defenses.insert({
+					offset(-2, 2),
+					offset(-2, 0),
+					offset(-2,-2),
+					offset(0, -2),
+					offset(2, -2) });
 			}
+		};
+
+		if (mirrorVertical) {
+			if (mirrorHorizontal)
+				bottomRight();
 			else
-				returnValues.insert({ here + TilePosition(-2, -2), here + TilePosition(2, -2), here + TilePosition(-2, 1) });
+				bottomLeft();
+		}
+		else {
+			if (mirrorHorizontal)
+				topRight();
+			else
+				topLeft();
 		}
 
 		// Temporary fix for CC Addons
 		if (race == Races::Terran)
-			returnValues.insert(here + TilePosition(4, 1));
+			defenses.insert(here + TilePosition(4, 1));
 
-		for (auto& tile : returnValues)
+		// Add overlap
+		for (auto &tile : defenses)
 			addOverlap(tile, 2, 2);
 
-		return returnValues;
+		return defenses;
 	}
 
 	const Station* Map::getClosestStation(TilePosition here) const
 	{
 		auto distBest = DBL_MAX;
 		const Station* bestStation = nullptr;
-		for (auto& station : stations)
-		{
+		for (auto &station : stations) {
 			const auto dist = here.getDistance(station.BWEMBase()->Location());
 
-			if (dist < distBest)
-			{
+			if (dist < distBest) {
 				distBest = dist;
 				bestStation = &station;
 			}
