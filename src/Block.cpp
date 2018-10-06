@@ -17,15 +17,17 @@ namespace BWEB
 
 		TilePosition tileBest = TilePositions::Invalid;
 		auto distBest = DBL_MAX;
-		for (auto x = mainTile.x - 16; x <= mainTile.x + 20; x++) {
-			for (auto y = mainTile.y - 16; y <= mainTile.y + 20; y++) {
+		auto start = (mainTile + (mainChoke ? (TilePosition)mainChoke->Center() : mainTile)) / 2;
+
+		for (auto x = start.x - 6; x <= start.x + 10; x++) {
+			for (auto y = start.y - 6; y <= start.y + 10; y++) {
 				TilePosition tile(x, y);
 
 				if (!tile.isValid() || mapBWEM.GetArea(tile) != mainArea)
 					continue;
 
 				auto blockCenter = Position(tile) + Position(128, 80);
-				const auto dist = blockCenter.getDistance(mainPosition);
+				const auto dist = blockCenter.getDistance(mainPosition) + log(blockCenter.getDistance((Position)mainChoke->Center()));
 				if (dist < distBest && ((race == Races::Protoss && canAddBlock(tile, 8, 5)) || (race == Races::Terran && canAddBlock(tile, 6, 5)) || (race == Races::Zerg && canAddBlock(tile, 8, 5)))) {
 					tileBest = tile;
 					distBest = dist;
@@ -88,6 +90,30 @@ namespace BWEB
 		
 		else if (tileBest.isValid())
 			insertStartBlock(race, tileBest, h, v);		
+
+
+		// HACK: Added a block that allows a good shield battery placement
+		start = (TilePosition)mainChoke->Center();
+		distBest = DBL_MAX;
+		for (auto x = start.x - 12; x <= start.x + 16; x++) {
+			for (auto y = start.y - 12; y <= start.y + 16; y++) {
+				TilePosition tile(x, y);
+
+				if (!tile.isValid() || mapBWEM.GetArea(tile) != mainArea)
+					continue;
+
+				auto blockCenter = Position(tile) + Position(80, 32);
+				const auto dist = (blockCenter.getDistance((Position)mainChoke->Center()));
+				if (dist < distBest && canAddBlock(tile, 5, 2)) {
+					tileBest = tile;
+					distBest = dist;
+
+					h = (blockCenter.x < mainPosition.x);
+					v = (blockCenter.y < mainPosition.y);
+				}
+			}
+		}
+		insertBlock(race, tileBest, 5, 2);
 	}
 
 	void Map::findBlocks()

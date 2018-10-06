@@ -18,7 +18,7 @@ namespace BWEB
 					TilePosition t(x, y);
 					if (!t.isValid())
 						continue;
-					if (t.getDistance(start) < 6)
+					if (t.getDistance(start) <= 4)
 						addOverlap(t, 1, 1);
 				}
 			}
@@ -162,6 +162,16 @@ namespace BWEB
 				topRight();
 			else
 				topLeft();
+		}
+
+		// Check if it's buildable (some maps don't allow for these tiles, like Destination)
+		set<TilePosition>::iterator itr = defenses.begin();
+		while (itr != defenses.end()) {
+			auto tile = *itr;
+			if (!isPlaceable(UnitTypes::Protoss_Photon_Cannon, tile))
+				itr = defenses.erase(itr);
+			else
+				++itr;
 		}
 
 		// Temporary fix for CC Addons

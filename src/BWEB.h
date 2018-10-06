@@ -23,6 +23,9 @@ namespace BWEB
 		vector<Station> stations;
 		vector<Wall> walls;
 		vector<Block> blocks;
+
+		TilePosition testTile;
+		vector<TilePosition> chokeTiles;
 		
 		// Blocks
 		// TODO: Add this function. This would be used to create a block that makes room for a specific type (possibly better generation than floodfill)
@@ -39,20 +42,15 @@ namespace BWEB
 		map<const BWEM::Area *, int> typePerArea;
 
 		// Walls
-		bool isWallTight(UnitType, TilePosition);
-		bool isPoweringWall(TilePosition);
+		bool isWallTight(Wall&, UnitType, TilePosition);
+		bool isPoweringWall(Wall&, TilePosition);
 		bool iteratePieces(Wall&);
-		bool checkPiece(Wall&, TilePosition);
-		bool testPiece(Wall&, TilePosition);
-		bool placePiece(Wall&, TilePosition);
-		bool identicalPiece(TilePosition, UnitType, TilePosition, UnitType);
-		void findCurrentHole(Wall&, bool ignoreOverlap = false);
-		void setStartTile(Wall&), setEndTile(Wall&), resetStartEndTiles(Wall&);
+		void findCurrentHole(Wall&, bool);
 
-		void addDoor(Wall&);
-		void addReservePath(Wall&);
-		void addDefenses(Wall&);
-		void addCentroid(Wall&);
+		TilePosition initialStart, initialEnd;
+		void initializePathPoints(Wall&);
+		void checkPathPoints(Wall&);
+
 		int reserveGrid[256][256] = {};
 
 		double bestWallScore = 0.0;
@@ -61,7 +59,7 @@ namespace BWEB
 		vector<UnitType>::iterator typeIterator;
 		map<TilePosition, UnitType> bestWall;
 		map<TilePosition, UnitType> currentWall;
-
+		double currentPathSize{};
 
 		// Information that is passed in
 		BWEM::Map& mapBWEM;
@@ -69,16 +67,7 @@ namespace BWEB
 		bool reservePath{};
 		bool requireTight;
 		int chokeWidth;
-		TilePosition wallBase;
-
-		// TilePosition grid of what has been visited for wall placement
-		struct VisitGrid
-		{
-			int location[256][256] = {};
-		};
-		map<UnitType, VisitGrid> visited;
-		bool parentSame{}, currentSame{};
-		double currentPathSize{};
+		Position wallBase;
 
 		// Map
 		void findMain(), findMainChoke(), findNatural(), findNaturalChoke(), findNeutrals();
@@ -100,7 +89,7 @@ namespace BWEB
 
 		// General
 		static Map* BWEBInstance;
-		
+		int testGrid[256][256];
 
 	public:
 		Map(BWEM::Map& map);
@@ -222,8 +211,8 @@ namespace BWEB
 		Path();
 		vector<TilePosition>& getTiles() { return tiles; }
 		double getDistance() { return dist; }
-		
-		void createWallPath(BWEB::Map&, BWEM::Map&, const TilePosition, const TilePosition);
+		void createUnitPath(BWEB::Map&, BWEM::Map&, const Position, const Position);
+		void createWallPath(BWEB::Map&, BWEM::Map&, const TilePosition, const TilePosition, bool);
 	};
 
 	// This namespace contains functions which could be used for backward compatibility

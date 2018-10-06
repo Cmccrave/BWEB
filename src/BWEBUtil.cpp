@@ -41,7 +41,7 @@ namespace BWEB
 					return false;
 
 				// Make an assumption that if it's on a chokepoint geometry, it belongs to the area provided
-				if (mapBWEM.GetArea(t) == area || !mapBWEM.GetArea(t))
+				if (mapBWEM.GetArea(t) == area /*|| !mapBWEM.GetArea(t)*/)
 					cnt++;
 			}
 		}

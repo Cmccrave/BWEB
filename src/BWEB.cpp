@@ -1,14 +1,20 @@
 #include "BWEB.h"
 
+// Authors Notes
 // TODO:
-// Restructure - NEW CRITICAL
-// Wall improvements - NEW HIGH
-// Performance improvements - NEW MEDIUM
-// Block improvements - NEW MEDIUM
-// Dynamic block addition (insert UnitTypes, get block) - NEW MEDIUM
-// Improve logic for mirroring blocks - NEW LOW
-// Code cleanup - NEW LOW
-// Defense sizes - NEW LOW
+// Creep estimations
+// Pylon power grid for building placer
+// Dynamic block addition (insert UnitTypes, get block)
+//	- May not be added for a while
+// Check two walkpositions for not being walkable for buildings that have a dimension on one side less than 8
+//	- Not sure how critical this is
+//	- Barracks and depots can be placed in this way
+// Placements are fine if satisfies one condition, needs to satisfy all tight conditions
+//	- The final piece for a Terran wall can be placed such that it is no longer unit-tight
+// Min wall width to prevent walling self in with a depot
+//	- Maps with main/nat on same terrain level can wall itself in
+// Door too far away on destination style maps (where we need to move the start locations away from the choke)
+//	- Consider a line of best fit across the wall pieces for the door instead of using the chokepoint geometry?
 
 namespace BWEB
 {
@@ -159,7 +165,7 @@ namespace BWEB
 
 			bool wrongArea = false;
 			for (auto &choke : area->ChokePoints()) {
-				if (choke->Pos(choke->end1).getDistance(choke->Pos(choke->end2)) <= 2 || nonChokes.find(choke) != nonChokes.end()) {
+				if ((!choke->Blocked() && choke->Pos(choke->end1).getDistance(choke->Pos(choke->end2)) <= 2) || nonChokes.find(choke) != nonChokes.end()) {
 					wrongArea = true;
 				}
 			}
@@ -176,7 +182,8 @@ namespace BWEB
 			if (choke->Center() == mainChoke->Center()
 				|| choke->Blocked()
 				|| choke->Geometry().size() <= 3
-				|| (choke->GetAreas().first != second && choke->GetAreas().second != second)) continue;
+				|| (choke->GetAreas().first != second && choke->GetAreas().second != second))
+				continue;
 
 			const auto dist = Position(choke->Center()).getDistance(Position(Broodwar->self()->getStartLocation()));
 			if (dist < distBest)
@@ -229,20 +236,29 @@ namespace BWEB
 				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
 			Broodwar->drawBoxMap(Position(wall.getDoor()), Position(wall.getDoor()) + Position(33, 33), Broodwar->self()->getColor(), true);
 			Broodwar->drawCircleMap(Position(wall.getCentroid()) + Position(16, 16), 8, Broodwar->self()->getColor(), true);
+
+			auto p1 = wall.getChokePoint()->Pos(wall.getChokePoint()->end1);
+			auto p2 = wall.getChokePoint()->Pos(wall.getChokePoint()->end2);
+
+			Broodwar->drawLineMap(Position(p1), Position(p2), Colors::Green);
 		}
 
-		// Draw Reserve Path
+		Broodwar->drawCircleMap(Position(testTile), 8, Broodwar->self()->getColor(), true);
+
+		Broodwar->drawTextMap(Position(endTile), "EndTile");
+		Broodwar->drawTextMap(Position(startTile), "StartTile");
+		Broodwar->drawTextMap(Position(initialEnd), "InitialEnd");
+		Broodwar->drawTextMap(Position(initialStart), "InitialStart");
+
+		// Draw Reserve Path and some grids
 		for (int x = 0; x < Broodwar->mapWidth(); x++) {
 			for (int y = 0; y < Broodwar->mapHeight(); y++) {
 				TilePosition t(x, y);
 				if (reserveGrid[x][y] >= 1)
 					Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Black, false);
+				if (testGrid[x][y] >= 1)
+					Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Red, false);
 
-				if (usedGrid[x][y] >= 1 && usedTiles.find(t) == usedTiles.end())
-					Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Yellow, false);
-
-				if (usedGrid[x][y] > 1)
-					Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Orange, false);
 			}
 		}
 	}
@@ -345,9 +361,8 @@ namespace BWEB
 	void Map::addOverlap(const TilePosition t, const int w, const int h)
 	{
 		for (auto x = t.x; x < t.x + w; x++) {
-			for (auto y = t.y; y < t.y + h; y++) {
-				overlapGrid[x][y] = 1;
-			}
+			for (auto y = t.y; y < t.y + h; y++)
+				overlapGrid[x][y] = 1;			
 		}
 	}
 
