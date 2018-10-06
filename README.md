@@ -1,9 +1,9 @@
 # BWEB
-## BWEB is currently v1.05
+## BWEB is currently v1.06
 Broodwar Easy Builder or BWEB for short, is a BWEM based building placement addon. The purpose of this addon is to provide easily accesible building management. BWEB started as a decision to create a standard and simple method for bots to optimize their building space and placement.
 
 ## What's New?
-Minor bug fixes and added some hacks for Plasma/Transistor due to AIST and CIG maps.
+Added a unit pathfind option that I use for McRave to detect walls and improve ground distance estimations. Improved wall placement by forcing walls to be placed roughly parallel to the chokepoint geometry. It's possible that the Terran and Zerg walls are dysfunctional right now.
 
 ## What does BWEB do?
 BWEB has 3 classes of information, Walls, Blocks and Stations.
