@@ -211,15 +211,17 @@ namespace BWEB
 			findCurrentHole(wall, !reservePath);
 			Position chokeCenter(wall.getChokePoint()->Center());
 			double dist = 1.0;
-			
+
 			// For walls that require a reserved path, we must have a hole
 			if (reservePath && currentHole == TilePositions::None)
+				return;
+			if (!reservePath && currentHole != TilePositions::None)
 				return;
 
 			for (auto &piece : currentWall) {
 				auto tile = piece.first;
 				auto type = piece.second;
-				auto center = Position(tile) + Position(type.tileWidth() * 16.0, type.tileHeight() * 16.0);
+				auto center = Position(tile) + Position(type.tileWidth() * 16, type.tileHeight() * 16);
 				auto chokeDist = Position(closestChokeTile(center)).getDistance(center);
 
 				if (type == UnitTypes::Protoss_Pylon && wallBase.isValid())
@@ -229,7 +231,7 @@ namespace BWEB
 			}
 
 			// Score wall based on path sizes and distances
-			const auto score = currentHole.getDistance(startTile) * currentPathSize / (dist);
+			const auto score = !reservePath ? dist : currentHole.getDistance(startTile) * currentPathSize / (dist);
 
 			if (score > bestWallScore) {
 				bestWall = currentWall;
@@ -239,7 +241,8 @@ namespace BWEB
 
 		const auto testPiece = [&](Wall& wall, TilePosition t) {
 			UnitType currentType = *typeIterator;
-			Position c = Position(t) + Position(currentType.tileSize());			
+			Position c = Position(t) + Position(currentType.tileSize());
+			auto tile = closestChokeTile(c);
 
 			if ((currentType == UnitTypes::Protoss_Pylon && !isPoweringWall(wall, t))
 				|| overlapsCurrentWall(t, currentType.tileWidth(), currentType.tileHeight()) != UnitTypes::None
@@ -247,10 +250,6 @@ namespace BWEB
 				|| !isPlaceable(currentType, t)
 				|| tilesWithinArea(wall.getArea(), t, currentType.tileWidth(), currentType.tileHeight()) <= 2)
 				return false;
-
-			// If choke is small, make sure we don't place too close to it - TEMP removed
-			//if (chokeWidth < 4 && c.getDistance((Position)wall.getChokePoint()->Center()) < 48)
-				//return false;
 			return true;
 		};
 
@@ -264,10 +263,10 @@ namespace BWEB
 		function<void(TilePosition)> recursiveCheck;
 		recursiveCheck = [&](TilePosition start) -> void {
 			UnitType type = *typeIterator;
-			for (auto x = start.x - chokeWidth; x < start.x + chokeWidth; x++) {
-				for (auto y = start.y - chokeWidth; y < start.y + chokeWidth; y++) {
+			for (auto x = start.x - 10; x < start.x + 10; x++) {
+				for (auto y = start.y - 10; y < start.y + 10; y++) {
 					const TilePosition t(x, y);
-					auto center = Position(t) + Position(type.tileWidth() * 16.0, type.tileHeight() * 16.0);
+					auto center = Position(t) + Position(type.tileWidth() * 16, type.tileHeight() * 16);
 
 					if (!t.isValid())
 						continue;
@@ -275,39 +274,36 @@ namespace BWEB
 					// We want to ensure the buildings are being placed at the correct angle compared to the chokepoint, within some tolerance
 					double angle2 = 0.0;
 					if (currentWall.size() == 1 && type.getRace() == Races::Protoss && !movedStart) {
-						for (auto piece : currentWall) {							
+						for (auto piece : currentWall) {
 							auto tileB = piece.first;
 							auto typeB = piece.second;
-							auto centerB = Position(tileB) + Position(typeB.tileWidth() * 16.0, typeB.tileHeight() * 16.0);
+							auto centerB = Position(tileB) + Position(typeB.tileWidth() * 16, typeB.tileHeight() * 16);
 							double dy = abs(double(centerB.y - center.y));
 							double dx = abs(double(centerB.x - center.x));
-														
+
 							angle2 = dx > 0.0 ? atan(dy / dx) * 180.0 / 3.14 : 90.0;
 						}
-						
+
 						if (abs(abs(angle1) - abs(angle2)) > 15.0)
 							continue;
-					}					
+					}
 
 					// If the piece is fine to place
 					if (testPiece(wall, t) && (isWallTight(wall, type, t) || type == UnitTypes::Protoss_Pylon)) {
 
-						// 1) Store the current type
-						// 2) Increase the iterator
-						// 3) If at the end, score the wall, else, go another layer deeper
-						// 4) Erase this current placement and repeat
-
+						// 1) Store the current type, increase the iterator
 						currentWall[t] = type;
 						typeIterator++;
 
+						// 2) If at the end, score the wall, else, go another layer deeper
 						if (typeIterator == wall.getRawBuildings().end())
 							scoreWall();
 						else
 							recursiveCheck(start);
 
+						// 3) Erase this current placement and repeat
 						if (typeIterator != wall.getRawBuildings().begin())
 							typeIterator--;
-
 						currentWall.erase(t);
 					}
 				}
@@ -380,14 +376,17 @@ namespace BWEB
 
 	bool Map::isWallTight(Wall& wall, UnitType building, const TilePosition here)
 	{
+		// Some constants
 		const auto height = building.tileHeight() * 4;
 		const auto width = building.tileWidth() * 4;
-		const auto tightnessFactor = (tight == UnitTypes::None) ? 32 : min(tight.width(), tight.height());
+		const auto vertTight = (tight == UnitTypes::None) ? 32 : tight.height();
+		const auto horizTight = (tight == UnitTypes::None) ? 32 : tight.width();
 
-		const auto checkLeft = (building.tileWidth() * 16) - building.dimensionLeft() < tightnessFactor;
-		const auto checkRight = (building.tileWidth() * 16) - building.dimensionRight() - 1 < tightnessFactor;
-		const auto checkUp =  (building.tileHeight() * 16) - building.dimensionUp() < tightnessFactor;
-		const auto checkDown =  (building.tileHeight() * 16) - building.dimensionDown() - 1 < tightnessFactor;
+		// Checks each side of the building to see if it is valid for walling purposes
+		const auto checkLeft = (building.tileWidth() * 16) - building.dimensionLeft() < horizTight;
+		const auto checkRight = (building.tileWidth() * 16) - building.dimensionRight() - 1 < horizTight;
+		const auto checkUp =  (building.tileHeight() * 16) - building.dimensionUp() < vertTight;
+		const auto checkDown =  (building.tileHeight() * 16) - building.dimensionDown() - 1 < vertTight;
 
 		// HACK: I don't have a great method for buildings that can check multiple tiles for Terrain tight, hardcoded a few as shown below
 		const auto right = WalkPosition(here) + WalkPosition(width, 0) + WalkPosition(building == UnitTypes::Terran_Barracks, 0);
@@ -395,18 +394,37 @@ namespace BWEB
 		const auto up = WalkPosition(here) - WalkPosition(0, 1);
 		const auto down = WalkPosition(here) + WalkPosition(0, height) + WalkPosition(0, building == UnitTypes::Protoss_Gateway || building == UnitTypes::Terran_Supply_Depot);
 
-		auto count = 0;
+		// Some testing parameters
+		auto firstBuilding = currentWall.size() == 0;
+		auto lastBuilding = currentWall.size() == 2;
+		auto terrainTight = false;
+		auto parentTight = false;
 
-		const auto terrainTight = [&](WalkPosition w, bool check) {
+		// Functions for each dimension check
+		function <int(UnitType, UnitType)>fRight = [](UnitType building, UnitType parent) -> int {
+			return (parent.tileWidth() * 16 - parent.dimensionLeft()) + (building.tileWidth() * 16 - building.dimensionRight() - 1);
+		};
+		function <int(UnitType, UnitType)>fLeft = [](UnitType building, UnitType parent) -> int {
+			return (parent.tileWidth() * 16 - parent.dimensionRight() - 1) + (building.tileWidth() * 16 - building.dimensionLeft());
+		};
+		function <int(UnitType, UnitType)>fUp = [](UnitType building, UnitType parent) -> int {
+			return (parent.tileHeight() * 16 - parent.dimensionDown() - 1) + (building.tileHeight() * 16 - building.dimensionUp());
+		};
+		function <int(UnitType, UnitType)>fDown = [](UnitType building, UnitType parent) -> int {
+			return (parent.tileHeight() * 16 - parent.dimensionUp()) + (building.tileHeight() * 16 - building.dimensionDown() - 1);
+		};
+
+		// Function to check if it's terrain tight here
+		const auto terrainTightCheck = [&](WalkPosition w, bool check) {
 			TilePosition t(w);
 
 			// If the walkposition is invalid or unwalkable
 			if (tight != UnitTypes::None && check && (!w.isValid() || !Broodwar->isWalkable(w)))
 				return true;
 
-			// TEST
-			if (overlapsAnything(t))
-				return true;			
+			//// TEST
+			//if (overlapsAnything(t))
+			//	return true;
 
 			// If we don't care about walling tight and the tile isn't walkable
 			if (!requireTight && !isWalkable(t))
@@ -414,98 +432,66 @@ namespace BWEB
 			return false;
 		};
 
-		for (auto y = right.y; y < right.y + height; y++) {
-			WalkPosition w(right.x, y);
-			TilePosition t(w);
-			auto parent = overlapsCurrentWall(t);
+		// Functions to iterate each WalkPosition of a side
+		const auto checkVerticalSide = [&](WalkPosition start, int length, bool check, function <int(UnitType, UnitType)> fDiff, int tightnessFactor) {			
+			for (auto x = start.x; x < start.x + length; x++) {
+				WalkPosition w(x, start.y);
+				TilePosition t(w);
+				auto parent = overlapsCurrentWall(t);
+				auto parentTightCheck = parent != UnitTypes::None ? fDiff(building, parent) < tightnessFactor : false;
 
-			// Check if it's tight with the terrain
-			if (terrainTight(w, checkRight)) {
-				count++;
-				break;
+				// Check if it's tight with the terrain
+				if (!terrainTight && terrainTightCheck(w, check))
+					terrainTight = true;
+
+				// Check if it's tight with a parent
+				if (!parentTight && parentTightCheck)
+					parentTight = true;
 			}
+			return;
+		};
 
-			// Check if it's tight with a parent
-			if (parent != UnitTypes::None) {
-				const auto diff = (parent.tileWidth() * 16 - parent.dimensionLeft()) + (building.tileWidth() * 16 - building.dimensionRight() - 1);
-				if (diff < tightnessFactor) {
-					count++;
-					break;
-				}
-				//else
-				//	return false;
+		const auto checkHorizontalSide = [&](WalkPosition start, int length, bool check, function <int(UnitType, UnitType)> fDiff, int tightnessFactor) {
+			for (auto y = start.y; y < start.y + length; y++) {
+				WalkPosition w(start.x, y);
+				TilePosition t(w);
+				auto parent = overlapsCurrentWall(t);
+				auto parentTightCheck = parent != UnitTypes::None ? fDiff(building, parent) < tightnessFactor : false;
+
+				// Check if it's tight with the terrain
+				if (!terrainTight && terrainTightCheck(w, check))
+					terrainTight = true;
+
+				// Check if it's tight with a parent
+				if (!parentTight && parentTightCheck)
+					parentTight = true;
 			}
-		}
+			return;
+		};
 
-		for (auto y = left.y; y < left.y + height; y++) {
-			WalkPosition w(left.x, y);
-			TilePosition t(w);
-			auto parent = overlapsCurrentWall(t);
+		/* What this does:
+		1) For each side, check if it's terrain tight
+		2) For each side, check if it's tight with any parent buildings beside it
+		3) If we want a tight wall, check that the final piece is terrain tight and parent tight*/
+		checkVerticalSide(up, width, checkUp, fUp, vertTight);
+		checkVerticalSide(down, width, checkDown, fDown, vertTight);
+		checkHorizontalSide(left, height, checkLeft, fLeft, horizTight);
+		checkHorizontalSide(right, height, checkRight, fRight, horizTight);
 
-			// Check if it's tight with the terrain
-			if (terrainTight(w, checkLeft)) {
-				count++;
-				break;
-			}
+		// If we don't want a reserve path, we need all buildings to be tight at the tightness resolution...
+		if (!reservePath) {			
+			if (!lastBuilding && !firstBuilding)	// ...to the parent
+				return parentTight;
+			if (firstBuilding)						// ...to the terrain
+				return terrainTight;
+			if (lastBuilding)						// ...to the parent and terrain
+				return (terrainTight && parentTight);
+		}		
 
-			// Check if it's tight with a parent
-			if (parent != UnitTypes::None) {
-				const auto diff = (parent.tileWidth() * 16 - parent.dimensionRight() - 1) + (building.tileWidth() * 16 - building.dimensionLeft());
-				if (diff < tightnessFactor) {
-					count++;
-					break;
-				}
-				//else
-				//	return false;
-			}
-		}
-
-		for (auto x = up.x; x < up.x + width; x++) {
-			WalkPosition w(x, up.y);
-			TilePosition t(w);
-			auto parent = overlapsCurrentWall(t);
-
-			// Check if it's tight with the terrain
-			if (terrainTight(w, checkUp)) {
-				count++;
-				break;
-			}
-
-			// Check if it's tight with a parent
-			if (parent != UnitTypes::None) {
-				const auto diff = (parent.tileHeight() * 16 - parent.dimensionDown() - 1) + (building.tileHeight() * 16 - building.dimensionUp());
-				if (diff < tightnessFactor) {
-					count++;
-					break;
-				}
-				//else
-				//	return false;
-			}
-		}
-
-		for (auto x = down.x; x < down.x + width; x++) {
-			WalkPosition w(x, down.y);
-			TilePosition t(w);
-			auto parent = overlapsCurrentWall(t);
-
-			// Check if it's tight with the terrain
-			if (terrainTight(w, checkDown)) {
-				count++;
-				break;
-			}
-
-			// Check if it's tight with a parent
-			if (parent != UnitTypes::None) {
-				const auto diff = (parent.tileHeight() * 16 - parent.dimensionUp()) + (building.tileHeight() * 16 - building.dimensionDown() - 1);
-				if (diff < tightnessFactor) {
-					count++;
-					break;
-				}
-				//else
-				//	return false;
-			}
-		}
-		return count >= 1;
+		// If we do want a reserve path, we need this building to be tight at tile resolution to a parent or terrain
+		else if (reservePath)
+			return (terrainTight || parentTight);
+		return false;
 	}
 
 	void Map::checkPathPoints(Wall& wall)
