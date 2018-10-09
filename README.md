@@ -69,12 +69,15 @@ If you have any questions, feel free to ask on BWAPI Discord.
 1.07 
 - Improved Terran wall placement
 - Recoded wall tight function
+
 1.06 
 - Improved wall placement, should function better on every map.
 - Added a unit pathing option (may move elsewhere later).
 - Small bugfixes.
+
 1.05 
 - Minor bugfixes, added Path class to setup for unit pathing.
+
 1.04
 - Paths are made using BFS instead of A*. 
 - Improved performance and no memory leaks.
@@ -82,11 +85,14 @@ If you have any questions, feel free to ask on BWAPI Discord.
 - Door placement improved drastically.
 - Defense placement moved further back from wall when possible.
 - Pylons are as central as possible.
+
 1.03
 - General improvements across the board.
+
 1.02
 - Adjusted wall placements.
 - Improved block generation speed and maximizing of space.
+
 1.01
 - Minor bug fixes, some slight wall improvements
 
