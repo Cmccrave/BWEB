@@ -663,7 +663,7 @@ namespace BWEB::Walls
 		return bestWall;
 	}
 
-	vector<Wall> getWalls() {
+	vector<Wall>& getWalls() {
 		return walls;
 	}
 

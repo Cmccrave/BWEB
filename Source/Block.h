@@ -46,7 +46,7 @@ namespace BWEB::Blocks
 	void eraseBlock(BWAPI::TilePosition here);
 
 	/// <summary> Returns a vector containing every Block </summary>
-	std::vector<Block> getBlocks();
+	std::vector<Block>& getBlocks();
 
 	/// <summary> Returns the closest BWEB::Block to the given TilePosition. </summary>
 	const Blocks::Block* getClosestBlock(BWAPI::TilePosition);

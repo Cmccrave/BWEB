@@ -1,12 +1,27 @@
 #include "PathFind.h"
 #include "BWEB.h"
+#include "JPS.h"
 
 using namespace std;
 using namespace BWAPI;
 using namespace std::placeholders;
 
 namespace BWEB::PathFinding
-{	
+{
+	namespace {
+		struct JPSGrid {
+			inline bool operator()(unsigned x, unsigned y) const
+			{
+				if (x < width && y < height && TilePosition(x,y).getDistance(target) < maxDist && !Map::isUsed(TilePosition(x, y)) && Map::isWalkable(TilePosition(x, y)))
+					return true;
+				return false;
+			}
+			unsigned width = Broodwar->mapWidth(), height = Broodwar->mapHeight();
+			double maxDist;
+			TilePosition target;
+		};
+	}
+
 	void Path::createWallPath(BWEM::Map& mapBWEM, map<TilePosition, UnitType>& currentWall, const Position s, const Position t, bool ignoreOverlap)
 	{
 		TilePosition target(t);
@@ -19,7 +34,7 @@ namespace BWEB::PathFinding
 				|| tile.getDistance(target) > maxDist * 1.2
 				|| (!ignoreOverlap && Map::isOverlapping(tile))
 				|| !Map::isWalkable(tile)
-				|| Map::isUsed(tile)				
+				|| Map::isUsed(tile)
 				|| Map::overlapsCurrentWall(currentWall, tile) != UnitTypes::None;
 		};
 
@@ -30,17 +45,20 @@ namespace BWEB::PathFinding
 	{
 		TilePosition target(t);
 		TilePosition source(s);
-		auto maxDist = source.getDistance(target);
-		vector<TilePosition> direction{ { 0, 1 },{ 1, 0 },{ -1, 0 },{ 0, -1 },{ -1,-1 },{ -1, 1 },{ 1, -1 },{ 1, 1 } };
+		vector<TilePosition> newJPSPath;
+		Path newPath;
+		JPSGrid newGrid;
+		newGrid.maxDist = source.getDistance(target);
+		newGrid.target = target;
 
-		const auto collision = [&](const TilePosition tile) {
-			return !tile.isValid()
-				|| tile.getDistance(target) > maxDist * 1.2
-				|| Map::isUsed(tile)
-				|| !Map::isWalkable(tile);							
-		};
-
-		createPath(mapBWEM, s, t, collision, direction);
+		if (JPS::findPath(newJPSPath, newGrid, source.x, source.y, target.x, target.y)) {
+			tiles = newJPSPath;
+			Position current = s;
+			for (auto &t : tiles) {
+				dist += Position(t).getDistance(current);
+				current = Position(t);
+			}
+		}
 	}
 
 	void Path::createPath(BWEM::Map& mapBWEM, const Position s, const Position t, function <bool(const TilePosition)> collision, vector<TilePosition> direction)
@@ -49,7 +67,7 @@ namespace BWEB::PathFinding
 		TilePosition target(t);
 		auto maxDist = source.getDistance(target);
 
-		if (source == target || source == TilePosition(0,0) || target == TilePosition(0, 0))
+		if (source == target || source == TilePosition(0, 0) || target == TilePosition(0, 0))
 			return;
 
 		TilePosition parentGrid[256][256];
@@ -75,7 +93,7 @@ namespace BWEB::PathFinding
 			dist -= 64.0;
 		};
 
-		std::queue<BWAPI::TilePosition> nodeQueue;
+		queue<TilePosition> nodeQueue;
 		nodeQueue.emplace(source);
 		parentGrid[source.x][source.y] = source;
 
@@ -96,7 +114,7 @@ namespace BWEB::PathFinding
 					if ((d.x == 1 || d.x == -1) && (d.y == 1 || d.y == -1) && (collision(tile + TilePosition(d.x, 0)) || collision(tile + TilePosition(0, d.y))))
 						continue;
 
-					// Set parent here, BFS optimization
+					// Set parent here
 					parentGrid[next.x][next.y] = tile;
 
 					// If at target, return path

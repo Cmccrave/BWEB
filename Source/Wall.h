@@ -67,7 +67,7 @@ namespace BWEB::Walls
 	};	
 
 	/// <summary> Returns a vector containing every BWEB::Wall. </summary>
-	std::vector<Wall> getWalls();
+	std::vector<Wall>& getWalls();
 
 	/// <summary> <para> Returns a pointer to a BWEB::Wall if it has been created in the given BWEM::Area and BWEM::ChokePoint. </para>
 	/// <para> Note: If you only pass a BWEM::Area or a BWEM::ChokePoint (not both), it will imply and pick a BWEB::Wall that exists within that Area or blocks that BWEM::ChokePoint. </para></summary>

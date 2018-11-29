@@ -15,17 +15,20 @@ namespace BWEB::Stations
 	public:
 		Station(BWAPI::Position, const std::set<BWAPI::TilePosition>&, const BWEM::Base*);
 
-		// Returns the central position of the resources associated with this base including geysers
+		/// <summary> Returns the central position of the resources associated with this base including geysers. </summary>
 		BWAPI::Position ResourceCentroid() const { return resourceCentroid; }
 
-		// Returns the set of defense locations associated with this base
+		/// <summary> Returns the set of defense locations associated with this base. </summary>
 		const std::set<BWAPI::TilePosition>& DefenseLocations() const { return defenses; }
 
-		// Returns the BWEM base associated with this BWEB base
+		/// <summary> Returns the BWEM base associated with this BWEB base. </summary>
 		const BWEM::Base * BWEMBase() const { return base; }
 
-		// Returns the number of defenses associated with this station
+		/// <summary> Returns the number of defenses associated with this station. </summary>
 		const int getDefenseCount() const { return defenseCount; }
+
+		/// <summary> Sets the number of defenses associated with this station. </summary>
+		/// <param name="newValue"> The new defense count. </param>
 		void setDefenseCount(int newValue) { defenseCount = newValue; }
 	};
 
@@ -33,7 +36,7 @@ namespace BWEB::Stations
 	void findStations();
 
 	/// <summary> Returns a vector containing every BWEB::Station </summary>
-	std::vector<Station> getStations();
+	std::vector<Station>& getStations();
 
 	/// <summary> Returns the closest BWEB::Station to the given TilePosition. </summary>
 	const Station * getClosestStation(BWAPI::TilePosition);

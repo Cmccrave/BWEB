@@ -437,7 +437,7 @@ namespace BWEB::Blocks
 		}
 	}
 
-	vector<Block> getBlocks() {
+	vector<Block>& getBlocks() {
 		return allBlocks;
 	}
 

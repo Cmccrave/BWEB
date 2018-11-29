@@ -208,7 +208,7 @@ namespace BWEB::Stations
 		return bestStation;
 	}
 
-	vector<Station> getStations() {
+	vector<Station>& getStations() {
 		return stations;
 	}
 }
