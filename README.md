@@ -1,71 +1,52 @@
 # BWEB
-## BWEB is currently v1.07
+### BWEB is currently v1.09
 Broodwar Easy Builder or BWEB for short, is a BWEM based building placement addon. The purpose of this addon is to provide easily accesible building management. BWEB started as a decision to create a standard and simple method for bots to optimize their building space and placement.
 
-## What does BWEB do?
+### What does BWEB do?
 BWEB has 3 classes of information, Walls, Blocks and Stations.
 
-Walls are made by permutating through a vector of UnitTypes in as many combinations as possible and measuring an A* path length to find a wall that is either wall tight or minimizes enemy movement. Walls can be created using any UnitTypes and have optional parameters to pass in; what UnitType you want to be wall tight against, a vector of UnitTypes for defenses, or a reserve path can be created to ensure your units can leave the BWEM::Area that the Wall is being created in.
+Walls are made by permutating through a vector of UnitTypes in as many combinations as possible and measuring a BFS path length to find a wall that is either wall tight or minimizes enemy movement. Walls can be created using any `BWAPI::UnitType` and have optional parameters to pass in; what `BWAPI::UnitType` you want to be wall tight against, a vector of `BWAPI::UnitType` for defenses, or a reserve path can be created to ensure your units can leave the `BWEM::Area` that the Wall is being created in.
 
-Blocks are used for all building types and are modifiable for any race and build. Blocks should be generated in your onStart and take only a few milliseconds to create. Blocks are useful for maximizing your space for production buildings without trapping units, while providing the ability to create specific areas to hide tech from your opponents scout.
+Blocks are used for all building types and are modifiable for any race and build. Blocks are useful for maximizing your space for production buildings without trapping units. 
 
-Stations are placed on every BWEM::Base and include defense positions that provide coverage for all your workers.
+Stations are placed on every `BWEM::Base` and include defense positions that provide coverage for all your workers.
 
-## Why use BWEB?
+### Why use BWEB?
 Building placement is a very important aspect of Broodwar. Decisions such as hiding tech, walling a choke or finding more optimal use of your space are possible using BWEB. Most Broodwar bots suffer from many issues stemming from building placement, such as; timeouts, building where it's not safe, trapping units, and lack of fast expand options due to poor wall placement.
 
-## How do I install BWEB?
+### How do I install BWEB?
 1) Clone the repository or download a copy.
 2) In your source code, create a BWEB folder and store the files in there.
 3) In Visual Studio, add the files to your project and edit the properties of your projects include directory to include BWEBs folder.
 
-## How do I use BWEB?
+### How do I use BWEB?
 
-In your main header file, you will need to include the BWEB header file.
+In any file in which you need to access BWEB, add the following include:
+`#include "BWEB.h"`
 
-```
-#include "BWEB.h"
-```
+BWEB is accessed through the BWEB namespace. Map, Stations, Walls, Blocks and PathFinding is all accessed through their respective namespace inside the BWEB namespace.
 
-There is a singleton instance accessor function that allows you to access BWEB easily, this will also go in your main header file.
+- `Map` contains useful functions such as quick ground distance calculations, natural and main choke identifying and tracking of used tiles for buildings.
+- `Stations` contains placements for `BWEM::Base`s, tracking the defense count and placements around them.
+- `Walls` contains the ability to create walls at any `BWEM::Chokepoint` and `BWEM::Area`. These walls currently store the location of the `BWAPI::UnitType::TileSize` of each segment of the created wall, defense placements and an optional opening called a door.
+- `Blocks` contains placements for `BWAPI::UnitType`s for a fairly optimized approach to placing production buildings. Blocks are placed with varying sizes and shapes to try and fit as many buildings into each `BWEM::Area` as possible.
+- `PathFinding` provides the ability to take advantage of BWEBs blazing fast JPS to create paths.
 
-```
-namespace { auto & mapBWEB = BWEB::Map::Instance(); }
-
-```
-
-You will need to put the onStart function into your onStart event after BWEM initialization. It is very important to note that finding blocks is not done within BWEBs onStart function anymore, this was a design choice as you may have other logic in your code to decide a type of Wall you want to choose. By generating the Blocks after you generate a Wall, there is no need for erasing overlapping Blocks and no issues generating the Wall. This also allows people to take advantage of BWEBs walling functionality if they don't want to use the Blocks.
-
-``` 
-void McRaveModule::onStart()
-  mapBWEB.onStart();
-  mapBWEB.findBlocks();
-```
-You will need to put onDiscover, onMorph and onDestroy from BWEB into their respective events in your code as well if you wish to take advantage of how BWEB handles TilePositions that are used. If you use BWEBs getBuildLocation function, it is necessary to include these.
-
-``` 
-void McRaveModule::onUnitDiscover(Unit unit)
-  mapBWEB.onUnitDiscover(unit);
-
-void McRaveModule::onUnitDestroy(Unit unit)
-  mapBWEB.onUnitDestroy(unit);
-
-void McRaveModule::onUnitMorph(Unit unit)
-  mapBWEB.onUnitMorph(unit);
-
-```
-
-(Optional) To draw the Blocks, Walls and Stations, you will need to put the draw function into your onFrame event.
-
-```
-void McRaveModule::onFrame()
-  mapBWEB.draw();
-```
+BWEB needs to be initialized after BWEM is initialized. I would suggest including the following BWEB functions in your code:
+`BWEB::onStart()`
+`BWEB::Blocks::findBlocks()`
 
 All other BWEB functions have full comments describing their use and what parameters are required or optional. GL HF!
 If you have any questions, feel free to ask on BWAPI Discord.
 
 ## Changelog
+1.09
+- Added JPS pathfinding for unit paths. 
+- Fixed a bug in returning a copy of a vector.
+
+1.08
+- Restructured BWEB, removed singleton pattern.
+
 1.07 
 - Improved Terran wall placement
 - Recoded wall tight function
