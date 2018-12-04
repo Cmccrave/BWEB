@@ -12,7 +12,7 @@ namespace BWEB::PathFinding
 		struct JPSGrid {
 			inline bool operator()(unsigned x, unsigned y) const
 			{
-				if (x < width && y < height && TilePosition(x,y).getDistance(target) < maxDist && !Map::isUsed(TilePosition(x, y)) && Map::isWalkable(TilePosition(x, y)))
+				if (x < width && y < height && !Map::isUsed(TilePosition(x, y)) && Map::isWalkable(TilePosition(x, y)))
 					return true;
 				return false;
 			}
@@ -26,7 +26,6 @@ namespace BWEB::PathFinding
 	{
 		TilePosition target(t);
 		TilePosition source(s);
-		auto maxDist = source.getDistance(target);
 		vector<TilePosition> direction{ { 0, 1 },{ 1, 0 },{ -1, 0 },{ 0, -1 } };
 
 		const auto collision = [&](const TilePosition tile) {
