@@ -1,4 +1,3 @@
-#include "Station.h"
 #include "BWEB.h"
 
 using namespace std;
@@ -189,7 +188,19 @@ namespace BWEB::Stations
 				stations.push_back(newStation);
 				Map::addOverlap(base.Location(), 4, 3);
 				addResourceOverlap(genCenter);
+
+				if (Broodwar->self()->getRace() == Races::Zerg)
+					Map::addOverlap(base.Location() - TilePosition(1, 1), 6, 5);
 			}
+		}
+	}
+
+	void draw()
+	{
+		for (auto &station : Stations::getStations()) {
+			for (auto &tile : station.getDefenseLocations())
+				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
+			Broodwar->drawBoxMap(Position(station.getBWEMBase()->Location()), Position(station.getBWEMBase()->Location()) + Position(129, 97), Broodwar->self()->getColor());
 		}
 	}
 
@@ -198,7 +209,7 @@ namespace BWEB::Stations
 		auto distBest = DBL_MAX;
 		const Station* bestStation = nullptr;
 		for (auto &station : stations) {
-			const auto dist = here.getDistance(station.BWEMBase()->Location());
+			const auto dist = here.getDistance(station.getBWEMBase()->Location());
 
 			if (dist < distBest) {
 				distBest = dist;

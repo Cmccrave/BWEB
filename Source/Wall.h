@@ -4,20 +4,17 @@
 #include <bwem.h>
 
 namespace BWEB::Walls
-{	
+{
 	class Wall
 	{
 		BWAPI::TilePosition door;
 		BWAPI::Position centroid;
 		std::set<BWAPI::TilePosition> defenses, small, medium, large;
+		std::vector<BWAPI::UnitType> rawBuildings, rawDefenses;
 		const BWEM::Area * area;
 		const BWEM::ChokePoint * choke;
-
-		std::vector<BWAPI::UnitType> rawBuildings, rawDefenses;
-		
 	public:
-		Wall(const BWEM::Area * a, const BWEM::ChokePoint * c, std::vector<BWAPI::UnitType> b, std::vector<BWAPI::UnitType> d)
-		{
+		Wall(const BWEM::Area * a, const BWEM::ChokePoint * c, std::vector<BWAPI::UnitType> b, std::vector<BWAPI::UnitType> d) {
 			area = a;
 			choke = c;
 			door = BWAPI::TilePositions::Invalid;
@@ -31,7 +28,7 @@ namespace BWEB::Walls
 
 		const BWEM::ChokePoint * getChokePoint() const { return choke; }
 		const BWEM::Area * getArea() const { return area; }
-		
+
 		/// <summary> Returns the defense locations associated with this Wall. </summary>
 		std::set<BWAPI::TilePosition> getDefenses() const { return defenses; }
 
@@ -42,13 +39,13 @@ namespace BWEB::Walls
 		BWAPI::Position getCentroid() const { return centroid; }
 
 		/// <summary> Returns the TilePosition belonging to large UnitType buildings. </summary>
-		std::set<BWAPI::TilePosition> largeTiles() const { return large; }
+		std::set<BWAPI::TilePosition> getLargeTiles() const { return large; }
 
 		/// <summary> Returns the TilePosition belonging to medium UnitType buildings. </summary>
-		std::set<BWAPI::TilePosition> mediumTiles() const { return medium; }
+		std::set<BWAPI::TilePosition> getMediumTiles() const { return medium; }
 
 		/// <summary> Returns the TilePosition belonging to small UnitType buildings. </summary>
-		std::set<BWAPI::TilePosition> smallTiles() const { return small; }
+		std::set<BWAPI::TilePosition> getSmallTiles() const { return small; }
 
 		/// <summary> Returns the raw vector of the buildings passed in. </summary>
 		std::vector<BWAPI::UnitType>& getRawBuildings() { return rawBuildings; }
@@ -64,7 +61,7 @@ namespace BWEB::Walls
 			else
 				small.insert(here);
 		}
-	};	
+	};
 
 	/// <summary> Returns a vector containing every BWEB::Wall. </summary>
 	std::vector<Wall>& getWalls();
@@ -88,7 +85,7 @@ namespace BWEB::Walls
 	/// <param name="defenses"> A Vector of UnitTypes that you want the BWEB::Wall to have defenses consisting of. </param>
 	/// <param name="reservePath"> Optional parameter to ensure that a path of TilePositions is reserved and not built on. </param>
 	/// <param name="requireTight"> Optional parameter to ensure that the Wall must be walltight. </param>
-	void createWall(std::vector<BWAPI::UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, BWAPI::UnitType tight = BWAPI::UnitTypes::None, const std::vector<BWAPI::UnitType>& defenses ={}, bool reservePath = false, bool requireTight = false);
+	Wall * createWall(std::vector<BWAPI::UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, BWAPI::UnitType tight = BWAPI::UnitTypes::None, const std::vector<BWAPI::UnitType>& defenses ={}, bool reservePath = false, bool requireTight = false);
 
 	/// <summary> Adds a UnitType to a currently existing BWEB::Wall. </summary>
 	/// <param name="type"> The UnitType you want to place at the BWEB::Wall. </param>
@@ -96,5 +93,21 @@ namespace BWEB::Walls
 	/// <param name="tight"> (Optional) Decides whether this addition to the BWEB::Wall intends to be walled around a specific UnitType. Defaults to none. </param>
 	void addToWall(BWAPI::UnitType type, Wall& wall, BWAPI::UnitType tight = BWAPI::UnitTypes::None);
 
+	/// <summary><para> Creates a Forge Fast Expand BWEB::Wall at the natural. </para>
+	/// <para> Places 1 Forge, 1 Gateway, 1 Pylon and 6 Cannons. </para></summary>
+	void createFFE();
+
+	/// <summary><para> Creates a "Sim City" of Zerg buildings at the natural. </para>
+	/// <para> Places 6 Sunkens, 2 Evolution Chambers and 1 Hatchery. </para>
+	void createZSimCity();
+
+	/// <summary><para> Creates a full wall of Terran buildings at the main choke. </para>
+	/// <para> Places 2 Depots and 1 Barracks. </para>
+	void createTWall();
+
+	/// <summary> Returns true if a BWAPI::TilePosition overlaps our current wall. This is ONLY here for internal usage temporarily. </summary>
+	BWAPI::UnitType overlapsCurrentWall(const BWAPI::TilePosition here, const int width = 1, const int height = 1);
+
+	/// <summary> Draws all BWEB Walls. </summary>
 	void draw();
 }

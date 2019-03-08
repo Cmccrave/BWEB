@@ -4,7 +4,7 @@
 #include <bwem.h>
 
 namespace BWEB::Stations
-{	
+{
 	class Station
 	{
 		const BWEM::Base * base;
@@ -16,13 +16,13 @@ namespace BWEB::Stations
 		Station(BWAPI::Position, const std::set<BWAPI::TilePosition>&, const BWEM::Base*);
 
 		/// <summary> Returns the central position of the resources associated with this base including geysers. </summary>
-		BWAPI::Position ResourceCentroid() const { return resourceCentroid; }
+		BWAPI::Position getResourceCentroid() const { return resourceCentroid; }
 
 		/// <summary> Returns the set of defense locations associated with this base. </summary>
-		const std::set<BWAPI::TilePosition>& DefenseLocations() const { return defenses; }
+		const std::set<BWAPI::TilePosition>& getDefenseLocations() const { return defenses; }
 
 		/// <summary> Returns the BWEM base associated with this BWEB base. </summary>
-		const BWEM::Base * BWEMBase() const { return base; }
+		const BWEM::Base * getBWEMBase() const { return base; }
 
 		/// <summary> Returns the number of defenses associated with this station. </summary>
 		const int getDefenseCount() const { return defenseCount; }
@@ -34,6 +34,9 @@ namespace BWEB::Stations
 
 	/// <summary> Initializes the building of every BWEB::Station on the map, call it only once per game. </summary>
 	void findStations();
+
+	/// <summary> Draws all BWEB Stations. </summary>
+	void draw();
 
 	/// <summary> Returns a vector containing every BWEB::Station </summary>
 	std::vector<Station>& getStations();

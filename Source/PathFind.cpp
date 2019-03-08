@@ -4,28 +4,64 @@
 
 using namespace std;
 using namespace BWAPI;
-using namespace std::placeholders;
 
 namespace BWEB::PathFinding
 {
 	namespace {
-		struct JPSGrid {
+		struct UnitCollision {
 			inline bool operator()(unsigned x, unsigned y) const
 			{
-				if (x < width && y < height && !Map::isUsed(TilePosition(x, y)) && Map::isWalkable(TilePosition(x, y)))
+				TilePosition t(x, y);
+				if (x < width && y < height && !Map::isUsed(t) && Map::isWalkable(t))
 					return true;
 				return false;
 			}
 			unsigned width = Broodwar->mapWidth(), height = Broodwar->mapHeight();
-			double maxDist;
-			TilePosition target;
 		};
+
+		struct WallCollision {
+			inline bool operator()(unsigned x, unsigned y) const
+			{
+				TilePosition t(x, y);
+				if (x < width && y < height && Walls::overlapsCurrentWall(t) == UnitTypes::None && !Map::isUsed(t) && Map::isWalkable(t))
+					return true;
+				return false;
+			}
+			map<TilePosition, UnitType> currentWall;
+			unsigned width = Broodwar->mapWidth(), height = Broodwar->mapHeight();
+			bool ignoreOverlap;
+		};
+
+		map<const BWEM::Area *, int> notReachableThisFrame;
 	}
 
-	void Path::createWallPath(BWEM::Map& mapBWEM, map<TilePosition, UnitType>& currentWall, const Position s, const Position t, bool ignoreOverlap)
+	void Path::createWallPath(map<TilePosition, UnitType>& currentWall, const Position s, const Position t, bool ignoreOverlap)
 	{
-		TilePosition target(t);
-		TilePosition source(s);
+		//TilePosition target(t);
+		//TilePosition source(s);
+
+		//vector<TilePosition> newJPSPath;
+		//WallCollision collision;
+		//collision.currentWall = currentWall;
+		//collision.ignoreOverlap = ignoreOverlap;
+
+		//if (JPS::findPath(newJPSPath, collision, source.x, source.y, target.x, target.y)) {
+		//    Position current = s;
+		//    for (auto &t : newJPSPath) {
+		//        dist += Position(t).getDistance(current);
+		//        current = Position(t);
+		//        tiles.push_back(t);
+		//    }
+		//    reachable = true;
+		//}
+		//else {
+		//    dist = DBL_MAX;
+		//    reachable = false;
+		//}
+
+		TilePosition target = Map::tConvert(t);
+		TilePosition source = Map::tConvert(s);
+		auto maxDist = source.getDistance(target);
 		vector<TilePosition> direction{ { 0, 1 },{ 1, 0 },{ -1, 0 },{ 0, -1 } };
 
 		const auto collision = [&](const TilePosition tile) {
@@ -34,36 +70,47 @@ namespace BWEB::PathFinding
 				|| (!ignoreOverlap && Map::isOverlapping(tile))
 				|| !Map::isWalkable(tile)
 				|| Map::isUsed(tile)
-				|| Map::overlapsCurrentWall(currentWall, tile) != UnitTypes::None;
+				|| Walls::overlapsCurrentWall(tile) != UnitTypes::None;
 		};
 
-		createPath(mapBWEM, s, t, collision, direction);
+		createPath(s, t, collision, direction);
 	}
 
-	void Path::createUnitPath(BWEM::Map& mapBWEM, const Position s, const Position t)
+	void Path::createUnitPath(const Position s, const Position t)
 	{
-		TilePosition target(t);
-		TilePosition source(s);
-		vector<TilePosition> newJPSPath;
-		Path newPath;
-		JPSGrid newGrid;
-		newGrid.maxDist = source.getDistance(target);
-		newGrid.target = target;
+		TilePosition target = Map::tConvert(t);
+		TilePosition source = Map::tConvert(s);
 
-		if (JPS::findPath(newJPSPath, newGrid, source.x, source.y, target.x, target.y)) {
-			tiles = newJPSPath;
+		auto checkReachable = notReachableThisFrame[Map::mapBWEM.GetArea(target)];
+		if (checkReachable >= Broodwar->getFrameCount()) {
+			reachable = false;
+			dist = DBL_MAX;
+			return;
+		}
+
+		vector<TilePosition> newJPSPath;
+		UnitCollision collision;
+
+		if (JPS::findPath(newJPSPath, collision, source.x, source.y, target.x, target.y)) {
 			Position current = s;
-			for (auto &t : tiles) {
-				dist += Position(t).getDistance(current);
-				current = Position(t);
+			for (auto &t : newJPSPath) {
+				dist += Map::pConvert(t).getDistance(current);
+				current = Map::pConvert(t);
+				tiles.push_back(t);
 			}
+			reachable = true;
+		}
+		else {
+			dist = DBL_MAX;
+			notReachableThisFrame[Map::mapBWEM.GetArea(target)] = Broodwar->getFrameCount();
+			reachable = false;
 		}
 	}
 
-	void Path::createPath(BWEM::Map& mapBWEM, const Position s, const Position t, function <bool(const TilePosition)> collision, vector<TilePosition> direction)
+	void Path::createPath(const Position s, const Position t, function <bool(const TilePosition)> collision, vector<TilePosition> direction)
 	{
-		TilePosition source(s);
-		TilePosition target(t);
+		TilePosition source = Map::tConvert(s);
+		TilePosition target = Map::tConvert(t);
 		auto maxDist = source.getDistance(target);
 
 		if (source == target || source == TilePosition(0, 0) || target == TilePosition(0, 0))
@@ -75,18 +122,18 @@ namespace BWEB::PathFinding
 		const auto createPath = [&]() {
 			tiles.push_back(target);
 			TilePosition check = parentGrid[target.x][target.y];
-			dist += Position(target).getDistance(Position(check));
+			dist += Map::pConvert(target).getDistance(Map::pConvert(check));
 
 			do {
 				tiles.push_back(check);
 				TilePosition prev = check;
 				check = parentGrid[check.x][check.y];
-				dist += Position(prev).getDistance(Position(check));
+				dist += Map::pConvert(prev).getDistance(Map::pConvert(check));
 			} while (check != source);
 
 			// HACK: Try to make it more accurate to positions instead of tiles
-			auto correctionSource = Position(*(tiles.end() - 1));
-			auto correctionTarget = Position(*(tiles.begin() + 1));
+			auto correctionSource = Map::pConvert(*(tiles.end() - 1));
+			auto correctionTarget = Map::pConvert(*(tiles.begin() + 1));
 			dist += s.getDistance(correctionSource);
 			dist += t.getDistance(correctionTarget);
 			dist -= 64.0;

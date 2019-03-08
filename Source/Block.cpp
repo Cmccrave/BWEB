@@ -1,4 +1,3 @@
-#include "Block.h"
 #include "BWEB.h"
 
 using namespace std;
@@ -11,11 +10,13 @@ namespace BWEB::Blocks
 		vector<Block> allBlocks;
 		map<const BWEM::Area *, int> typePerArea;
 
-		bool canAddBlock(const TilePosition here, const int width, const int height)
+		bool canAddBlock(const TilePosition here, const int width, const int height, bool onlyBlock = false)
 		{
+			int offset = onlyBlock ? 0 : 1;
+
 			// Check if a block of specified size would overlap any bases, resources or other blocks
-			for (auto x = here.x - 1; x < here.x + width + 1; x++) {
-				for (auto y = here.y - 1; y < here.y + height + 1; y++) {
+			for (auto x = here.x - offset; x < here.x + width + offset; x++) {
+				for (auto y = here.y - offset; y < here.y + height + offset; y++) {
 					TilePosition t(x, y);
 					if (!t.isValid() || !mapBWEM.GetTile(t).Buildable() || Map::isOverlapping(t) || Map::isReserved(t))
 						return false;
@@ -24,255 +25,52 @@ namespace BWEB::Blocks
 			return true;
 		}
 
-		void insertBlock(Race race, TilePosition here, int width, int height)
+		void insertBlock(TilePosition here, vector<Piece> pieces)
 		{
-			Block newBlock(width, height, here);
-			BWEM::Area const* a = mapBWEM.GetArea(here);
-
-			const auto &offset = [&](int x, int y) {
-				return here + TilePosition(x, y);
-			};
-
-			if (race == Races::Protoss) {
-				if (height == 2) {
-					// Pylon and medium
-					if (width == 5) {
-						newBlock.insertSmall(offset(0, 0));
-						newBlock.insertMedium(offset(2, 0));
-					}
-					else return;
-				}
-
-				else if (height == 4) {
-					// Pylon and 2 medium
-					if (width == 5) {
-						newBlock.insertSmall(here);
-						newBlock.insertSmall(offset(0, 2));
-						newBlock.insertMedium(offset(2, 0));
-						newBlock.insertMedium(offset(2, 2));
-					}
-					else
-						return;
-				}
-
-				else if (height == 5) {
-					// Gate and 2 Pylons
-					if (width == 4) {
-						newBlock.insertLarge(here);
-						newBlock.insertSmall(offset(0, 3));
-						newBlock.insertSmall(offset(2, 3));
-					}
-					else return;
-				}
-
-				else if (height == 6) {
-					// 4 Gates and 3 Pylons
-					if (width == 10) {
-						newBlock.insertSmall(offset(4, 0));
-						newBlock.insertSmall(offset(4, 2));
-						newBlock.insertSmall(offset(4, 4));
-						newBlock.insertLarge(here);
-						newBlock.insertLarge(offset(0, 3));
-						newBlock.insertLarge(offset(6, 0));
-						newBlock.insertLarge(offset(6, 3));
-					}
-					else if (width == 18) {
-						newBlock.insertSmall(offset(8, 0));
-						newBlock.insertSmall(offset(8, 2));
-						newBlock.insertSmall(offset(8, 4));
-						newBlock.insertLarge(here);
-						newBlock.insertLarge(offset(0, 3));
-						newBlock.insertLarge(offset(4, 0));
-						newBlock.insertLarge(offset(4, 3));
-						newBlock.insertLarge(offset(10, 0));
-						newBlock.insertLarge(offset(10, 3));
-						newBlock.insertLarge(offset(14, 0));
-						newBlock.insertLarge(offset(14, 3));
-					}
-					else return;
-				}
-
-				else  if (height == 8) {
-					// 4 Gates and 4 Pylons
-					if (width == 8) {
-						newBlock.insertSmall(offset(0, 3));
-						newBlock.insertSmall(offset(2, 3));
-						newBlock.insertSmall(offset(4, 3));
-						newBlock.insertSmall(offset(6, 3));
-						newBlock.insertLarge(here);
-						newBlock.insertLarge(offset(4, 0));
-						newBlock.insertLarge(offset(0, 5));
-						newBlock.insertLarge(offset(4, 5));
-					}
-					else return;
-				}
-				else return;
-			}
-
-			if (race == Races::Terran) {
-				if (height == 2) {
-					if (width == 3) {
-						newBlock.insertMedium(here);
-					}
-					else return;
-				}
-				else if (height == 4) {
-					if (width == 3) {
-						newBlock.insertMedium(here);
-						newBlock.insertMedium(offset(0, 2));
-					}
-					else if (width == 6) {
-						newBlock.insertMedium(here);
-						newBlock.insertMedium(offset(0, 2));
-						newBlock.insertMedium(offset(3, 0));
-						newBlock.insertMedium(offset(3, 2));
-					}
-					else return;
-				}
-				else if (height == 5) {
-					if (width == 6 && (!a || typePerArea[a] + 1 < 16)) {
-						newBlock.insertLarge(here);
-						newBlock.insertSmall(offset(4, 1));
-						newBlock.insertMedium(offset(0, 3));
-						newBlock.insertMedium(offset(3, 3));
-
-						if (a)
-							typePerArea[a] += 1;
-					}
-					else return;
-				}
-				else if (height == 6) {
-					if (width == 10 && (!a || typePerArea[a] + 4 < 16)) {
-						newBlock.insertLarge(here);
-						newBlock.insertLarge(offset(4, 0));
-						newBlock.insertLarge(offset(0, 3));
-						newBlock.insertLarge(offset(4, 3));
-						newBlock.insertSmall(offset(8, 1));
-						newBlock.insertSmall(offset(8, 4));
-
-						if (a)
-							typePerArea[a] += 4;
-					}
-					else return;
-				}
-				else return;
-			}
-
-			if (race == Races::Zerg) {
-				if (width == 2 && height == 2) {
-					addOverlap(here, 2, 2);
-					newBlock.insertSmall(here);
-				}
-				if (width == 3 && height == 4) {
-					addOverlap(here, 3, 4);
-					newBlock.insertMedium(here);
-					newBlock.insertMedium(offset(0, 2));
-				}
-				if (width == 8 && height == 5) {
-					addOverlap(here, 8, 5);
-					newBlock.insertLarge(offset(0, 2));
-					newBlock.insertLarge(offset(4, 2));
-					newBlock.insertSmall(offset(6, 0));
-					newBlock.insertMedium(here);
-					newBlock.insertMedium(offset(3, 0));
-				}
-			}
-
+			Block newBlock(here, pieces);
 			allBlocks.push_back(newBlock);
-			addOverlap(here, width, height);
+			addOverlap(here, newBlock.width(), newBlock.height());
 		}
 
-		void insertStartBlock(Race race, const TilePosition here, const bool h, const bool v)
+		void findStartBlock()
 		{
-			const auto &offset = [&](int x, int y) {
-				return here + TilePosition(x, y);
-			};
-
-			if (race == Races::Protoss || race == Races::Zerg) {
-				if (h) {
-					if (v) {
-						Block newBlock(8, 5, here);
-						addOverlap(here, 8, 5);
-						newBlock.insertLarge(here);
-						newBlock.insertLarge(offset(4, 0));
-						newBlock.insertSmall(offset(6, 3));
-						newBlock.insertMedium(offset(0, 3));
-						newBlock.insertMedium(offset(3, 3));
-						allBlocks.push_back(newBlock);
-					}
-					else {
-						Block newBlock(8, 5, here);
-						addOverlap(here, 8, 5);
-						newBlock.insertLarge(offset(0, 2));
-						newBlock.insertLarge(offset(4, 2));
-						newBlock.insertSmall(offset(6, 0));
-						newBlock.insertMedium(here);
-						newBlock.insertMedium(offset(3, 0));
-						allBlocks.push_back(newBlock);
-					}
-				}
-				else {
-					if (v)
-					{
-						Block newBlock(8, 5, here);
-						addOverlap(here, 8, 5);
-						newBlock.insertLarge(here);
-						newBlock.insertLarge(offset(4, 0));
-						newBlock.insertSmall(offset(0, 3));
-						newBlock.insertMedium(offset(2, 3));
-						newBlock.insertMedium(offset(5, 3));
-						allBlocks.push_back(newBlock);
-					}
-					else {
-						Block newBlock(8, 5, here);
-						addOverlap(here, 8, 5);
-						newBlock.insertLarge(offset(0, 2));
-						newBlock.insertLarge(offset(4, 2));
-						newBlock.insertSmall(here);
-						newBlock.insertMedium(offset(2, 0));
-						newBlock.insertMedium(offset(5, 0));
-						allBlocks.push_back(newBlock);
-					}
-				}
-			}
-			else if (race == Races::Terran) {
-				Block newBlock(6, 5, here);
-				addOverlap(here, 6, 5);
-				newBlock.insertLarge(here);
-				newBlock.insertSmall(offset(4, 1));
-				newBlock.insertMedium(offset(0, 3));
-				newBlock.insertMedium(offset(3, 3));
-				allBlocks.push_back(newBlock);
-			}
-		}
-		void insertStartBlock(Player player, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
-		{
-			insertStartBlock(player->getRace(), here, mirrorHorizontal, mirrorVertical);
-		}
-		void insertStartBlock(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
-		{
-			insertStartBlock(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
-		}
-
-		void findStartBlock(Race race)
-		{
+			auto race = Broodwar->self()->getRace();
+			vector<Piece> pieces;
 			bool v;
 			auto h = (v = false);
+
+			const auto creepOnCorners = [&](TilePosition here, int width, int height) {
+				return Broodwar->hasCreep(here) && Broodwar->hasCreep(here + TilePosition(width, 0)) && Broodwar->hasCreep(here + TilePosition(0, height)) && Broodwar->hasCreep(here + TilePosition(width, height));
+			};
+
+			if (race == Races::Zerg)
+				pieces ={ Piece::Small, Piece::Medium, Piece::Row, Piece::Medium, Piece::Small };
+			else if (race == Races::Terran)
+				pieces ={ Piece::Large, Piece::Addon, Piece::Row, Piece::Medium, Piece::Medium };
+			else if (race == Races::Protoss)
+				pieces ={ Piece::Medium, Piece::Medium, Piece::Small, Piece::Row, Piece::Large, Piece::Large };
 
 			TilePosition tileBest = TilePositions::Invalid;
 			auto distBest = DBL_MAX;
 			auto start = (Map::getMainTile() + (Map::getMainChoke() ? (TilePosition)Map::getMainChoke()->Center() : Map::getMainTile())) / 2;
 
-			for (auto x = start.x - 6; x <= start.x + 10; x++) {
-				for (auto y = start.y - 6; y <= start.y + 10; y++) {
+			if (race == Races::Zerg)
+				start = Map::getMainTile();
+
+			for (auto x = start.x - 10; x <= start.x + 6; x++) {
+				for (auto y = start.y - 10; y <= start.y + 6; y++) {
 					TilePosition tile(x, y);
 
-					if (!tile.isValid() || mapBWEM.GetArea(tile) != Map::getMainArea())
+					if (!tile.isValid()
+						|| mapBWEM.GetArea(tile) != Map::getMainArea())
 						continue;
 
-					auto blockCenter = Position(tile) + Position(128, 80);
+					const auto blockCenter = Position(tile) + Position(128, 80);
 					const auto dist = blockCenter.getDistance(Map::getMainPosition()) + log(blockCenter.getDistance((Position)Map::getMainChoke()->Center()));
-					if (dist < distBest && ((race == Races::Protoss && canAddBlock(tile, 8, 5)) || (race == Races::Terran && canAddBlock(tile, 6, 5)) || (race == Races::Zerg && canAddBlock(tile, 8, 5)))) {
+
+					if (dist < distBest && ((race == Races::Protoss && canAddBlock(tile, 8, 5, true))
+						|| (race == Races::Terran && canAddBlock(tile, 6, 5, true))
+						|| (race == Races::Zerg && creepOnCorners(tile, 5, 4) && canAddBlock(tile, 5, 4, true)))) {
 						tileBest = tile;
 						distBest = dist;
 
@@ -321,22 +119,18 @@ namespace BWEB::Blocks
 						}
 					}
 				}
-				if (tileBest.isValid()) {
-					Block newBlock(5, 8, tileBest);
-					addOverlap(tileBest, 5, 8);
-					newBlock.insertLarge(tileBest);
-					newBlock.insertLarge(tileBest + TilePosition(0, 5));
-					newBlock.insertSmall(tileBest + TilePosition(0, 3));
-					newBlock.insertMedium(tileBest + TilePosition(2, 3));
-					allBlocks.push_back(newBlock);
-				}
+				if (tileBest.isValid())
+					insertBlock(tileBest, { Piece::Large, Piece::Row, Piece::Small, Piece::Medium, Piece::Row, Piece::Large });
+
 			}
 
+			// TODO: Add mirroring
 			else if (tileBest.isValid())
-				insertStartBlock(race, tileBest, h, v);
+				insertBlock(tileBest, pieces);
 
 
 			// HACK: Added a block that allows a good shield battery placement
+			tileBest = TilePositions::Invalid;
 			start = (TilePosition)Map::getMainChoke()->Center();
 			distBest = DBL_MAX;
 			for (auto x = start.x - 12; x <= start.x + 16; x++) {
@@ -357,23 +151,46 @@ namespace BWEB::Blocks
 					}
 				}
 			}
-			insertBlock(race, tileBest, 5, 2);
+			if (tileBest.isValid())
+				insertBlock(tileBest, { Piece::Small, Piece::Medium });
 		}
-		void findStartBlock(Player player)
+
+		vector<Piece> whatPieces(int width, int height)
 		{
-			findStartBlock(player->getRace());
-		}
-		void findStartBlock()
-		{
-			findStartBlock(Broodwar->self());
+			vector<Piece> pieces;
+			if (height == 2) {
+				if (width == 5)
+					pieces ={ Piece::Small, Piece::Medium };
+			}
+			else if (height == 4) {
+				if (width == 5)
+					pieces ={ Piece::Small, Piece::Medium, Piece::Row, Piece::Small, Piece::Medium };
+			}
+			else if (height == 5) {
+				if (width == 4)
+					pieces ={ Piece::Large, Piece::Row, Piece::Small, Piece::Small };
+			}
+			else if (height == 6) {
+				if (width == 10)
+					pieces ={ Piece::Large, Piece::Addon, Piece::Large, Piece::Row, Piece::Large, Piece::Small, Piece::Large };
+				if (width == 18)
+					pieces ={ Piece::Large, Piece::Large, Piece::Addon, Piece::Large, Piece::Large, Piece::Row, Piece::Large, Piece::Large, Piece::Small, Piece::Large, Piece::Large };
+			}
+			else if (height == 8) {
+				if (width == 8)
+					pieces ={ Piece::Large, Piece::Large, Piece::Row, Piece::Small, Piece::Small, Piece::Small, Piece::Small, Piece::Row, Piece::Large, Piece::Large };
+				if (width == 5)
+					pieces ={ Piece::Large, Piece::Row, Piece::Small, Piece::Medium, Piece::Row, Piece::Large };
+			}
+			return pieces;
 		}
 	}
 
 	void eraseBlock(const TilePosition here)
 	{
 		for (auto it = allBlocks.begin(); it != allBlocks.end(); ++it) {
-			auto&  block = *it;
-			if (here.x >= block.Location().x && here.x < block.Location().x + block.width() && here.y >= block.Location().y && here.y < block.Location().y + block.height()) {
+			auto &block = *it;
+			if (here.x >= block.getTilePosition().x && here.x < block.getTilePosition().x + block.width() && here.y >= block.getTilePosition().y && here.y < block.getTilePosition().y + block.height()) {
 				allBlocks.erase(it);
 				return;
 			}
@@ -382,58 +199,62 @@ namespace BWEB::Blocks
 
 	void findBlocks()
 	{
-		findBlocks(Broodwar->self());
-	}
-	void findBlocks(Player player)
-	{
-		findBlocks(player->getRace());
-	}
-	void findBlocks(Race race)
-	{
-		findStartBlock(race);
-		vector<int> heights, widths;
+		findStartBlock();
 		multimap<double, TilePosition> tilesByPathDist;
+		map<Piece, int> mainPieces;
 
 		// Calculate distance for each tile to our natural choke, we want to place bigger blocks closer to the chokes
-		for (int x = 0; x < Broodwar->mapWidth(); x++) {
-			for (int y = 0; y < Broodwar->mapHeight(); y++) {
+		for (int y = 0; y < Broodwar->mapHeight(); y++) {
+			for (int x = 0; x < Broodwar->mapWidth(); x++) {
 				TilePosition t(x, y);
-				Position p(t);
 				if (t.isValid() && Broodwar->isBuildable(t)) {
+					Position p = Position(x * 32, y * 32);
 					double dist = Map::getNaturalChoke() ? p.getDistance(Position(Map::getNaturalChoke()->Center())) : p.getDistance(Map::getMainPosition());
 					tilesByPathDist.insert(make_pair(dist, t));
 				}
 			}
 		}
 
-		// Setup block sizes per race
-		if (race == Races::Protoss) {
-			heights.insert(heights.end(), { 2, 4, 5, 6, 8 });
-			widths.insert(widths.end(), { 4, 5, 8, 10, 18 });
-		}
-		else if (race == Races::Terran) {
-			heights.insert(heights.end(), { 2, 4, 5, 6 });
-			widths.insert(widths.end(), { 3, 6, 10 });
-		}
-		else if (race == Races::Zerg) {
-			heights.insert(heights.end(), { 2, 4, 5 });
-			widths.insert(widths.end(), { 2, 3, 8 });
-		}
-
 		// Iterate every tile
 		for (int i = 20; i > 0; i--) {
 			for (int j = 20; j > 0; j--) {
 
-				if (find(heights.begin(), heights.end(), j) == heights.end() || find(widths.begin(), widths.end(), i) == widths.end())
+				auto pieces = whatPieces(i, j);
+				if (pieces.empty())
 					continue;
+
+				auto hasMedium = find(pieces.begin(), pieces.end(), Piece::Medium) != pieces.end();
+				auto hasLarge = find(pieces.begin(), pieces.end(), Piece::Large) != pieces.end();
 
 				for (auto &t : tilesByPathDist) {
 					TilePosition tile(t.second);
+					if (hasMedium && mapBWEM.GetArea(tile) != getMainArea() && Broodwar->self()->getRace() == Races::Protoss)
+						continue;
+
+					if (hasLarge && mapBWEM.GetArea(tile) == getMainArea() && mainPieces[Piece::Large] >= 8 && mainPieces[Piece::Medium] < 10)
+						continue;
+
 					if (canAddBlock(tile, i, j)) {
-						insertBlock(race, tile, i, j);
+						insertBlock(tile, pieces);
+						if (mapBWEM.GetArea(tile) == getMainArea()) {
+							for (auto &piece : pieces)
+								mainPieces[piece]++;
+						}
 					}
 				}
 			}
+		}
+	}
+
+	void draw()
+	{
+		for (auto &block : allBlocks) {
+			for (auto &tile : block.getSmallTiles())
+				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
+			for (auto &tile : block.getMediumTiles())
+				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(97, 65), Broodwar->self()->getColor());
+			for (auto &tile : block.getLargeTiles())
+				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(129, 97), Broodwar->self()->getColor());
 		}
 	}
 
@@ -446,7 +267,7 @@ namespace BWEB::Blocks
 		double distBest = DBL_MAX;
 		const Block* bestBlock = nullptr;
 		for (auto &block : allBlocks) {
-			const auto tile = block.Location() + TilePosition(block.width() / 2, block.height() / 2);
+			const auto tile = block.getTilePosition() + TilePosition(block.width() / 2, block.height() / 2);
 			const auto dist = here.getDistance(tile);
 
 			if (dist < distBest) {

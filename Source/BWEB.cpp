@@ -1,8 +1,4 @@
 #include "BWEB.h"
-#include "Block.h"
-#include "Station.h"
-#include "Wall.h"
-#include "PathFind.h"
 
 using namespace std;
 using namespace BWAPI;
@@ -10,23 +6,25 @@ using namespace BWAPI;
 namespace BWEB::Map
 {
 	namespace {
-		Position mainPosition, naturalPosition;
-		TilePosition mainTile, naturalTile;
-		const BWEM::Area * naturalArea{};
-		const BWEM::Area * mainArea{};
-		const BWEM::ChokePoint * naturalChoke{};
-		const BWEM::ChokePoint * mainChoke{};
-		std::set<BWAPI::TilePosition> usedTiles;
+		Position mainPosition = Positions::Invalid;
+		Position naturalPosition = Positions::Invalid;
+		TilePosition mainTile = TilePositions::Invalid;
+		TilePosition naturalTile = TilePositions::Invalid;
+		const BWEM::Area * naturalArea = nullptr;
+		const BWEM::Area * mainArea = nullptr;
+		const BWEM::ChokePoint * naturalChoke = nullptr;
+		const BWEM::ChokePoint * mainChoke = nullptr;
 
-		int testGrid[256][256];
+		int testGrid[256][256] ={};
 		int reserveGrid[256][256] ={};
 		int overlapGrid[256][256] ={};
 		int usedGrid[256][256] ={};
+		bool walkGrid[256][256] ={};
 
 		void findMain()
 		{
 			mainTile = Broodwar->self()->getStartLocation();
-			mainPosition = static_cast<Position>(mainTile) + Position(64, 48);
+			mainPosition = Position(mainTile) + Position(64, 48);
 			mainArea = mapBWEM.GetArea(mainTile);
 		}
 
@@ -58,16 +56,15 @@ namespace BWEB::Map
 		{
 			// Add all main chokes to a set
 			set<BWEM::ChokePoint const *> mainChokes;
-			for (auto &choke : mainArea->ChokePoints()) {
+			for (auto &choke : mainArea->ChokePoints())
 				mainChokes.insert(choke);
-			}
 
 			// Find a chokepoint that belongs to main and natural
 			auto distBest = DBL_MAX;
 			if (naturalArea) {
 				for (auto &choke : naturalArea->ChokePoints()) {
 					const auto dist = getGroundDistance(Position(choke->Center()), mainPosition);
-					if (mainChokes.find(choke) != mainChokes.end() && dist < distBest) {
+					if (dist < distBest && mainChokes.find(choke) != mainChokes.end()) {
 						mainChoke = choke;
 						distBest = dist;
 					}
@@ -75,12 +72,23 @@ namespace BWEB::Map
 			}
 
 			// If we didn't find a main choke that belongs to main and natural, find another one
-			if (!mainChoke) {
+			if (!mainChoke && mainPosition.isValid() && naturalPosition.isValid()) {
 				for (auto &choke : mapBWEM.GetPath(mainPosition, naturalPosition)) {
 					const auto width = choke->Pos(choke->end1).getDistance(choke->Pos(choke->end2));
 					if (width < distBest) {
 						mainChoke = choke;
 						distBest = width;
+					}
+				}
+			}
+
+			// If we still don't have a main choke, grab the closest chokepoint to our start
+			if (!mainChoke) {
+				for (auto &choke : mainArea->ChokePoints()) {
+					const auto dist = Position(choke->Center()).getDistance(mainPosition);
+					if (dist < distBest) {
+						mainChoke = choke;
+						distBest = dist;
 					}
 				}
 			}
@@ -152,7 +160,22 @@ namespace BWEB::Map
 		findNatural();
 		findMainChoke();
 		findNaturalChoke();
-		Stations::findStations();
+
+		// Test
+		for (int x = 0; x < Broodwar->mapWidth(); x++) {
+			for (int y = 0; y < Broodwar->mapHeight(); y++) {
+
+				auto walkable = true;
+				for (int dx = x * 4; dx < (x * 4) + 4; dx++) {
+					for (int dy = y * 4; dy < (y * 4) + 4; dy++) {
+						if (WalkPosition(dx, dy).isValid() && !Broodwar->isWalkable(WalkPosition(dx, dy)))
+							walkable = false;
+					}
+				}
+
+				walkGrid[x][y] = walkable;
+			}
+		}
 	}
 
 	void onUnitDiscover(const Unit unit)
@@ -172,7 +195,6 @@ namespace BWEB::Map
 				TilePosition t(x, y);
 				if (!t.isValid())
 					continue;
-				usedTiles.insert(t);
 				usedGrid[x][y] = 1;
 			}
 		}
@@ -185,7 +207,7 @@ namespace BWEB::Map
 
 			for (auto &station : Stations::getStations()) {
 				int defCnt = station.getDefenseCount();
-				for (auto &defense : station.DefenseLocations()) {
+				for (auto &defense : station.getDefenseLocations()) {
 					if (unit->getTilePosition() == defense) {
 						station.setDefenseCount(defCnt + 1);
 						return;
@@ -216,7 +238,6 @@ namespace BWEB::Map
 				TilePosition t(x, y);
 				if (!t.isValid())
 					continue;
-				usedTiles.erase(t);
 				usedGrid[x][y] = 0;
 			}
 		}
@@ -229,7 +250,7 @@ namespace BWEB::Map
 
 			for (auto &station : Stations::getStations()) {
 				int defCnt = station.getDefenseCount();
-				for (auto &defense : station.DefenseLocations()) {
+				for (auto &defense : station.getDefenseLocations()) {
 					if (unit->getTilePosition() == defense) {
 						station.setDefenseCount(defCnt - 1);
 						return;
@@ -241,46 +262,9 @@ namespace BWEB::Map
 
 	void draw()
 	{
-		for (auto &choke : mainArea->ChokePoints()) {
-			const auto dist = getGroundDistance(Position(choke->Center()), mainPosition);
-			Broodwar->drawTextMap((Position)choke->Center() + Position(0, 16), "%.2f", dist);
-		}
-
-		// Draw Blocks 
-		for (auto &block : Blocks::getBlocks()) {
-			for (auto &tile : block.SmallTiles())
-				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
-			for (auto &tile : block.MediumTiles())
-				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(97, 65), Broodwar->self()->getColor());
-			for (auto &tile : block.LargeTiles())
-				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(129, 97), Broodwar->self()->getColor());
-		}
-
-		// Draw Stations
-		for (auto &station : Stations::getStations()) {
-			for (auto &tile : station.DefenseLocations())
-				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
-			Broodwar->drawBoxMap(Position(station.BWEMBase()->Location()), Position(station.BWEMBase()->Location()) + Position(129, 97), Broodwar->self()->getColor());
-		}
-
-		// Draw Walls
-		for (auto &wall : Walls::getWalls()) {
-			for (auto &tile : wall.smallTiles())
-				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
-			for (auto &tile : wall.mediumTiles())
-				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(97, 65), Broodwar->self()->getColor());
-			for (auto &tile : wall.largeTiles())
-				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(129, 97), Broodwar->self()->getColor());
-			for (auto &tile : wall.getDefenses())
-				Broodwar->drawBoxMap(Position(tile), Position(tile) + Position(65, 65), Broodwar->self()->getColor());
-			Broodwar->drawBoxMap(Position(wall.getDoor()), Position(wall.getDoor()) + Position(33, 33), Broodwar->self()->getColor(), true);
-			Broodwar->drawCircleMap(Position(wall.getCentroid()) + Position(16, 16), 8, Broodwar->self()->getColor(), true);
-
-			auto p1 = wall.getChokePoint()->Pos(wall.getChokePoint()->end1);
-			auto p2 = wall.getChokePoint()->Pos(wall.getChokePoint()->end2);
-
-			Broodwar->drawLineMap(Position(p1), Position(p2), Colors::Green);
-		}
+		// Debugging stuff
+		Broodwar->drawCircleMap((Position)mainChoke->Center(), 4, Colors::Red, true);
+		Broodwar->drawCircleMap((Position)naturalChoke->Center(), 4, Colors::Green, true);
 
 		// Draw Reserve Path and some grids
 		for (int x = 0; x < Broodwar->mapWidth(); x++) {
@@ -288,26 +272,12 @@ namespace BWEB::Map
 				TilePosition t(x, y);
 				if (reserveGrid[x][y] >= 1)
 					Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Black, false);
-				if (testGrid[x][y] >= 1)
-					Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Red, false);
 			}
 		}
 
-		BWEB::Walls::draw();
-	}
-
-	UnitType overlapsCurrentWall(map<TilePosition, UnitType>& currentWall, const TilePosition here, const int width, const int height)
-	{
-		for (auto x = here.x; x < here.x + width; x++) {
-			for (auto y = here.y; y < here.y + height; y++) {
-				for (auto &placement : currentWall) {
-					const auto tile = placement.first;
-					if (x >= tile.x && x < tile.x + placement.second.tileWidth() && y >= tile.y && y < tile.y + placement.second.tileHeight())
-						return placement.second;
-				}
-			}
-		}
-		return UnitTypes::None;
+		Walls::draw();
+		Blocks::draw();
+		Stations::draw();
 	}
 
 	template <class T>
@@ -341,7 +311,7 @@ namespace BWEB::Map
 
 
 		BWEB::PathFinding::Path newPath;
-		newPath.createUnitPath(mapBWEM, start, (Position)source->Center());
+		newPath.createUnitPath(start, (Position)source->Center());
 		return newPath.getDistance();
 	}
 
@@ -353,9 +323,9 @@ namespace BWEB::Map
 		// Search through each block to find the closest block and valid position
 		for (auto &block : Blocks::getBlocks()) {
 			set<TilePosition> placements;
-			if (type.tileWidth() == 4) placements = block.LargeTiles();
-			else if (type.tileWidth() == 3) placements = block.MediumTiles();
-			else placements = block.SmallTiles();
+			if (type.tileWidth() == 4) placements = block.getLargeTiles();
+			else if (type.tileWidth() == 3) placements = block.getMediumTiles();
+			else placements = block.getSmallTiles();
 
 			for (auto &tile : placements) {
 				const auto dist = tile.getDistance(searchCenter);
@@ -382,7 +352,7 @@ namespace BWEB::Map
 
 		// Search through each station to find the closest valid TilePosition
 		for (auto &station : Stations::getStations()) {
-			for (auto &tile : station.DefenseLocations()) {
+			for (auto &tile : station.getDefenseLocations()) {
 				const auto dist = tile.getDistance(searchCenter);
 				if (dist < distBest && isPlaceable(type, tile))
 					distBest = dist, tileBest = tile;
@@ -435,17 +405,7 @@ namespace BWEB::Map
 
 	bool isWalkable(const TilePosition here)
 	{
-		int cnt = 0;
-		const auto start = WalkPosition(here);
-		for (auto x = start.x; x < start.x + 4; x++) {
-			for (auto y = start.y; y < start.y + 4; y++) {
-				if (!WalkPosition(x, y).isValid())
-					return false;
-				if (!Broodwar->isWalkable(WalkPosition(x, y)))
-					cnt++;
-			}
-		}
-		return cnt <= 1;
+		return walkGrid[here.x][here.y];
 	}
 
 	int tilesWithinArea(BWEM::Area const * area, const TilePosition here, const int width, const int height)
@@ -467,34 +427,61 @@ namespace BWEB::Map
 
 	pair<Position, Position> lineOfBestFit(const BWEM::ChokePoint * choke)
 	{
-		auto sumX = 0.0, sumY = 0.0;
-		auto sumXY = 0.0, sumX2 = 0.0;
+		Position p1, p2;
+		int minX= INT_MAX, maxX = INT_MIN, minY = INT_MAX, maxY = INT_MIN;
+		double sumX = 0, sumY = 0;
+		double sumXY = 0, sumX2 = 0, sumY2 = 0;
 		for (auto geo : choke->Geometry()) {
-			Position p = Position(geo) + Position(4, 4);
+			if (geo.x < minX) minX = geo.x;
+			if (geo.y < minY) minY = geo.y;
+			if (geo.x > maxX) maxX = geo.x;
+			if (geo.y > maxY) maxY = geo.y;
+
+			BWAPI::Position p = BWAPI::Position(geo) + BWAPI::Position(4, 4);
 			sumX += p.x;
 			sumY += p.y;
 			sumXY += p.x * p.y;
 			sumX2 += p.x * p.x;
+			sumY2 += p.y * p.y;
+			//BWAPI::Broodwar->drawBoxMap(BWAPI::Position(geo), BWAPI::Position(geo) + BWAPI::Position(9, 9), BWAPI::Colors::Black);
 		}
 		double xMean = sumX / choke->Geometry().size();
 		double yMean = sumY / choke->Geometry().size();
-		double denominator = sumX2 - sumX * xMean;
+		double denominator, slope, yInt;
+		if ((maxY - minY) > (maxX - minX))
+		{
+			denominator = (sumXY - sumY * xMean);
+			// handle vertical line error
+			if (std::fabs(denominator) < 1.0) {
+				slope = 0;
+				yInt = xMean;
+			}
+			else {
+				slope = (sumY2 - sumY * yMean) / denominator;
+				yInt = yMean - slope * xMean;
+			}
+		}
+		else {
+			denominator = sumX2 - sumX * xMean;
+			// handle vertical line error
+			if (std::fabs(denominator) < 1.0) {
+				slope = DBL_MAX;
+				yInt = 0;
+			}
+			else {
+				slope = (sumXY - sumX * yMean) / denominator;
+				yInt = yMean - slope * xMean;
+			}
+		}
 
-		double slope = (sumXY - sumX * yMean) / denominator;
-		double yInt = yMean - slope * xMean;
 
-		// y = mx + b
-		// solve for x and y
-
-		// end 1
 		int x1 = Position(choke->Pos(choke->end1)).x;
 		int y1 = int(ceil(x1 * slope)) + int(yInt);
-		Position p1 = Position(x1, y1);
+		p1 = Position(x1, y1);
 
-		// end 2
 		int x2 = Position(choke->Pos(choke->end2)).x;
 		int y2 = int(ceil(x2 * slope)) + int(yInt);
-		Position p2 = Position(x2, y2);
+		p2 = Position(x2, y2);
 
 		return make_pair(p1, p2);
 	}
@@ -517,7 +504,8 @@ namespace BWEB::Map
 				TilePosition tile(x, y);
 				if (!tile.isValid()
 					|| !Broodwar->isBuildable(tile)
-					|| Map::usedTiles.find(tile) != Map::usedTiles.end()
+					|| !Broodwar->isWalkable(WalkPosition(tile))
+					|| Map::usedGrid[x][y] > 0
 					|| Map::reserveGrid[x][y] > 0
 					|| (type.isResourceDepot() && !Broodwar->canBuildHere(tile, type)))
 					return false;
@@ -543,6 +531,22 @@ namespace BWEB::Map
 		}
 	}
 
+	void removeUsed(const TilePosition t, const int w, const int h)
+	{
+		for (auto x = t.x; x < t.x + w; x++) {
+			for (auto y = t.y; y < t.y + h; y++)
+				usedGrid[x][y] = 0;
+		}
+	}
+
+	void addUsed(const TilePosition t, const int w, const int h)
+	{
+		for (auto x = t.x; x < t.x + w; x++) {
+			for (auto y = t.y; y < t.y + h; y++)
+				usedGrid[x][y] = 1;
+		}
+	}
+
 	void addReserve(const TilePosition t, const int w, const int h)
 	{
 		for (auto x = t.x; x < t.x + w; x++) {
@@ -559,5 +563,4 @@ namespace BWEB::Map
 	Position getNaturalPosition() { return naturalPosition; }
 	TilePosition getMainTile() { return mainTile; }
 	Position getMainPosition() { return mainPosition; }
-	set<TilePosition>& getUsedTiles() { return usedTiles; }
 }

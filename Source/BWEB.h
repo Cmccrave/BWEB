@@ -1,5 +1,4 @@
 #pragma once
-#include <set>
 #include <BWAPI.h>
 #include <bwem.h>
 #include "Block.h"
@@ -7,29 +6,37 @@
 #include "Station.h"
 #include "Wall.h"
 
-// TODO:
-// Separate initializing stations
-// Remove external use of overlapsCurrentWall
-
 namespace BWEB::Map
 {
 	/// <summary> Global access of BWEM for BWEB. </summary>
-	inline BWEM::Map& mapBWEM = BWEM::Map::Instance();	
+	inline BWEM::Map& mapBWEM = BWEM::Map::Instance();
 
-	/// <summary> Draws all BWEB::Walls, BWEB::Stations, BWEB::Blocks and BWEB::Paths when called. Call this every frame if you need debugging information. </summary>
+	/// <summary> Draws all BWEB::Walls, BWEB::Stations, and BWEB::Blocks when called. Call this every frame if you need debugging information. </summary>
 	void draw();
 
-	/// <summary> Called on game start to initialize the BWEB::Map and BWEB::Stations. </summary>
-	void onStart(), onUnitDiscover(BWAPI::Unit), onUnitDestroy(BWAPI::Unit), onUnitMorph(BWAPI::Unit);
+	/// <summary> Called on game start to initialize the BWEB::Map. </summary>
+	void onStart();
 
-	/// <summary> Returns true if a BWAPI::TilePosition overlaps our current wall. This is mostly here for internal usage temporarily. </summary>
-	BWAPI::UnitType overlapsCurrentWall(std::map<BWAPI::TilePosition, BWAPI::UnitType>& currentWall, const BWAPI::TilePosition here, const int width = 1, const int height = 1);
+	/// <summary> Stores used tiles if it is a building. Increments defense counters for any stations where the placed building is a static defense unit. </summary>
+	void onUnitDiscover(BWAPI::Unit);
+
+	/// <summary> Removes used tiles if it is a building. Decrements defense counters for any stations where the destroyed building is a static defense unit. </summary>
+	void onUnitDestroy(BWAPI::Unit);
+
+	/// <summary> Calls BWEB::onUnitDiscover. </summary>
+	void onUnitMorph(BWAPI::Unit);
 
 	/// <summary> Removes a section of BWAPI::TilePositions from the BWEB overlap grid. </summary>
 	void removeOverlap(BWAPI::TilePosition tile, int width, int height);
 
-	/// <summary> Add a section of BWAPI::TilePositions to the BWEB overlap grid. </summary>
+	/// <summary> Adds a section of BWAPI::TilePositions to the BWEB overlap grid. </summary>
 	void addOverlap(BWAPI::TilePosition, int width, int height);
+
+	/// <summary> Removes a section of BWAPI::TilePositions from the BWEB used grid. </summary>
+	void removeUsed(BWAPI::TilePosition tile, int width, int height);
+
+	/// <summary> Adds a section of BWAPI::TilePositions to the BWEB used grid. </summary>
+	void addUsed(BWAPI::TilePosition tile, int width, int height);
 
 	/// <summary> Returns true if a section of BWAPI::TilePositions are within BWEBs overlap grid. </summary>
 	bool isOverlapping(BWAPI::TilePosition here, int width = 1, int height = 1, bool ignoreBlocks = false);
@@ -102,9 +109,27 @@ namespace BWEB::Map
 	/// Returns the BWAPI::Position of the main.
 	BWAPI::Position getMainPosition();
 
-	/// Returns the set of used BWAPI::TilePositions.
-	std::set<BWAPI::TilePosition>& getUsedTiles();
-
 	/// Returns two BWAPI::Positions representing a line of best fit for a given BWEM::Chokepoint.
 	std::pair<BWAPI::Position, BWAPI::Position> lineOfBestFit(BWEM::ChokePoint const *);
+
+	inline BWAPI::Position pConvert(BWAPI::TilePosition t) {
+		return BWAPI::Position{ t.x * 32, t.y * 32 };
+	}
+	inline BWAPI::Position pConvert(BWAPI::WalkPosition t) {
+		return BWAPI::Position{ t.x * 8, t.y * 8 };
+	}
+
+	inline BWAPI::WalkPosition wConvert(BWAPI::TilePosition t) {
+		return BWAPI::WalkPosition{ t.x * 4, t.y * 4 };
+	}
+	inline BWAPI::WalkPosition wConvert(BWAPI::Position t) {
+		return BWAPI::WalkPosition{ t.x / 8, t.y / 8 };
+	}
+
+	inline BWAPI::TilePosition tConvert(BWAPI::WalkPosition t) {
+		return BWAPI::TilePosition{ t.x / 4, t.y / 4 };
+	}
+	inline BWAPI::TilePosition tConvert(BWAPI::Position t) {
+		return BWAPI::TilePosition{ t.x / 32, t.y / 32 };
+	}
 }
