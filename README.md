@@ -1,5 +1,5 @@
 # BWEB
-### BWEB is currently v1.10
+### BWEB is currently v1.11
 Broodwar Easy Builder or BWEB for short, is a BWEM based building placement addon. The purpose of this addon is to provide easily accesible building management. BWEB started as a decision to create a standard and simple method for bots to optimize their building space and placement.
 
 ### What does BWEB do?
@@ -40,6 +40,14 @@ All other BWEB functions have full comments describing their use and what parame
 If you have any questions, feel free to ask on BWAPI Discord.
 
 ## Changelog
+1.11
+- Changed usedGrid to return the UnitType on the given TilePosition.
+- Moved Block, Station, Wall and Pathfind class up to the BWEB namespace.
+- Fixed a bug where terrain tight checks in wall generation failed on diagonals.
+- Fixed a bug where terrain tight checks in wall generation were not correctly dynamic to the size of the tightness factor. 
+- Fixed crashes and incorrect choke choices on maps with naturals having 1 ramp connected to the main.
+- Improved performance of wall generation slightly.
+
 1.10
 - Changed how blocks are generated to be more intuitive.
 - Added a cached TilePosition resolution walkable grid.
