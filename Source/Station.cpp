@@ -3,20 +3,13 @@
 using namespace std;
 using namespace BWAPI;
 
-namespace BWEB::Stations
-{
+namespace BWEB::Stations {
+
     namespace {
         std::vector<Station> stations;
-
-    }
-    Station::Station(const Position newResourceCenter, const set<TilePosition>& newDefenses, const BWEM::Base* newBase)
-    {
-        resourceCentroid = newResourceCenter;
-        defenses = newDefenses;
-        base = newBase;
     }
 
-    set<TilePosition> stationDefenses(BWAPI::Race race, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
+    set<TilePosition> stationDefenses(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
     {
         set<TilePosition> defenses;
 
@@ -39,7 +32,7 @@ namespace BWEB::Stations
         };
 
         const auto &topRight = [&]() {
-            if (race == Races::Terran)
+            if (Broodwar->self()->getRace() == Races::Terran)
                 defenses.insert({
                 offset(4, -2),
                 offset(0, -2) });
@@ -75,7 +68,7 @@ namespace BWEB::Stations
         };
 
         const auto &bottomRight = [&]() {
-            if (race == Races::Terran)
+            if (Broodwar->self()->getRace() == Races::Terran)
                 defenses.insert({
                 offset(0, 3),
                 offset(4, 3) });
@@ -119,7 +112,7 @@ namespace BWEB::Stations
         }
 
         // Temporary fix for CC Addons
-        if (race == Races::Terran)
+        if (Broodwar->self()->getRace() == Races::Terran)
             defenses.insert(here + TilePosition(4, 1));
 
         // Add overlap
@@ -127,14 +120,6 @@ namespace BWEB::Stations
             Map::addOverlap(tile, 2, 2);
 
         return defenses;
-    }
-    set<TilePosition> stationDefenses(BWAPI::Player player, const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
-    {
-        return stationDefenses(player->getRace(), here, mirrorHorizontal, mirrorVertical);
-    }
-    set<TilePosition> stationDefenses(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
-    {
-        return stationDefenses(Broodwar->self(), here, mirrorHorizontal, mirrorVertical);
     }
 
     void findStations()
@@ -190,7 +175,7 @@ namespace BWEB::Stations
                 addResourceOverlap(genCenter);
 
                 if (Broodwar->self()->getRace() == Races::Zerg)
-                    Map::addOverlap(base.Location() - TilePosition(1, 1), 6, 5);
+                    Map::addOverlap(base.Location() - TilePosition(1,1), 6, 5);
             }
         }
     }

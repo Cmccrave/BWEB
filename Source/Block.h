@@ -2,8 +2,8 @@
 #include <set>
 #include <BWAPI.h>
 
-namespace BWEB::Blocks
-{
+namespace BWEB {
+
     enum class Piece {
         Small, Medium, Large, Addon, Row
     };
@@ -46,7 +46,7 @@ namespace BWEB::Blocks
                     rowWidth += 2;
                     rowHeight = std::max(rowHeight, 2);
                 }
-                if (p == Piece::Row) {
+                if (p == Piece::Row) {                    
                     w = std::max(w, rowWidth);
                     h += rowHeight;
                     rowWidth = 0;
@@ -80,19 +80,22 @@ namespace BWEB::Blocks
         void insertLarge(const BWAPI::TilePosition here) { largeTiles.insert(here); }
     };
 
-    /// <summary> Initializes the building of every BWEB::Block on the map, call it only once per game. </summary>
-    void findBlocks();
+    namespace Blocks {
 
-    /// <summary> Draws all BWEB Blocks. </summary>
-    void draw();
+        /// <summary> Initializes the building of every BWEB::Block on the map, call it only once per game. </summary>
+        void findBlocks();
 
-    /// <summary> Erases any blocks at the specified TilePosition. </summary>
-    /// <param name="here"> The TilePosition that you want to delete any BWEB::Block that exists here. </param>
-    void eraseBlock(BWAPI::TilePosition here);
+        /// <summary> Draws all BWEB Blocks. </summary>
+        void draw();
 
-    /// <summary> Returns a vector containing every Block </summary>
-    std::vector<Block>& getBlocks();
+        /// <summary> Erases any blocks at the specified TilePosition. </summary>
+        /// <param name="here"> The TilePosition that you want to delete any BWEB::Block that exists here. </param>
+        void eraseBlock(BWAPI::TilePosition here);
 
-    /// <summary> Returns the closest BWEB::Block to the given TilePosition. </summary>
-    const Blocks::Block* getClosestBlock(BWAPI::TilePosition);
+        /// <summary> Returns a vector containing every Block </summary>
+        std::vector<Block>& getBlocks();
+
+        /// <summary> Returns the closest BWEB::Block to the given TilePosition. </summary>
+        Block* getClosestBlock(BWAPI::TilePosition);
+    }
 }

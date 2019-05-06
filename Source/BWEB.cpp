@@ -18,7 +18,7 @@ namespace BWEB::Map
         int testGrid[256][256] ={};
         int reserveGrid[256][256] ={};
         int overlapGrid[256][256] ={};
-        int usedGrid[256][256] ={};
+        UnitType usedGrid[256][256] ={};
         bool walkGrid[256][256] ={};
 
         void findMain()
@@ -56,12 +56,27 @@ namespace BWEB::Map
         {
             // Add all main chokes to a set
             set<BWEM::ChokePoint const *> mainChokes;
+            set<BWEM::ChokePoint const *> naturalChokes;
             for (auto &choke : mainArea->ChokePoints())
                 mainChokes.insert(choke);
+            for (auto &choke : naturalArea->ChokePoints())
+                naturalChokes.insert(choke);
 
-            // Find a chokepoint that belongs to main and natural
-            auto distBest = DBL_MAX;
-            if (naturalArea) {
+            // If the natural area has only one chokepoint, then our main choke leads out of our base, find a choke that doesn't belong to the natural as well
+            if (naturalArea && naturalArea->ChokePoints().size() == 1) {
+                auto distBest = DBL_MAX;
+                for (auto &choke : mainArea->ChokePoints()) {
+                    const auto dist = getGroundDistance(Position(choke->Center()), mainPosition);
+                    if (dist < distBest && naturalChokes.find(choke) == naturalChokes.end()) {
+                        mainChoke = choke;
+                        distBest = dist;
+                    }
+                }
+            }
+
+            // Find a chokepoint that belongs to main and natural areas            
+            else if (naturalArea) {
+                auto distBest = DBL_MAX;
                 for (auto &choke : naturalArea->ChokePoints()) {
                     const auto dist = getGroundDistance(Position(choke->Center()), mainPosition);
                     if (dist < distBest && mainChokes.find(choke) != mainChokes.end()) {
@@ -71,8 +86,9 @@ namespace BWEB::Map
                 }
             }
 
-            // If we didn't find a main choke that belongs to main and natural, find another one
+            // If we didn't find a main choke that belongs to main and natural, check if a path exists between both positions
             if (!mainChoke && mainPosition.isValid() && naturalPosition.isValid()) {
+                auto distBest = DBL_MAX;
                 for (auto &choke : mapBWEM.GetPath(mainPosition, naturalPosition)) {
                     const auto width = choke->Pos(choke->end1).getDistance(choke->Pos(choke->end2));
                     if (width < distBest) {
@@ -84,6 +100,7 @@ namespace BWEB::Map
 
             // If we still don't have a main choke, grab the closest chokepoint to our start
             if (!mainChoke) {
+                auto distBest = DBL_MAX;
                 for (auto &choke : mainArea->ChokePoints()) {
                     const auto dist = Position(choke->Center()).getDistance(mainPosition);
                     if (dist < distBest) {
@@ -96,49 +113,49 @@ namespace BWEB::Map
 
         void findNaturalChoke()
         {
-            // Exception for maps with a natural behind the main such as Crossing Fields
-            if (getGroundDistance(mainPosition, mapBWEM.Center()) < getGroundDistance(naturalPosition, mapBWEM.Center())) {
-                naturalChoke = mainChoke;
-                return;
-            }
-
             set<BWEM::ChokePoint const *> nonChokes;
             for (auto &choke : mapBWEM.GetPath(mainPosition, naturalPosition))
                 nonChokes.insert(choke);
 
+            // If the natural area has only one chokepoint, then choose as that
+            if (naturalArea && naturalArea->ChokePoints().size() == 1)
+                naturalChoke = naturalArea->ChokePoints().front();            
+
             // Find area that shares the choke we need to defend
-            auto distBest = DBL_MAX;
-            const BWEM::Area* second = nullptr;
-            if (naturalArea) {
-                for (auto &area : naturalArea->AccessibleNeighbours()) {
-                    auto center = area->Top();
-                    const auto dist = Position(center).getDistance(mapBWEM.Center());
+            else {
+                auto distBest = DBL_MAX;
+                const BWEM::Area* second = nullptr;
+                if (naturalArea) {
+                    for (auto &area : naturalArea->AccessibleNeighbours()) {
+                        auto center = area->Top();
+                        const auto dist = Position(center).getDistance(mapBWEM.Center());
 
-                    bool wrongArea = false;
-                    for (auto &choke : area->ChokePoints()) {
-                        if ((!choke->Blocked() && choke->Pos(choke->end1).getDistance(choke->Pos(choke->end2)) <= 2) || nonChokes.find(choke) != nonChokes.end()) {
-                            wrongArea = true;
+                        bool wrongArea = false;
+                        for (auto &choke : area->ChokePoints()) {
+                            if ((!choke->Blocked() && choke->Pos(choke->end1).getDistance(choke->Pos(choke->end2)) <= 2) || nonChokes.find(choke) != nonChokes.end()) {
+                                wrongArea = true;
+                            }
                         }
+                        if (wrongArea)
+                            continue;
+
+                        if (center.isValid() && dist < distBest)
+                            second = area, distBest = dist;
                     }
-                    if (wrongArea)
-                        continue;
 
-                    if (center.isValid() && dist < distBest)
-                        second = area, distBest = dist;
-                }
+                    // Find second choke based on the connected area
+                    distBest = DBL_MAX;
+                    for (auto &choke : naturalArea->ChokePoints()) {
+                        if (choke->Center() == mainChoke->Center()
+                            || choke->Blocked()
+                            || choke->Geometry().size() <= 3
+                            || (choke->GetAreas().first != second && choke->GetAreas().second != second))
+                            continue;
 
-                // Find second choke based on the connected area
-                distBest = DBL_MAX;
-                for (auto &choke : naturalArea->ChokePoints()) {
-                    if (choke->Center() == mainChoke->Center()
-                        || choke->Blocked()
-                        || choke->Geometry().size() <= 3
-                        || (choke->GetAreas().first != second && choke->GetAreas().second != second))
-                        continue;
-
-                    const auto dist = Position(choke->Center()).getDistance(Position(Broodwar->self()->getStartLocation()));
-                    if (dist < distBest)
-                        naturalChoke = choke, distBest = dist;
+                        const auto dist = Position(choke->Center()).getDistance(Position(Broodwar->self()->getStartLocation()));
+                        if (dist < distBest)
+                            naturalChoke = choke, distBest = dist;
+                    }
                 }
             }
         }
@@ -161,9 +178,11 @@ namespace BWEB::Map
         findMainChoke();
         findNaturalChoke();
 
-        // Create a cached grid of fully walkable tiles
+        // Test
         for (int x = 0; x < Broodwar->mapWidth(); x++) {
             for (int y = 0; y < Broodwar->mapHeight(); y++) {
+
+                usedGrid[x][y] = UnitTypes::None;
 
                 auto walkable = true;
                 for (int dx = x * 4; dx < (x * 4) + 4; dx++) {
@@ -195,7 +214,7 @@ namespace BWEB::Map
                 TilePosition t(x, y);
                 if (!t.isValid())
                     continue;
-                usedGrid[x][y] = 1;
+                usedGrid[x][y] = type;
             }
         }
 
@@ -238,7 +257,7 @@ namespace BWEB::Map
                 TilePosition t(x, y);
                 if (!t.isValid())
                     continue;
-                usedGrid[x][y] = 0;
+                usedGrid[x][y] = UnitTypes::None;
             }
         }
 
@@ -272,6 +291,8 @@ namespace BWEB::Map
                 TilePosition t(x, y);
                 if (reserveGrid[x][y] >= 1)
                     Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Black, false);
+                if (overlapGrid[x][y] >= 1)
+                    Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Grey, false);
             }
         }
 
@@ -310,7 +331,7 @@ namespace BWEB::Map
         auto source = bwemPath.front();
 
 
-        BWEB::PathFinding::Path newPath;
+        BWEB::Path newPath;
         newPath.createUnitPath(start, (Position)source->Center());
         return newPath.getDistance();
     }
@@ -389,18 +410,18 @@ namespace BWEB::Map
         return false;
     }
 
-    bool isUsed(const TilePosition here, const int width, const int height)
+    UnitType isUsed(const TilePosition here, const int width, const int height)
     {
         for (auto x = here.x; x < here.x + width; x++) {
             for (auto y = here.y; y < here.y + height; y++) {
                 TilePosition t(x, y);
                 if (!t.isValid())
                     continue;
-                if (Map::usedGrid[x][y] > 0)
-                    return true;
+                if (Map::usedGrid[x][y] != UnitTypes::None)
+                    return Map::usedGrid[x][y];
             }
         }
-        return false;
+        return UnitTypes::None;
     }
 
     bool isWalkable(const TilePosition here)
@@ -486,6 +507,20 @@ namespace BWEB::Map
         return make_pair(p1, p2);
     }
 
+    pair<Position, Position> perpendicularLine(pair<Position, Position> points, double length)
+    {
+        auto n1 = points.first;
+        auto n2 = points.second;
+        auto dist = n1.getDistance(n2);
+        auto dx1 = int((n2.x - n1.x) * length / dist);
+        auto dy1 = int((n2.y - n1.y) * length / dist);
+        auto dx2 = int((n1.x - n2.x) * length / dist);
+        auto dy2 = int((n1.y - n2.y) * length / dist);
+        auto direction1 = Position(-dy1, dx1) + ((n1 - n2) / 2);
+        auto direction2 = Position(-dy2, dx2) + ((n1 - n2) / 2);
+        return make_pair(direction1, direction2);
+    }
+
     bool isPlaceable(UnitType type, const TilePosition location)
     {
         // Placeable is valid if buildable and not overlapping neutrals
@@ -499,14 +534,14 @@ namespace BWEB::Map
                     return false;
             }
 
-            for (auto y = location.y; y < location.y + type.tileHeight(); y++) {
-
+            for (auto y = location.y; y < location.y + type.tileHeight(); y++) {                
                 TilePosition tile(x, y);
                 if (!tile.isValid()
-                    || !Broodwar->isBuildable(tile)
-                    || !Broodwar->isWalkable(WalkPosition(tile))
-                    || Map::usedGrid[x][y] > 0
-                    || Map::reserveGrid[x][y] > 0
+                    //|| !Broodwar->isBuildable(tile)
+                    || !mapBWEM.GetTile(tile).Buildable()
+                    //|| !Broodwar->isWalkable(WalkPosition(tile))
+                    //|| Map::usedGrid[x][y] != UnitTypes::None
+                    //|| Map::reserveGrid[x][y] > 0
                     || (type.isResourceDepot() && !Broodwar->canBuildHere(tile, type)))
                     return false;
             }
@@ -519,7 +554,8 @@ namespace BWEB::Map
     {
         for (auto x = t.x; x < t.x + w; x++) {
             for (auto y = t.y; y < t.y + h; y++)
-                overlapGrid[x][y] = 1;
+                if (TilePosition(x, y).isValid())
+                    overlapGrid[x][y] = 1;
         }
     }
 
@@ -527,7 +563,8 @@ namespace BWEB::Map
     {
         for (auto x = t.x; x < t.x + w; x++) {
             for (auto y = t.y; y < t.y + h; y++)
-                overlapGrid[x][y] = 0;
+                if (TilePosition(x, y).isValid())
+                    overlapGrid[x][y] = 0;
         }
     }
 
@@ -535,15 +572,17 @@ namespace BWEB::Map
     {
         for (auto x = t.x; x < t.x + w; x++) {
             for (auto y = t.y; y < t.y + h; y++)
-                usedGrid[x][y] = 0;
+                if (TilePosition(x, y).isValid())
+                    usedGrid[x][y] = UnitTypes::None;
         }
     }
 
-    void addUsed(const TilePosition t, const int w, const int h)
+    void addUsed(const TilePosition t, UnitType type)
     {
-        for (auto x = t.x; x < t.x + w; x++) {
-            for (auto y = t.y; y < t.y + h; y++)
-                usedGrid[x][y] = 1;
+        for (auto x = t.x; x < t.x + type.tileWidth(); x++) {
+            for (auto y = t.y; y < t.y + type.tileHeight(); y++)
+                if (TilePosition(x, y).isValid())
+                    usedGrid[x][y] = type;
         }
     }
 
@@ -551,7 +590,8 @@ namespace BWEB::Map
     {
         for (auto x = t.x; x < t.x + w; x++) {
             for (auto y = t.y; y < t.y + h; y++)
-                reserveGrid[x][y] = 1;
+                if (TilePosition(x, y).isValid())
+                    reserveGrid[x][y] = 1;
         }
     }
 

@@ -36,7 +36,7 @@ namespace BWEB::Map
     void removeUsed(BWAPI::TilePosition tile, int width, int height);
 
     /// <summary> Adds a section of BWAPI::TilePositions to the BWEB used grid. </summary>
-    void addUsed(BWAPI::TilePosition tile, int width, int height);
+    void addUsed(BWAPI::TilePosition tile, BWAPI::UnitType);
 
     /// <summary> Returns true if a section of BWAPI::TilePositions are within BWEBs overlap grid. </summary>
     bool isOverlapping(BWAPI::TilePosition here, int width = 1, int height = 1, bool ignoreBlocks = false);
@@ -47,8 +47,8 @@ namespace BWEB::Map
     /// <summary> Returns true if a section of BWAPI::TilePositions are within BWEBs reserve grid. </summary>
     bool isReserved(BWAPI::TilePosition here, int width = 1, int height = 1);
 
-    /// <summary> Returns true if a section of BWAPI::TilePositions are within BWEBs used grid. </summary>
-    bool isUsed(BWAPI::TilePosition here, int width = 1, int height = 1);
+    /// <summary> Returns the first UnitType found in a section of BWAPI::TilePositions, if it is within BWEBs used grid. </summary>
+    BWAPI::UnitType isUsed(BWAPI::TilePosition here, int width = 1, int height = 1);
 
     /// <summary> Returns true if a BWAPI::TilePosition is fully walkable. </summary>
     /// <param name="tile"> The BWAPI::TilePosition you want to check. </param>
@@ -111,6 +111,17 @@ namespace BWEB::Map
 
     /// Returns two BWAPI::Positions representing a line of best fit for a given BWEM::Chokepoint.
     std::pair<BWAPI::Position, BWAPI::Position> lineOfBestFit(BWEM::ChokePoint const *);
+
+    /// Returns two BWAPI::Positions perpendicular to a line.
+    std::pair<BWAPI::Position, BWAPI::Position> perpendicularLine(std::pair<BWAPI::Position, BWAPI::Position>, double);
+
+    /// Returns the angle of a pair of BWAPI::Point
+    template <class T>
+    double getAngle(std::pair<T, T> p) {
+        auto dy = abs(double(p.first.y - p.second.y));
+        auto dx = abs(double(p.first.x - p.second.x));
+        return (dx > 0.0 ? atan(dy / dx) * 180.0 / 3.14 : 90.0);
+    }
 
     inline BWAPI::Position pConvert(BWAPI::TilePosition t) {
         return BWAPI::Position{ t.x * 32, t.y * 32 };
