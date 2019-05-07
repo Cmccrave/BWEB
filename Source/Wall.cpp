@@ -113,7 +113,7 @@ namespace BWEB::Walls
         bool goodTightness(Wall& wall, UnitType building, const TilePosition here)
         {
             // If this is a powering pylon or we are making a pylon wall
-            if (building == UnitTypes::Protoss_Pylon || wall.isPylonWall())
+            if (building == UnitTypes::Protoss_Pylon && !wall.isPylonWall())
                 return true;
 
             // Dimensions of current buildings UnitType
@@ -125,8 +125,8 @@ namespace BWEB::Walls
             const auto walkWidth = building.tileWidth() * 4;
 
             // Dimension of UnitType to check tightness for
-            const auto vertTight = (tight == UnitTypes::None) ? 32 : tight.height();
-            const auto horizTight = (tight == UnitTypes::None) ? 32 : tight.width();
+            const auto vertTight = (tight == UnitTypes::None) ? 64 : tight.height();
+            const auto horizTight = (tight == UnitTypes::None) ? 64 : tight.width();
 
             // Checks each side of the building to see if it is valid for walling purposes
             const auto checkL = dimL < horizTight;
@@ -392,8 +392,7 @@ namespace BWEB::Walls
                 const auto type = *typeIterator;
                 const auto center = Map::pConvert(here) + Position(type.tileWidth() * 16, type.tileHeight() * 16);
 
-                if ((type == UnitTypes::Protoss_Pylon && !goodPower(here))
-                    || (type != UnitTypes::Terran_Barracks && center.getDistance(Position(wall.getChokePoint()->Center())) < 64.0)
+                if ((!openWall && type != UnitTypes::Terran_Barracks && center.getDistance(Position(wall.getChokePoint()->Center())) < 64.0)
                     || overlapsCurrentWall(here, type.tileWidth(), type.tileHeight()) != UnitTypes::None
                     || Map::isOverlapping(here, type.tileWidth(), type.tileHeight(), true)
                     || !Map::isPlaceable(type, here)
@@ -410,7 +409,7 @@ namespace BWEB::Walls
                     return true;
 
                 // If this is a pylon or pylon wall, we don't care about angles as long as the start point wasn't moved
-                if ((wall.isPylonWall() || type != UnitTypes::Protoss_Pylon) && !movedStart) {
+                if ((!wall.isPylonWall() || type != UnitTypes::Protoss_Pylon) && !movedStart) {
                     for (auto &[tile, type] : currentWall) {
                         const auto centerB = Map::pConvert(tile) + Position(type.tileWidth() * 16, type.tileHeight() * 16);
                         const auto angle2 = Map::getAngle(make_pair(centerB, here));

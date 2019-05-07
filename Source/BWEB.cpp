@@ -516,8 +516,8 @@ namespace BWEB::Map
         auto dy1 = int((n2.y - n1.y) * length / dist);
         auto dx2 = int((n1.x - n2.x) * length / dist);
         auto dy2 = int((n1.y - n2.y) * length / dist);
-        auto direction1 = Position(-dy1, dx1) + ((n1 - n2) / 2);
-        auto direction2 = Position(-dy2, dx2) + ((n1 - n2) / 2);
+        auto direction1 = Position(-dy1, dx1) + ((n1 + n2) / 2);
+        auto direction2 = Position(-dy2, dx2) + ((n1 + n2) / 2);
         return make_pair(direction1, direction2);
     }
 
