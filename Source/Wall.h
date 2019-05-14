@@ -21,7 +21,7 @@ namespace BWEB {
             opening = BWAPI::TilePositions::Invalid;
             rawBuildings = b;
             rawDefenses = d;
-        
+
             pylonWall = count(rawBuildings.begin(), rawBuildings.end(), BWAPI::UnitTypes::Protoss_Pylon) > 1;
         }
 
@@ -94,26 +94,26 @@ namespace BWEB {
         /// <param name="requireTight"> (Optional) Set as true if you want pixel perfect placement. </param>
         Wall * createWall(std::vector<BWAPI::UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, BWAPI::UnitType tight = BWAPI::UnitTypes::None, const std::vector<BWAPI::UnitType>& defenses ={}, bool openWall = false, bool requireTight = false);
 
+        /// <summary><para> Creates a Forge Fast Expand BWEB::Wall at the natural. </para>
+        /// <para> Places 1 Forge, 1 Gateway, 1 Pylon and 6 Cannons. </para></summary>
+        Wall *  createFFE();
+
+        /// <summary><para> Creates a "Sim City" of Zerg buildings at the natural. </para>
+        /// <para> Places 6 Sunkens, 2 Evolution Chambers and 1 Hatchery. </para>
+        Wall *  createZSimCity();
+
+        /// <summary><para> Creates a full wall of Terran buildings at the main choke. </para>
+        /// <para> Places 2 Depots and 1 Barracks. </para>
+        Wall *  createTWall();
+
+        /// <summary> Returns true if a BWAPI::TilePosition overlaps our current wall. This is ONLY here for internal usage temporarily. </summary>
+        BWAPI::UnitType overlapsCurrentWall(const BWAPI::TilePosition here, const int width = 1, const int height = 1);
+
         /// <summary> Adds a UnitType to a currently existing BWEB::Wall. </summary>
         /// <param name="type"> The UnitType you want to place at the BWEB::Wall. </param>
         /// <param name="area"> The BWEB::Wall you want to add to. </param>
         /// <param name="tight"> (Optional) Decides whether this addition to the BWEB::Wall intends to be walled around a specific UnitType. Defaults to none. </param>
         void addToWall(BWAPI::UnitType type, Wall& wall, BWAPI::UnitType tight = BWAPI::UnitTypes::None);
-
-        /// <summary><para> Creates a Forge Fast Expand BWEB::Wall at the natural. </para>
-        /// <para> Places 1 Forge, 1 Gateway, 1 Pylon and 6 Cannons. </para></summary>
-        void createFFE();
-
-        /// <summary><para> Creates a "Sim City" of Zerg buildings at the natural. </para>
-        /// <para> Places 6 Sunkens, 2 Evolution Chambers and 1 Hatchery. </para>
-        void createZSimCity();
-
-        /// <summary><para> Creates a full wall of Terran buildings at the main choke. </para>
-        /// <para> Places 2 Depots and 1 Barracks. </para>
-        void createTWall();
-
-        /// <summary> Returns true if a BWAPI::TilePosition overlaps our current wall. This is ONLY here for internal usage temporarily. </summary>
-        BWAPI::UnitType overlapsCurrentWall(const BWAPI::TilePosition here, const int width = 1, const int height = 1);
 
         /// <summary> Draws all BWEB Walls. </summary>
         void draw();

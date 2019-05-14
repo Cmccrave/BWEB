@@ -178,21 +178,22 @@ namespace BWEB::Map
         findMainChoke();
         findNaturalChoke();
 
-        // Test
+        // Initializes usedGrid and walkGrid
         for (int x = 0; x < Broodwar->mapWidth(); x++) {
             for (int y = 0; y < Broodwar->mapHeight(); y++) {
 
                 usedGrid[x][y] = UnitTypes::None;
 
-                auto walkable = true;
+                auto cnt = 0;
                 for (int dx = x * 4; dx < (x * 4) + 4; dx++) {
                     for (int dy = y * 4; dy < (y * 4) + 4; dy++) {
-                        if (WalkPosition(dx, dy).isValid() && !Broodwar->isWalkable(WalkPosition(dx, dy)))
-                            walkable = false;
+                        if (WalkPosition(dx, dy).isValid() && Broodwar->isWalkable(WalkPosition(dx, dy)))
+                            cnt++;
                     }
                 }
 
-                walkGrid[x][y] = walkable;
+                if (cnt >= 10)
+                    walkGrid[x][y] = true;
             }
         }
     }
@@ -537,11 +538,10 @@ namespace BWEB::Map
             for (auto y = location.y; y < location.y + type.tileHeight(); y++) {                
                 TilePosition tile(x, y);
                 if (!tile.isValid()
-                    //|| !Broodwar->isBuildable(tile)
-                    || !mapBWEM.GetTile(tile).Buildable()
-                    //|| !Broodwar->isWalkable(WalkPosition(tile))
-                    //|| Map::usedGrid[x][y] != UnitTypes::None
-                    //|| Map::reserveGrid[x][y] > 0
+                    || !Broodwar->isBuildable(tile)
+                    || !Broodwar->isWalkable(WalkPosition(tile))
+                    || Map::usedGrid[x][y] != UnitTypes::None
+                    || Map::reserveGrid[x][y] > 0
                     || (type.isResourceDepot() && !Broodwar->canBuildHere(tile, type)))
                     return false;
             }

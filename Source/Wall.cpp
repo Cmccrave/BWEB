@@ -437,6 +437,12 @@ namespace BWEB::Walls
                 // Sort of disabled this for now
                 for (auto &[t, type] : currentWall) {
 
+                    if (type == UnitTypes::Zerg_Hatchery) {
+                        const auto testTile = t + TilePosition(0, type.tileHeight());
+                        if (overlapsCurrentWall(testTile, type.tileWidth(), 1) != UnitTypes::None)
+                            return false;
+                    }
+
                     // If this type can't produce anything
                     if (!type.canProduce())
                         continue;
@@ -559,7 +565,7 @@ namespace BWEB::Walls
     {
         const auto start = Map::tConvert(wall.getCentroid());
         const auto doorCenter = Map::pConvert(wall.getOpening()) + Position(16, 16);
-        const auto isDefense = building == UnitTypes::Protoss_Photon_Cannon || building == UnitTypes::Terran_Missile_Turret || building == UnitTypes::Terran_Bunker || building == UnitTypes::Zerg_Creep_Colony || building == UnitTypes::Zerg_Sunken_Colony || building == UnitTypes::Zerg_Creep_Colony;
+        const auto isDefense = building == UnitTypes::Protoss_Photon_Cannon || building == UnitTypes::Terran_Missile_Turret || building == UnitTypes::Terran_Bunker;
 
         // Find the furthest non pylon building to the chokepoint
         auto furthest = 0.0;
@@ -736,29 +742,29 @@ namespace BWEB::Walls
         return nullptr;
     }
 
-    void createFFE()
+    Wall *  createFFE()
     {
         vector<UnitType> buildings ={ UnitTypes::Protoss_Forge, UnitTypes::Protoss_Gateway, UnitTypes::Protoss_Pylon };
         vector<UnitType> defenses(6, UnitTypes::Protoss_Photon_Cannon);
 
-        createWall(buildings, Map::getNaturalArea(), Map::getNaturalChoke(), UnitTypes::Zerg_Zergling, defenses, true, false);
+        return createWall(buildings, Map::getNaturalArea(), Map::getNaturalChoke(), UnitTypes::Zerg_Zergling, defenses, true, false);
     }
 
-    void createZSimCity()
+    Wall *  createZSimCity()
     {
         vector<UnitType> buildings ={ UnitTypes::Zerg_Hatchery, UnitTypes::Zerg_Evolution_Chamber, UnitTypes::Zerg_Evolution_Chamber };
         vector<UnitType> defenses(6, UnitTypes::Zerg_Sunken_Colony);
 
-        createWall(buildings, Map::getNaturalArea(), Map::getNaturalChoke(), UnitTypes::None, defenses, true, false);
+        return createWall(buildings, Map::getNaturalArea(), Map::getNaturalChoke(), UnitTypes::None, defenses, true, false);
     }
 
-    void createTWall()
+    Wall * createTWall()
     {
         vector<UnitType> buildings ={ UnitTypes::Terran_Supply_Depot, UnitTypes::Terran_Supply_Depot, UnitTypes::Terran_Barracks };
         vector<UnitType> defenses;
         auto type = Broodwar->enemy() && Broodwar->enemy()->getRace() == Races::Protoss ? UnitTypes::Protoss_Zealot : UnitTypes::Zerg_Zergling;
 
-        createWall(buildings, Map::getMainArea(), Map::getMainChoke(), type, defenses, false, true);
+        return createWall(buildings, Map::getMainArea(), Map::getMainChoke(), type, defenses, false, true);
     }
 
     Wall * getClosestWall(TilePosition here)
