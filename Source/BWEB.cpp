@@ -15,8 +15,8 @@ namespace BWEB::Map
         const BWEM::ChokePoint * naturalChoke = nullptr;
         const BWEM::ChokePoint * mainChoke = nullptr;
 
-        int testGrid[256][256] ={};
-        int reserveGrid[256][256] ={};
+        map<const BWEM::ChokePoint *, set<TilePosition>> chokeTiles;
+
         int overlapGrid[256][256] ={};
         UnitType usedGrid[256][256] ={};
         bool walkGrid[256][256] ={};
@@ -41,7 +41,9 @@ namespace BWEB::Map
                         || base.Minerals().size() < 5)
                         continue;
 
-                    const auto dist = getGroundDistance(base.Center(), mainPosition);
+                    Position center = base.Center();
+
+                    const auto dist = getGroundDistance(center, mainPosition);
                     if (dist < distBest) {
                         distBest = dist;
                         naturalArea = base.GetArea();
@@ -50,15 +52,24 @@ namespace BWEB::Map
                     }
                 }
             }
+
+            if (!naturalArea)
+                naturalArea = mainArea;            
         }
 
         void findMainChoke()
         {
             // Add all main chokes to a set
             set<BWEM::ChokePoint const *> mainChokes;
-            set<BWEM::ChokePoint const *> naturalChokes;
             for (auto &choke : mainArea->ChokePoints())
                 mainChokes.insert(choke);
+            if (mainChokes.size() == 1) {
+                mainChoke = *mainChokes.begin();
+                return;
+            }
+
+            // Add all natural chokes to a set
+            set<BWEM::ChokePoint const *> naturalChokes;
             for (auto &choke : naturalArea->ChokePoints())
                 naturalChokes.insert(choke);
 
@@ -113,13 +124,18 @@ namespace BWEB::Map
 
         void findNaturalChoke()
         {
+            if (!naturalPosition.isValid()) {
+                naturalChoke = mainChoke;
+                return;
+            }
+
             set<BWEM::ChokePoint const *> nonChokes;
             for (auto &choke : mapBWEM.GetPath(mainPosition, naturalPosition))
                 nonChokes.insert(choke);
 
             // If the natural area has only one chokepoint, then choose as that
             if (naturalArea && naturalArea->ChokePoints().size() == 1)
-                naturalChoke = naturalArea->ChokePoints().front();            
+                naturalChoke = naturalArea->ChokePoints().front();
 
             // Find area that shares the choke we need to defend
             else {
@@ -163,21 +179,17 @@ namespace BWEB::Map
         void findNeutrals()
         {
             // Add overlap for neutrals
-            for (auto &unit : Broodwar->neutral()->getUnits()) {
+            for (auto unit : Broodwar->getNeutralUnits()) {
                 if (unit && unit->exists() && unit->getType().topSpeed() == 0.0)
-                    addOverlap(unit->getTilePosition(), unit->getType().tileWidth(), unit->getType().tileHeight());
+                    addReserve(unit->getTilePosition(), unit->getType().tileWidth(), unit->getType().tileHeight());
+                if (unit->getType().isBuilding())
+                    addUsed(unit->getTilePosition(), unit->getType());
             }
         }
     }
 
     void onStart()
     {
-        findNeutrals();
-        findMain();
-        findNatural();
-        findMainChoke();
-        findNaturalChoke();
-
         // Initializes usedGrid and walkGrid
         for (int x = 0; x < Broodwar->mapWidth(); x++) {
             for (int y = 0; y < Broodwar->mapHeight(); y++) {
@@ -192,31 +204,57 @@ namespace BWEB::Map
                     }
                 }
 
-                if (cnt >= 10)
+                if (cnt >= 16)
                     walkGrid[x][y] = true;
             }
         }
+
+        for (auto gas : Broodwar->getGeysers()) {
+            for (int x = gas->getTilePosition().x; x < gas->getTilePosition().x + 4; x++) {
+                for (int y = gas->getTilePosition().y; y < gas->getTilePosition().y + 2; y++) {
+                    walkGrid[x][y] = false;
+                }
+            }
+        }
+
+        for (auto &area : mapBWEM.Areas()) {
+            for (auto &choke : area.ChokePoints()) {
+                for (auto &geo : choke->Geometry())
+                    chokeTiles[choke].insert(TilePosition(geo));
+            }
+        }
+
+        findNeutrals();
+        findMain();
+        findNatural();
+        findMainChoke();
+        findNaturalChoke();
     }
 
     void onUnitDiscover(const Unit unit)
     {
-        if (!unit
-            || !unit->getType().isBuilding()
-            || unit->isFlying()
-            || unit->getType() == UnitTypes::Resource_Vespene_Geyser)
-            return;
-
         const auto tile = unit->getTilePosition();
         const auto type = unit->getType();
 
+        const auto gameStart = Broodwar->getFrameCount() == 0;
+        const auto okayToAdd = unit->getType().isBuilding()
+            || (gameStart && unit->getType().topSpeed() == 0.0);
+
+
+
         // Add used tiles
-        for (auto x = tile.x; x < tile.x + type.tileWidth(); x++) {
-            for (auto y = tile.y; y < tile.y + type.tileHeight(); y++) {
-                TilePosition t(x, y);
-                if (!t.isValid())
-                    continue;
-                usedGrid[x][y] = type;
+        if (okayToAdd) {
+            for (auto x = tile.x; x < tile.x + type.tileWidth(); x++) {
+                for (auto y = tile.y; y < tile.y + type.tileHeight(); y++) {
+                    TilePosition t(x, y);
+                    if (!t.isValid())
+                        continue;
+                    usedGrid[x][y] = type;
+                }
             }
+
+            // Clear pathfinding cache
+            Pathfinding::clearCache();
         }
 
         // Add defense count to stations
@@ -244,22 +282,26 @@ namespace BWEB::Map
 
     void onUnitDestroy(const Unit unit)
     {
-        if (!unit
-            || !unit->getType().isBuilding()
-            || unit->isFlying())
-            return;
-
         const auto tile = unit->getTilePosition();
         const auto type = unit->getType();
 
-        // Remove any used tiles
-        for (auto x = tile.x; x < tile.x + type.tileWidth(); x++) {
-            for (auto y = tile.y; y < tile.y + type.tileHeight(); y++) {
-                TilePosition t(x, y);
-                if (!t.isValid())
-                    continue;
-                usedGrid[x][y] = UnitTypes::None;
+        const auto gameStart = Broodwar->getFrameCount() == 0;
+        const auto okayToRemove = unit->getType().isBuilding()
+            || (!gameStart && unit->getType().topSpeed() == 0.0);
+
+        // Add used tiles
+        if (okayToRemove) {
+            for (auto x = tile.x; x < tile.x + type.tileWidth(); x++) {
+                for (auto y = tile.y; y < tile.y + type.tileHeight(); y++) {
+                    TilePosition t(x, y);
+                    if (!t.isValid())
+                        continue;
+                    usedGrid[x][y] = UnitTypes::None;
+                }
             }
+
+            // Clear pathfinding cache
+            Pathfinding::clearCache();
         }
 
         // Remove defense count from stations
@@ -282,18 +324,41 @@ namespace BWEB::Map
 
     void draw()
     {
-        // Debugging stuff
-        Broodwar->drawCircleMap((Position)mainChoke->Center(), 4, Colors::Red, true);
-        Broodwar->drawCircleMap((Position)naturalChoke->Center(), 4, Colors::Green, true);
+        auto drawReserveOverlap = Broodwar->getKeyState(BWAPI::Key::K_1);
+        auto drawUsed = Broodwar->getKeyState(BWAPI::Key::K_2);
+        auto drawWalk = Broodwar->getKeyState(BWAPI::Key::K_3);
 
-        // Draw Reserve Path and some grids
-        for (int x = 0; x < Broodwar->mapWidth(); x++) {
-            for (int y = 0; y < Broodwar->mapHeight(); y++) {
-                TilePosition t(x, y);
-                if (reserveGrid[x][y] >= 1)
-                    Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Black, false);
-                if (overlapGrid[x][y] >= 1)
-                    Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Grey, false);
+        WalkPosition mouse(Broodwar->getMousePosition() + Broodwar->getScreenPosition());
+        auto mouseArea = mouse.isValid() ? mapBWEM.GetArea(mouse) : nullptr;
+
+        // Detect a keypress for drawing information
+        if (drawReserveOverlap || drawUsed || drawWalk) {
+
+            for (auto x = 0; x < Broodwar->mapWidth(); x++) {
+                for (auto y = 0; y < Broodwar->mapHeight(); y++) {
+                    const TilePosition t(x, y);
+
+                    // Draw boxes around TilePositions that are reserved or overlapping important map features
+                    if (drawReserveOverlap) {
+                        if (mapBWEM.GetArea(t) == mouseArea)
+                            Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Green, false);
+                        else if (overlapGrid[x][y] >= 1)
+                            Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Grey, false);
+                    }
+
+                    // Draw boxes around TilePositions that are used
+                    if (drawUsed) {
+                        const auto type = usedGrid[x][y];
+                        if (type != UnitTypes::None)
+                            Broodwar->drawBoxMap(Position(t) + Position(4, 4), Position(t) + Position(29, 29), Colors::Grey, true);
+                    }
+
+                    // Draw boxes around fully walkable TilePositions
+                    if (drawWalk) {
+                        if (walkGrid[x][y])
+                            Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Black, false);
+                    }
+                }
             }
         }
 
@@ -302,11 +367,66 @@ namespace BWEB::Map
         Stations::draw();
     }
 
+    set<TilePosition> getChokeTiles(const BWEM::ChokePoint * choke)
+    {
+        if (choke)
+            return chokeTiles[choke];
+        return {};
+    }
+
+    Position getClosestChokeTile(const BWEM::ChokePoint * choke, Position here) 
+    {
+        auto best = DBL_MAX;
+        auto posBest = Positions::Invalid;
+        for (auto &tile : Map::getChokeTiles(choke)) {
+            const auto p = Position(tile) + Position(16, 16);
+            if (p.getDistance(here) < best) {
+                posBest = p;
+                best = p.getDistance(here);
+            }
+        }
+        return posBest;
+    }
+
     template <class T>
     double getGroundDistance(T s, T e)
     {
         Position start(s), end(e);
         auto dist = 0.0;
+        auto last = start;
+
+        const auto validatePoint = [&](WalkPosition w) {
+            auto distBest = 0.0;
+            auto posBest = Position(w);
+            for (auto x = w.x - 1; x < w.x + 1; x++) {
+                for (auto y = w.y - 1; y < w.y + 1; y++) {
+                    WalkPosition w(x, y);
+                    if (!w.isValid()
+                        || !mapBWEM.GetArea(w))
+                        continue;
+
+                    auto p = Position(w);
+                    auto dist = p.getDistance(mapBWEM.Center());
+                    if (dist > distBest) {
+                        distBest = dist;
+                        posBest = p;
+                    }
+                }
+            }
+            return posBest;
+        };
+
+        // Return DBL_MAX if not valid path points or not walkable path points
+        if (!start.isValid() || !end.isValid())
+            return DBL_MAX;
+
+        // Check if we're in a valid area, if not try to find a different nearby WalkPosition
+        if (!mapBWEM.GetArea(WalkPosition(start)))
+            start = validatePoint(WalkPosition(start));
+        if (!mapBWEM.GetArea(WalkPosition(end)))
+            end = validatePoint(WalkPosition(end));
+
+        // If not valid still, return DBL_MAX
         if (!start.isValid()
             || !end.isValid()
             || !mapBWEM.GetArea(WalkPosition(start))
@@ -314,30 +434,51 @@ namespace BWEB::Map
             || !mapBWEM.GetArea(WalkPosition(start))->AccessibleFrom(mapBWEM.GetArea(WalkPosition(end))))
             return DBL_MAX;
 
+        // Find the closest chokepoint node
+        const auto accurateClosestNode = [&](const BWEM::ChokePoint * cp) {
+            auto bestPosition = cp->Center();
+            auto bestDist = DBL_MAX;
+
+            for (auto w : cp->Geometry()) {
+                auto dist = Position(w).getDistance(last);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestPosition = w;
+                }
+            }
+            return Position(bestPosition);
+        };
+
+        const auto fastClosestNode = [&](const BWEM::ChokePoint * cp) {
+            auto bestPosition = cp->Center();
+            auto bestDist = DBL_MAX;
+
+            const auto n1 = Position(cp->Pos(cp->end1));
+            const auto n2 = Position(cp->Pos(cp->end2));
+            const auto n3 = Position(cp->Center());
+
+            const auto d1 = n1.getDistance(last);
+            const auto d2 = n2.getDistance(last);
+            const auto d3 = n3.getDistance(last);
+
+            return d1 < d2 ? (d1 < d3 ? n1 : n3) : (d2 < d3 ? n2 : n3);
+        };
+
+        // For each chokepoint, add the distance to the closest chokepoint node
+        auto first = true;
         for (auto &cpp : mapBWEM.GetPath(start, end)) {
-            auto center = Position(cpp->Center());
-            dist += start.getDistance(center);
-            start = center;
+
+            auto large = cpp->Pos(cpp->end1).getDistance(cpp->Pos(cpp->end2)) > 10;
+
+            auto next = first && !large ? accurateClosestNode(cpp) : fastClosestNode(cpp);
+            dist += next.getDistance(last);
+            last = next;
         }
 
-        return dist += start.getDistance(end);
+        return dist += last.getDistance(end);
     }
 
-    double distanceNextChoke(Position start, Position end)
-    {
-        if (!start.isValid() || !end.isValid())
-            return DBL_MAX;
-
-        auto bwemPath = mapBWEM.GetPath(start, end);
-        auto source = bwemPath.front();
-
-
-        BWEB::Path newPath;
-        newPath.createUnitPath(start, (Position)source->Center());
-        return newPath.getDistance();
-    }
-
-    TilePosition Map::getBuildPosition(UnitType type, const TilePosition searchCenter)
+    TilePosition getBuildPosition(UnitType type, const TilePosition searchCenter)
     {
         auto distBest = DBL_MAX;
         auto tileBest = TilePositions::Invalid;
@@ -345,20 +486,26 @@ namespace BWEB::Map
         // Search through each block to find the closest block and valid position
         for (auto &block : Blocks::getBlocks()) {
             set<TilePosition> placements;
-            if (type.tileWidth() == 4) placements = block.getLargeTiles();
-            else if (type.tileWidth() == 3) placements = block.getMediumTiles();
-            else placements = block.getSmallTiles();
+
+            if (type.tileWidth() == 4)
+                placements = block.getLargeTiles();
+            else if (type.tileWidth() == 3)
+                placements = block.getMediumTiles();
+            else
+                placements = block.getSmallTiles();
 
             for (auto &tile : placements) {
                 const auto dist = tile.getDistance(searchCenter);
-                if (dist < distBest && isPlaceable(type, tile))
-                    distBest = dist, tileBest = tile;
+                if (dist < distBest && isPlaceable(type, tile)) {
+                    distBest = dist;
+                    tileBest = tile;
+                }
             }
         }
         return tileBest;
     }
 
-    TilePosition Map::getDefBuildPosition(UnitType type, const TilePosition searchCenter)
+    TilePosition getDefBuildPosition(UnitType type, const TilePosition searchCenter)
     {
         auto distBest = DBL_MAX;
         auto tileBest = TilePositions::Invalid;
@@ -367,8 +514,10 @@ namespace BWEB::Map
         for (auto &wall : Walls::getWalls()) {
             for (auto &tile : wall.getDefenses()) {
                 const auto dist = tile.getDistance(searchCenter);
-                if (dist < distBest && isPlaceable(type, tile))
-                    distBest = dist, tileBest = tile;
+                if (dist < distBest && isPlaceable(type, tile)) {
+                    distBest = dist;
+                    tileBest = tile;
+                }
             }
         }
 
@@ -376,14 +525,16 @@ namespace BWEB::Map
         for (auto &station : Stations::getStations()) {
             for (auto &tile : station.getDefenseLocations()) {
                 const auto dist = tile.getDistance(searchCenter);
-                if (dist < distBest && isPlaceable(type, tile))
-                    distBest = dist, tileBest = tile;
+                if (dist < distBest && isPlaceable(type, tile)) {
+                    distBest = dist;
+                    tileBest = tile;
+                }
             }
         }
         return tileBest;
     }
 
-    bool isOverlapping(const TilePosition here, const int width, const int height, bool ignoreBlocks)
+    bool isReserved(const TilePosition here, const int width, const int height, bool ignoreBlocks)
     {
         for (auto x = here.x; x < here.x + width; x++) {
             for (auto y = here.y; y < here.y + height; y++) {
@@ -391,20 +542,6 @@ namespace BWEB::Map
                 if (!t.isValid())
                     continue;
                 if (Map::overlapGrid[x][y] > 0)
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    bool isReserved(const TilePosition here, const int width, const int height)
-    {
-        for (auto x = here.x; x < here.x + width; x++) {
-            for (auto y = here.y; y < here.y + height; y++) {
-                TilePosition t(x, y);
-                if (!t.isValid())
-                    continue;
-                if (Map::reserveGrid[x][y] > 0)
                     return true;
             }
         }
@@ -439,8 +576,7 @@ namespace BWEB::Map
                 if (!t.isValid())
                     return false;
 
-                // Make an assumption that if it's on a chokepoint geometry, it belongs to the area provided
-                if (Map::mapBWEM.GetArea(t) == area /*|| !mapBWEM.GetArea(t)*/)
+                if (Map::mapBWEM.GetArea(t) == area)
                     cnt++;
             }
         }
@@ -505,6 +641,11 @@ namespace BWEB::Map
         int y2 = int(ceil(x2 * slope)) + int(yInt);
         p2 = Position(x2, y2);
 
+        // In case we failed
+        if (p1 == p2 || !p1.isValid() || !p2.isValid()) {
+            p1 = Position(choke->Pos(choke->end1));
+            p2 = Position(choke->Pos(choke->end2));
+        }
         return make_pair(p1, p2);
     }
 
@@ -524,8 +665,6 @@ namespace BWEB::Map
 
     bool isPlaceable(UnitType type, const TilePosition location)
     {
-        // Placeable is valid if buildable and not overlapping neutrals
-        // Note: Must check neutrals due to the terrain below them technically being buildable
         const auto creepCheck = type.requiresCreep() ? true : false;
         for (auto x = location.x; x < location.x + type.tileWidth(); x++) {
 
@@ -535,13 +674,13 @@ namespace BWEB::Map
                     return false;
             }
 
-            for (auto y = location.y; y < location.y + type.tileHeight(); y++) {                
+            for (auto y = location.y; y < location.y + type.tileHeight(); y++) {
                 TilePosition tile(x, y);
                 if (!tile.isValid()
                     || !Broodwar->isBuildable(tile)
                     || !Broodwar->isWalkable(WalkPosition(tile))
-                    || Map::usedGrid[x][y] != UnitTypes::None
-                    || Map::reserveGrid[x][y] > 0
+                    || Map::isUsed(tile) != UnitTypes::None
+                    || (!type.requiresCreep() && Broodwar->hasCreep(tile))
                     || (type.isResourceDepot() && !Broodwar->canBuildHere(tile, type)))
                     return false;
             }
@@ -550,7 +689,7 @@ namespace BWEB::Map
         return true;
     }
 
-    void addOverlap(const TilePosition t, const int w, const int h)
+    void addReserve(const TilePosition t, const int w, const int h)
     {
         for (auto x = t.x; x < t.x + w; x++) {
             for (auto y = t.y; y < t.y + h; y++)
@@ -559,21 +698,12 @@ namespace BWEB::Map
         }
     }
 
-    void removeOverlap(const TilePosition t, const int w, const int h)
+    void removeReserve(const TilePosition t, const int w, const int h)
     {
         for (auto x = t.x; x < t.x + w; x++) {
             for (auto y = t.y; y < t.y + h; y++)
                 if (TilePosition(x, y).isValid())
                     overlapGrid[x][y] = 0;
-        }
-    }
-
-    void removeUsed(const TilePosition t, const int w, const int h)
-    {
-        for (auto x = t.x; x < t.x + w; x++) {
-            for (auto y = t.y; y < t.y + h; y++)
-                if (TilePosition(x, y).isValid())
-                    usedGrid[x][y] = UnitTypes::None;
         }
     }
 
@@ -586,12 +716,12 @@ namespace BWEB::Map
         }
     }
 
-    void addReserve(const TilePosition t, const int w, const int h)
+    void removeUsed(const TilePosition t, const int w, const int h)
     {
         for (auto x = t.x; x < t.x + w; x++) {
             for (auto y = t.y; y < t.y + h; y++)
                 if (TilePosition(x, y).isValid())
-                    reserveGrid[x][y] = 1;
+                    usedGrid[x][y] = UnitTypes::None;
         }
     }
 

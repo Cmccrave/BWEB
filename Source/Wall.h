@@ -7,27 +7,76 @@ namespace BWEB {
 
     class Wall
     {
+        BWAPI::UnitType tightType;
         BWAPI::TilePosition opening;
         BWAPI::Position centroid;
+
         std::set<BWAPI::TilePosition> defenses, smallTiles, mediumTiles, largeTiles;
         std::vector<BWAPI::UnitType> rawBuildings, rawDefenses;
+        std::map<BWAPI::TilePosition, BWAPI::UnitType> currentLayout, bestLayout;
+
         const BWEM::Area * area;
         const BWEM::ChokePoint * choke;
-        bool pylonWall;
-    public:
-        Wall(const BWEM::Area * a, const BWEM::ChokePoint * c, std::vector<BWAPI::UnitType> b, std::vector<BWAPI::UnitType> d) {
-            area = a;
-            choke = c;
-            opening = BWAPI::TilePositions::Invalid;
-            rawBuildings = b;
-            rawDefenses = d;
+        bool pylonWall, openWall, requireTight;
+        double chokeAngle;
 
-            pylonWall = count(rawBuildings.begin(), rawBuildings.end(), BWAPI::UnitTypes::Protoss_Pylon) > 1;
+        std::vector<BWAPI::UnitType>::iterator typeIterator;
+        BWAPI::TilePosition initialStart, initialEnd, startTile, endTile;
+        double bestWallScore = 0.0;
+        double jpsDist = 0.0;
+
+        bool powerCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
+        bool angleCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
+        bool placeCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
+        bool tightCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
+        bool spawnCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
+
+        void initializePathPoints();
+        void checkPathPoints();
+        Path findOpeningInWall();
+        void initialize();
+        void addCentroid();
+        void addOpening();
+        void addDefenses();
+
+    public:
+        Wall(const BWEM::Area * _area, const BWEM::ChokePoint * _choke, std::vector<BWAPI::UnitType> _buildings, std::vector<BWAPI::UnitType> _defenses, BWAPI::UnitType _tightType, bool _requireTight, bool _openWall) {
+            area = _area;
+            choke = _choke;
+            opening = BWAPI::TilePositions::Invalid;
+            rawBuildings = _buildings;
+            rawDefenses = _defenses;
+            openWall = _openWall;
+            requireTight = _requireTight;
+            tightType = _tightType;
+
+            bestWallScore = 0.0;
+            startTile = BWAPI::TilePositions::None;
+            endTile = BWAPI::TilePositions::None;
+            initialStart = BWAPI::TilePositions::None;
+            initialEnd = BWAPI::TilePositions::None;
+
+            initialize();
+            addCentroid();
+            addOpening();
+            addDefenses();
         }
 
-        void insertDefense(BWAPI::TilePosition here) { defenses.insert(here); }
-        void setOpening(BWAPI::TilePosition here) { opening = here; }
-        void setCentroid(BWAPI::Position here) { centroid = here; }
+        void addToWall(BWAPI::TilePosition here, BWAPI::UnitType building) {
+            if (building.tileWidth() >= 4)
+                largeTiles.insert(here);
+            else if (building.tileWidth() >= 3)
+                mediumTiles.insert(here);
+            else if (building == BWAPI::UnitTypes::Protoss_Photon_Cannon
+                || building == BWAPI::UnitTypes::Zerg_Creep_Colony
+                || building == BWAPI::UnitTypes::Zerg_Sunken_Colony
+                || building == BWAPI::UnitTypes::Zerg_Spore_Colony)
+                defenses.insert(here);
+            else
+                smallTiles.insert(here);
+        }
+
+        void draw();
 
         const BWEM::ChokePoint * getChokePoint() const { return choke; }
         const BWEM::Area * getArea() const { return area; }
@@ -42,13 +91,13 @@ namespace BWEB {
         BWAPI::Position getCentroid() const { return centroid; }
 
         /// <summary> Returns the TilePosition belonging to large UnitType buildings. </summary>
-        std::set<BWAPI::TilePosition> getLargeTiles() const { return largeTiles; }
+        std::set<BWAPI::TilePosition>& getLargeTiles() { return largeTiles; }
 
         /// <summary> Returns the TilePosition belonging to medium UnitType buildings. </summary>
-        std::set<BWAPI::TilePosition> getMediumTiles() const { return mediumTiles; }
+        std::set<BWAPI::TilePosition>& getMediumTiles() { return mediumTiles; }
 
         /// <summary> Returns the TilePosition belonging to small UnitType buildings. </summary>
-        std::set<BWAPI::TilePosition> getSmallTiles() const { return smallTiles; }
+        std::set<BWAPI::TilePosition>& getSmallTiles() { return smallTiles; }
 
         /// <summary> Returns the raw vector of the buildings the wall was initialzied with. </summary>
         std::vector<BWAPI::UnitType>& getRawBuildings() { return rawBuildings; }
@@ -57,15 +106,6 @@ namespace BWEB {
         std::vector<BWAPI::UnitType>& getRawDefenses() { return rawDefenses; }
 
         bool isPylonWall() { return pylonWall; }
-
-        void insertSegment(BWAPI::TilePosition here, BWAPI::UnitType building) {
-            if (building.tileWidth() >= 4)
-                largeTiles.insert(here);
-            else if (building.tileWidth() >= 3)
-                mediumTiles.insert(here);
-            else
-                smallTiles.insert(here);
-        }
     };
 
     namespace Walls {
@@ -105,9 +145,6 @@ namespace BWEB {
         /// <summary><para> Creates a full wall of Terran buildings at the main choke. </para>
         /// <para> Places 2 Depots and 1 Barracks. </para>
         Wall *  createTWall();
-
-        /// <summary> Returns true if a BWAPI::TilePosition overlaps our current wall. This is ONLY here for internal usage temporarily. </summary>
-        BWAPI::UnitType overlapsCurrentWall(const BWAPI::TilePosition here, const int width = 1, const int height = 1);
 
         /// <summary> Adds a UnitType to a currently existing BWEB::Wall. </summary>
         /// <param name="type"> The UnitType you want to place at the BWEB::Wall. </param>

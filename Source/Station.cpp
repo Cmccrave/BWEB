@@ -6,10 +6,10 @@ using namespace BWAPI;
 namespace BWEB::Stations {
 
     namespace {
-        std::vector<Station> stations;
+        vector<Station> stations;
     }
 
-    set<TilePosition> stationDefenses(const TilePosition here, const bool mirrorHorizontal, const bool mirrorVertical)
+    set<TilePosition> stationDefenses(TilePosition here, bool mirrorHorizontal, bool mirrorVertical)
     {
         set<TilePosition> defenses;
 
@@ -117,7 +117,7 @@ namespace BWEB::Stations {
 
         // Add overlap
         for (auto &tile : defenses)
-            Map::addOverlap(tile, 2, 2);
+            Map::addReserve(tile, 2, 2);
 
         return defenses;
     }
@@ -132,7 +132,7 @@ namespace BWEB::Stations {
                     if (!t.isValid())
                         continue;
                     if (t.getDistance(start) <= 4)
-                        Map::addOverlap(t, 1, 1);
+                        Map::addReserve(t, 1, 1);
                 }
             }
         };
@@ -164,18 +164,18 @@ namespace BWEB::Stations {
                 v = base.Center().y < sCenter.y;
 
                 for (auto &m : base.Minerals())
-                    Map::addOverlap(m->TopLeft(), 2, 1);
+                    Map::addReserve(m->TopLeft(), 2, 1);
 
                 for (auto &g : base.Geysers())
-                    Map::addOverlap(g->TopLeft(), 4, 2);
+                    Map::addReserve(g->TopLeft(), 4, 2);
 
-                const Station newStation(genCenter, stationDefenses(base.Location(), h, v), &base);
+                Station newStation(genCenter, stationDefenses(base.Location(), h, v), &base);
                 stations.push_back(newStation);
-                Map::addOverlap(base.Location(), 4, 3);
+                Map::addReserve(base.Location(), 4, 3);
                 addResourceOverlap(genCenter);
 
                 if (Broodwar->self()->getRace() == Races::Zerg)
-                    Map::addOverlap(base.Location() - TilePosition(1,1), 6, 5);
+                    Map::addReserve(base.Location() - TilePosition(1,1), 6, 5);
             }
         }
     }
@@ -189,10 +189,10 @@ namespace BWEB::Stations {
         }
     }
 
-    const Station * getClosestStation(TilePosition here)
+    Station * getClosestStation(TilePosition here)
     {
         auto distBest = DBL_MAX;
-        const Station* bestStation = nullptr;
+        Station* bestStation = nullptr;
         for (auto &station : stations) {
             const auto dist = here.getDistance(station.getBWEMBase()->Location());
 

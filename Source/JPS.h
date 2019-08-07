@@ -158,8 +158,6 @@ namespace JPS {
         inline bool isValid() const { return x != unsigned(-1); }
     };
 
-    typedef std::vector<BWAPI::TilePosition> PathVector;
-
     // ctor function to keep Position a real POD struct.
     inline static Position Pos(unsigned x, unsigned y)
     {
@@ -258,12 +256,12 @@ namespace JPS {
             {}
 
             // single-call
-            bool findPath(PathVector& path, Position start, Position end, unsigned step);
+            bool findPath(std::vector<BWAPI::TilePosition>& path, Position start, Position end, unsigned step);
 
             // incremental pathfinding
             Result findPathInit(Position start, Position end);
             Result findPathStep(int limit);
-            bool findPathFinish(PathVector& path, unsigned step);
+            bool findPathFinish(std::vector<BWAPI::TilePosition>& path, unsigned step);
 
             // misc
             void freeMemory();
@@ -286,7 +284,7 @@ namespace JPS {
 
             Node *getNode(const Position& pos);
             void identifySuccessors(const Node *n);
-            bool generatePath(PathVector& path, unsigned step) const;
+            bool generatePath(std::vector<BWAPI::TilePosition>& path, unsigned step) const;
 #ifndef JPS_DISABLE_GREEDY
             bool findPathGreedy(Node *start);
 #endif
@@ -658,7 +656,7 @@ namespace JPS {
             }
         }
 
-        template <typename GRID> bool Searcher<GRID>::generatePath(PathVector& path, unsigned step) const
+        template <typename GRID> bool Searcher<GRID>::generatePath(std::vector<BWAPI::TilePosition>& path, unsigned step) const
         {
             if (!endNode)
                 return false;
@@ -707,7 +705,7 @@ namespace JPS {
             return true;
         }
 
-        template <typename GRID> bool Searcher<GRID>::findPath(PathVector& path, Position start, Position end, unsigned step)
+        template <typename GRID> bool Searcher<GRID>::findPath(std::vector<BWAPI::TilePosition>& path, Position start, Position end, unsigned step)
         {
             Result res = findPathInit(start, end);
 
@@ -789,7 +787,7 @@ namespace JPS {
             return NEED_MORE_STEPS;
         }
 
-        template<typename GRID> bool Searcher<GRID>::findPathFinish(PathVector& path, unsigned step)
+        template<typename GRID> bool Searcher<GRID>::findPathFinish(std::vector<BWAPI::TilePosition>& path, unsigned step)
         {
             return generatePath(path, step);
         }
@@ -907,7 +905,7 @@ namespace JPS {
     //       Warning: Start and end positions will be rounded down to the nearest <skip>-aligned position,
     //       so make sure to give appropriate positions so they do not end up in a wall.
     //       This will also skip through walls if they are less than <skip> blocks thick at any reachable position.
-    template <typename GRID> bool findPath(PathVector& path, const GRID& grid, unsigned startx, unsigned starty, unsigned endx, unsigned endy,
+    template <typename GRID> bool findPath(std::vector<BWAPI::TilePosition>& path, const GRID& grid, unsigned startx, unsigned starty, unsigned endx, unsigned endy,
         unsigned step = 0, int skip = 0, // optional params
         size_t *stepsDone = NULL, size_t *nodesExpanded = NULL // for information
     )
