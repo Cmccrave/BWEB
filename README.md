@@ -1,5 +1,5 @@
 # BWEB
-### BWEB is currently v1.11.1
+### BWEB is currently v1.12.0
 Broodwar Easy Builder or BWEB for short, is a BWEM based building placement addon. The purpose of this addon is to provide easily accesible building management. BWEB started as a decision to create a standard and simple method for bots to optimize their building space and placement.
 
 ### What does BWEB do?
@@ -40,6 +40,21 @@ All other BWEB functions have full comments describing their use and what parame
 If you have any questions, feel free to ask on BWAPI Discord.
 
 ## Changelog
+
+1.12.0
+- Improved start block generation with desired position.
+- Added semi functional proxy blocks inspired by Locutus' BWEB.
+- Added ability to make custom JPS paths with walkable function passed in.
+- Improved wall generation speed.
+- Removed overlap grid, it was confusing and served the same purpose as the reserved grid.
+- Tidied up Wall.cpp
+
+1.11.2
+- Fixed walkGrid to be a little more accurate.
+- Fixed isPlaceable commented out checks.
+- Fixed treating sunkens as a fragile defense.
+- Added check to not place buildings under a hatchery in a wall.
+- Added returning a pointer to the wall created by the shortform wall creation functions.
 
 1.11.1
 - Fixed a bug in perpendicular line function where the center point was incorrect.
