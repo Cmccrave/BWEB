@@ -492,7 +492,7 @@ namespace JPS {
 #endif // JPS_VERIFY
 
 #define JPS_CHECKGRID(dx, dy) (grid(x+(dx), y+(dy)))
-#define JPS_ADDPOS(dx, dy) 	do { *w++ = Pos(x+(dx), y+(dy)); } while(0)
+#define JPS_ADDPOS(dx, dy)     do { *w++ = Pos(x+(dx), y+(dy)); } while(0)
 #define JPS_ADDPOS_CHECK(dx, dy) do { if(JPS_CHECKGRID(dx, dy)) JPS_ADDPOS(dx, dy); } while(0)
 #define JPS_ADDPOS_NO_TUNNEL(dx, dy) do { if(grid(x+(dx),y) || grid(x,y+(dy))) JPS_ADDPOS_CHECK(dx, dy); } while(0)
 

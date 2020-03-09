@@ -10,7 +10,6 @@ namespace BWEB {
         const BWEM::Base* base;
         std::set<BWAPI::TilePosition> defenses;
         BWAPI::Position resourceCentroid;
-        int defenseCount = 0;
 
     public:
         Station(BWAPI::Position newResourceCenter, std::set<BWAPI::TilePosition>& newDefenses, const BWEM::Base* newBase)
@@ -29,12 +28,15 @@ namespace BWEB {
         /// <summary> Returns the BWEM base associated with this BWEB base. </summary>
         const BWEM::Base * getBWEMBase() { return base; }
 
-        /// <summary> Returns the number of defenses associated with this station. </summary>
-        int getDefenseCount() { return defenseCount; }
+        /// <summary> Returns the number of ground defenses associated with this Station. </summary>
+        int getGroundDefenseCount();
 
-        /// <summary> Sets the number of defenses associated with this station. </summary>
-        /// <param name="newValue"> The new defense count. </param>
-        void setDefenseCount(int newValue) { defenseCount = newValue; }
+        /// <summary> Returns the number of air defenses associated with this Station. </summary>
+        int getAirDefenseCount();
+
+        bool operator== (Station* s) {
+            return base == s->getBWEMBase();
+        }
     };
 
     namespace Stations {
@@ -48,7 +50,19 @@ namespace BWEB {
         /// <summary> Returns a vector containing every BWEB::Station </summary>
         std::vector<Station>& getStations();
 
+        /// <summary> Returns a vector containing every main BWEB::Station </summary>
+        std::vector<Station>& getMainStations();
+
+        /// <summary> Returns a vector containing every natural BWEB::Station </summary>
+        std::vector<Station>& getNaturalStations();
+
         /// <summary> Returns the closest BWEB::Station to the given TilePosition. </summary>
         Station * getClosestStation(BWAPI::TilePosition);
+
+        /// <summary> Returns the closest main BWEB::Station to the given TilePosition. </summary>
+        Station * getClosestMainStation(BWAPI::TilePosition);
+
+        /// <summary> Returns the closest natural BWEB::Station to the given TilePosition. </summary>
+        Station * getClosestNaturalStation(BWAPI::TilePosition);
     }
 }

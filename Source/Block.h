@@ -17,7 +17,7 @@ namespace BWEB {
         bool defensive = false;
     public:
         Block() : w(0), h(0) {};
-        Block(const BWAPI::TilePosition tile, std::vector<Piece> pieces, bool proxyBlock = false, bool defensiveBlock = false) {
+        Block(BWAPI::TilePosition tile, std::vector<Piece> pieces, bool proxyBlock = false, bool defensiveBlock = false) {
             t = tile;
             BWAPI::TilePosition here = tile;
             int rowHeight = 0;
@@ -64,22 +64,22 @@ namespace BWEB {
             h += rowHeight;
         }
 
-        int width() const { return w; }
-        int height() const { return h; }
-        bool isProxy() const { return proxy; }
-        bool isDefensive() const { return defensive; }
+        int width() { return w; }
+        int height() { return h; }
+        bool isProxy() { return proxy; }
+        bool isDefensive() { return defensive; }
 
         /// Returns the top left tile position of this block
         BWAPI::TilePosition getTilePosition() const { return t; }
 
         /// Returns the const set of tilepositions that belong to 2x2 (small) buildings
-        std::set<BWAPI::TilePosition> getSmallTiles() const { return smallTiles; }
+        std::set<BWAPI::TilePosition>& getSmallTiles() { return smallTiles; }
 
         /// Returns the const set of tilepositions that belong to 3x2 (medium) buildings
-        std::set<BWAPI::TilePosition> getMediumTiles() const { return mediumTiles; }
+        std::set<BWAPI::TilePosition>& getMediumTiles() { return mediumTiles; }
 
         /// Returns the const set of tilepositions that belong to 4x3 (large) buildings
-        std::set<BWAPI::TilePosition> getLargeTiles() const { return largeTiles; }
+        std::set<BWAPI::TilePosition>& getLargeTiles() { return largeTiles; }
 
         void insertSmall(const BWAPI::TilePosition here) { smallTiles.insert(here); }
         void insertMedium(const BWAPI::TilePosition here) { mediumTiles.insert(here); }

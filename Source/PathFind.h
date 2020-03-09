@@ -33,11 +33,12 @@ namespace BWEB
         /// <summary> Creates a path from the source to the target using BFS and some odd collision functionality. BWEB use mostly. </summary>
         void createWallPath(const BWAPI::Position, const BWAPI::Position, bool, double);
 
-        /// <summary> Creates a path from the source to the target using JPS, your provided walkable function, and directional vector (currently directional vector is disabled until JPS author pushes update). </summary>
-        void jpsPath(const BWAPI::Position source, const BWAPI::Position target, std::function <bool(const BWAPI::TilePosition)> collision, std::vector<BWAPI::TilePosition> directions);
+        /// <summary> Creates a path from the source to the target using JPS, your provided walkable function, and whether diagonals are allowed. </summary>
+        void jpsPath(const BWAPI::Position source, const BWAPI::Position target, std::function <bool(const BWAPI::TilePosition&)> collision, bool diagonal = true);
 
-        /// <summary> Creates a path from the source to the target using BFS, your provided walkable function, and directional vector. </summary>
-        void bfsPath(const BWAPI::Position source, const BWAPI::Position target, std::function <bool(const BWAPI::TilePosition)> collision, std::vector<BWAPI::TilePosition> directions);
+        /// <summary> Creates a path from the source to the target using BFS, your provided walkable function, and whether diagonals are allowed. </summary>
+        void bfsPath(const BWAPI::Position source, const BWAPI::Position target, std::function <bool(const BWAPI::TilePosition&)> collision, bool diagonal = true);
+
 
         ///
         BWAPI::TilePosition getSource() { return source; }
@@ -46,5 +47,8 @@ namespace BWEB
 
     namespace Pathfinding {
         void clearCache();
+        void clearCache(std::function <bool(const BWAPI::TilePosition&)>);
+        bool terrainWalkable(const BWAPI::TilePosition&);
+        bool unitWalkable(const BWAPI::TilePosition&);
     }
 }
