@@ -103,8 +103,6 @@ namespace BWEB
                 tiles.push_back(t);
             }
             reachable = true;
-            tiles.push_back(target);
-            tiles.push_back(source);
 
             // Update cache 
             unitPathCache.pathCache.push_front(*this);
