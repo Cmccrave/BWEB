@@ -254,9 +254,6 @@ namespace BWEB
                 dist += Position(t).getDistance(current);
                 current = Position(t);
                 tiles.push_back(t);
-
-                if (isWalkable(t.x, t.y))
-                    Broodwar->drawCircleMap(Position(t) + Position(16, 16), 4, Colors::Yellow, true);
             }
 
             // Update cache 
