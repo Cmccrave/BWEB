@@ -8,81 +8,80 @@ namespace BWEB {
     class Wall
     {
         BWAPI::UnitType tightType;
-        BWAPI::TilePosition opening;
         BWAPI::Position centroid;
-
+        BWAPI::TilePosition opening, initialPathStart, initialPathEnd, pathStart, pathEnd, creationStart;
         std::set<BWAPI::TilePosition> defenses, smallTiles, mediumTiles, largeTiles;
+        std::set<BWAPI::Position> notableLocations;
+        std::vector<BWAPI::UnitType>::iterator typeIterator;
         std::vector<BWAPI::UnitType> rawBuildings, rawDefenses;
+        std::vector<const BWEM::Area *> accessibleNeighbors;
         std::map<BWAPI::TilePosition, BWAPI::UnitType> currentLayout, bestLayout;
-
-        BWAPI::TilePosition node1Tight = BWAPI::TilePositions::Invalid, node2Tight = BWAPI::TilePositions::Invalid;
         const BWEM::Area * area;
         const BWEM::ChokePoint * choke;
         const BWEM::Base * base;
-        bool pylonWall, openWall, requireTight, movedStart;
-        double chokeAngle;
+        double chokeAngle, bestWallScore, jpsDist;
+        bool pylonWall, openWall, requireTight, movedStart, pylonWallPiece, allowLifted, flatRamp;
+        BWEB::Station * closestStation;
 
-        std::vector<BWAPI::UnitType>::iterator typeIterator;
-        BWAPI::TilePosition initialPathStart, initialPathEnd, pathStart, pathEnd;
-        double bestWallScore = 0.0;
-        double jpsDist = 0.0;
-
+        BWAPI::Position findCentroid();
+        BWAPI::TilePosition findOpening();
+        Path findPathOut();
         bool powerCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
         bool angleCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
         bool placeCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
         bool tightCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
         bool spawnCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
-
-        void cleanup();
+        bool wallWalkable(const BWAPI::TilePosition&);
+        void initialize();
         void initializePathPoints();
         void checkPathPoints();
-        Path findOpeningInWall();
-        void initialize();
-        void addCentroid();
-        void addOpening();
+        void addPieces();
+        void addNextPiece(BWAPI::TilePosition);
         void addDefenses();
+        void scoreWall();
+        void cleanup();
 
     public:
         Wall(const BWEM::Area * _area, const BWEM::ChokePoint * _choke, std::vector<BWAPI::UnitType> _buildings, std::vector<BWAPI::UnitType> _defenses, BWAPI::UnitType _tightType, bool _requireTight, bool _openWall) {
-            area = _area;
-            choke = _choke;
-            opening = BWAPI::TilePositions::Invalid;
-            rawBuildings = _buildings;
-            rawDefenses = _defenses;
-            openWall = _openWall;
-            requireTight = _requireTight;
-            tightType = _tightType;
+            area                = _area;
+            choke               = _choke;
+            rawBuildings        = _buildings;
+            rawDefenses         = _defenses;
+            tightType           = _tightType;
+            requireTight        = _requireTight;
+            openWall            = _openWall;
 
-            bestWallScore = 0.0;
-            pathStart = BWAPI::TilePositions::None;
-            pathEnd = BWAPI::TilePositions::None;
-            initialPathStart = BWAPI::TilePositions::None;
-            initialPathEnd = BWAPI::TilePositions::None;
-
+            // Create Wall layout and find basic features
             initialize();
-            addCentroid();
-            addOpening();
+            addPieces();
+            currentLayout       = bestLayout;
+            centroid            = findCentroid();
+            opening             = findOpening();
+
+            // Add defenses
             addDefenses();
+
+            // Verify opening and cleanup Wall
+            opening             = findOpening();
             cleanup();
         }
 
-        void addToWall(BWAPI::TilePosition here, BWAPI::UnitType building) {
+        /// <summary> Adds a piece at the TilePosition based on the UnitType. </summary>
+        void addToWallPieces(BWAPI::TilePosition here, BWAPI::UnitType building) {
             if (building.tileWidth() >= 4)
                 largeTiles.insert(here);
             else if (building.tileWidth() >= 3)
                 mediumTiles.insert(here);
-            else if (building == BWAPI::UnitTypes::Protoss_Photon_Cannon
-                || building == BWAPI::UnitTypes::Zerg_Creep_Colony
-                || building == BWAPI::UnitTypes::Zerg_Sunken_Colony
-                || building == BWAPI::UnitTypes::Zerg_Spore_Colony)
+            else if (find(rawDefenses.begin(), rawDefenses.end(), building) != rawDefenses.end())
                 defenses.insert(here);
-            else
+            else if (building.tileWidth() >= 2)
                 smallTiles.insert(here);
         }
 
-        void draw();
-
+        /// <summary> Returns the Chokepoint associated with this Wall. </summary>
         const BWEM::ChokePoint * getChokePoint() const { return choke; }
+
+        /// <summary> Returns the Area associated with this Wall. </summary>
         const BWEM::Area * getArea() const { return area; }
 
         /// <summary> Returns the defense locations associated with this Wall. </summary>
@@ -109,6 +108,7 @@ namespace BWEB {
         /// <summary> Returns the raw vector of the defenses the wall was initialzied with. </summary>
         std::vector<BWAPI::UnitType>& getRawDefenses() { return rawDefenses; }
 
+        /// <summary> Returns true if the Wall only contains Pylons. </summary>
         bool isPylonWall() { return pylonWall; }
 
         /// <summary> Returns the number of ground defenses associated with this Wall. </summary>
@@ -116,53 +116,50 @@ namespace BWEB {
 
         /// <summary> Returns the number of air defenses associated with this Wall. </summary>
         int getAirDefenseCount();
+
+        /// <summary> Draws all the features of the Wall. </summary>
+        void draw();
     };
 
     namespace Walls {
 
-        /// <summary> Returns a map containing every BWEB::Wall keyed by BWEM::Chokepoint. </summary>
+        /// <summary> Returns a map containing every Wall keyed by Chokepoint. </summary>
         std::map<const BWEM::ChokePoint *, Wall>& getWalls();
 
-        /// <summary> <para> Returns a pointer to a BWEB::Wall if it has been created in the given BWEM::Area and BWEM::ChokePoint. </para>
-        /// <para> Note: If you only pass a BWEM::Area or a BWEM::ChokePoint (not both), it will imply and pick a BWEB::Wall that exists within that Area or blocks that BWEM::ChokePoint. </para></summary>
-        /// <param name="area"> The BWEM::Area that the BWEB::Wall resides in </param>
-        /// <param name="choke"> The BWEM::Chokepoint that the BWEB::Wall blocks </param>
+        /// <summary> <para> Returns a pointer to a Wall if it has been created in the given Area and ChokePoint. </para>
+        /// <para> Note: If you only pass a Area or a ChokePoint (not both), it will imply and pick a Wall that exists within that Area or blocks that ChokePoint. </para></summary>
+        /// <param name="area"> The Area that the Wall resides in. </param>
+        /// <param name="choke"> The Chokepoint that the Wall blocks. </param>
         Wall * getWall(const BWEM::ChokePoint *);
 
-        /// <summary> Returns the closest BWEB::Wall to the given TilePosition. </summary>
+        /// <summary> Returns the closest Wall to the given TilePosition. </summary>
         Wall * getClosestWall(BWAPI::TilePosition);
 
-        /// <summary> <para> Given a vector of UnitTypes, an Area and a Chokepoint, finds an optimal wall placement, returns a valid pointer if a BWEB::Wall was created. </para>
+        /// <summary> <para> Given a vector of UnitTypes, an Area and a Chokepoint, finds an optimal wall placement, returns a valid pointer if a Wall was created. </para>
         /// <para> Note: Highly recommend that only Terran walls attempt to be walled tight, as most Protoss and Zerg wallins have gaps to allow your units through.</para>
         /// <para> BWEB makes tight walls very differently from non tight walls and will only create a tight wall if it is completely tight. </para></summary>
-        /// <param name="buildings"> A Vector of UnitTypes that you want the BWEB::Wall to consist of. </param>
-        /// <param name="area"> The BWEM::Area that you want the BWEB::Wall to be contained within. </param>
-        /// <param name="choke"> The BWEM::Chokepoint that you want the BWEB::Wall to block. </param>
-        /// <param name="tight"> (Optional) Decides whether this BWEB::Wall intends to be walled around a specific UnitType. </param>
-        /// <param name="defenses"> (Optional) A Vector of UnitTypes that you want the BWEB::Wall to have defenses consisting of. </param>
+        /// <param name="buildings"> A Vector of UnitTypes that you want the Wall to consist of. </param>
+        /// <param name="area"> The Area that you want the Wall to be contained within. </param>
+        /// <param name="choke"> The Chokepoint that you want the Wall to block. </param>
+        /// <param name="tight"> (Optional) Decides whether this Wall intends to be walled around a specific UnitType. </param>
+        /// <param name="defenses"> (Optional) A Vector of UnitTypes that you want the Wall to have defenses consisting of. </param>
         /// <param name="openWall"> (Optional) Set as true if you want an opening in the wall for unit movement. </param>
         /// <param name="requireTight"> (Optional) Set as true if you want pixel perfect placement. </param>
         Wall * createWall(std::vector<BWAPI::UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, BWAPI::UnitType tight = BWAPI::UnitTypes::None, const std::vector<BWAPI::UnitType>& defenses ={}, bool openWall = false, bool requireTight = false);
 
-        /// <summary><para> Creates a Forge Fast Expand BWEB::Wall at the natural. </para>
-        /// <para> Places 1 Forge, 1 Gateway, 1 Pylon and 6 Cannons. </para></summary>
+        /// <summary><para> Creates a Forge Fast Expand at the natural. </para>
+        /// <para> Places 1 Forge, 1 Gateway, 1 Pylon and 10 Cannons. </para></summary>
         Wall * createFFE();
 
         /// <summary><para> Creates a "Sim City" of Zerg buildings at the natural. </para>
-        /// <para> Places 6 Sunkens, 2 Evolution Chambers and 1 Hatchery. </para>
+        /// <para> Places 10 Sunkens, 1 Evolution Chamber and 1 Hatchery. </para>
         Wall * createZSimCity();
 
         /// <summary><para> Creates a full wall of Terran buildings at the main choke. </para>
         /// <para> Places 2 Depots and 1 Barracks. </para>
         Wall * createTWall();
 
-        /// <summary> Adds a UnitType to a currently existing BWEB::Wall. </summary>
-        /// <param name="type"> The UnitType you want to place at the BWEB::Wall. </param>
-        /// <param name="area"> The BWEB::Wall you want to add to. </param>
-        /// <param name="tight"> (Optional) Decides whether this addition to the BWEB::Wall intends to be walled around a specific UnitType. Defaults to none. </param>
-        void addToWall(BWAPI::UnitType type, Wall& wall, BWAPI::UnitType tight = BWAPI::UnitTypes::None);
-
-        /// <summary> Draws all BWEB Walls. </summary>
+        /// <summary> Calls the draw function for each Wall that exists. </summary>
         void draw();
     }
 }

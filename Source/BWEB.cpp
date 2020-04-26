@@ -36,9 +36,6 @@ namespace BWEB::Map
                     double sumX = 0, sumY = 0;
                     double sumXY = 0, sumX2 = 0, sumY2 = 0;
 
-                    if (choke == naturalChoke)
-                        easyWrite("Geometry");
-
                     for (auto &geo : choke->Geometry()) {
                         if (geo.x < minX) minX = geo.x;
                         if (geo.y < minY) minY = geo.y;
@@ -51,30 +48,21 @@ namespace BWEB::Map
                         sumXY += p.x * p.y;
                         sumX2 += p.x * p.x;
                         sumY2 += p.y * p.y;
-
-                        if (choke == naturalChoke)
-                            easyWrite(to_string(p.x) + "," + to_string(p.y));
                     }
                     double xMean = sumX / double(choke->Geometry().size());
                     double yMean = sumY / double(choke->Geometry().size());
                     double denominator, slope, yInt;
-                    if ((maxY - minY) > (maxX - minX))
-                    {
+                    if ((maxY - minY) > (maxX - minX)) {
                         denominator = (sumXY - sumY * xMean);
 
                         // Handle vertical line error
-                        if (std::fabs(denominator) < 1.0) {
+                        if (std::fabs(denominator) < 16000.0) {
                             slope = 0;
                             yInt = yMean;
                         }
                         else {
                             slope = (sumY2 - sumY * yMean) / denominator;
                             yInt = yMean - slope * xMean;
-                        }
-
-                        if (choke == naturalChoke) {
-                            easyWrite("Slope: " + to_string(slope));
-                            easyWrite("yInt: " + to_string(yInt));
                         }
                     }
                     else {
@@ -98,9 +86,6 @@ namespace BWEB::Map
                     int x2 = Position(choke->Pos(choke->end2)).x;
                     int y2 = int(round(double(x2) * slope)) + int(round(yInt));
                     p2 = Position(x2, y2);
-
-                    if (choke == naturalChoke)
-                        easyWrite("Points: " + to_string(p1.x) + "," + to_string(p1.y) + "," + to_string(p2.x) + "," + to_string(p2.y));
 
                     // In case we failed
                     if (p1 == p2 || !p1.isValid() || !p2.isValid()) {
@@ -315,14 +300,14 @@ namespace BWEB::Map
                     // Draw boxes around TilePositions that are reserved or overlapping important map features
                     if (drawReserveOverlap) {
                         if (overlapGrid[x][y] >= 1)
-                            Broodwar->drawBoxMap(Position(t), Position(t) + Position(33, 33), Colors::Grey, false);
+                            Broodwar->drawBoxMap(Position(t) + Position(4, 4), Position(t) + Position(29, 29), Colors::Grey, false);
                     }
 
                     // Draw boxes around TilePositions that are used
                     if (drawUsed) {
                         const auto type = usedGrid[x][y];
                         if (type != UnitTypes::None)
-                            Broodwar->drawBoxMap(Position(t) + Position(4, 4), Position(t) + Position(29, 29), Colors::Grey, true);
+                            Broodwar->drawBoxMap(Position(t) + Position(8, 8), Position(t) + Position(25, 25), Colors::Black, true);
                     }
 
                     // Draw boxes around fully walkable TilePositions
@@ -362,7 +347,7 @@ namespace BWEB::Map
                     }
                 }
 
-                if (cnt >= 16)
+                if (cnt >= 14)
                     walkGrid[x][y] = true;
             }
         }
@@ -479,13 +464,6 @@ namespace BWEB::Map
 
     void addUsed(const TilePosition t, UnitType type)
     {
-        int larvaOffset = (type == UnitTypes::Zerg_Hatchery);
-        if (larvaOffset) {
-            for (auto x = t.x; x < t.x + type.tileWidth(); x++)
-                if (TilePosition(x, t.y + 3).isValid())
-                    usedGrid[x][t.y + 3] = UnitTypes::Zerg_Larva;
-        }
-
         for (auto x = t.x; x < t.x + type.tileWidth(); x++) {
             for (auto y = t.y; y < t.y + type.tileHeight(); y++)
                 if (TilePosition(x, y).isValid())

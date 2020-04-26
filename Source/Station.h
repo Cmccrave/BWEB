@@ -10,13 +10,16 @@ namespace BWEB {
         const BWEM::Base* base;
         std::set<BWAPI::TilePosition> defenses;
         BWAPI::Position resourceCentroid;
+        bool main, natural;
 
     public:
-        Station(BWAPI::Position newResourceCenter, std::set<BWAPI::TilePosition>& newDefenses, const BWEM::Base* newBase)
+        Station(BWAPI::Position _resourceCentroid, std::set<BWAPI::TilePosition>& _defenses, const BWEM::Base* _base, bool _main, bool _natural)
         {
-            resourceCentroid = newResourceCenter;
-            defenses = newDefenses;
-            base = newBase;
+            resourceCentroid    = _resourceCentroid;
+            defenses            = _defenses;
+            base                = _base;
+            main                = _main;
+            natural             = _natural;
         }
 
         /// <summary> Returns the central position of the resources associated with this base including geysers. </summary>
@@ -34,18 +37,21 @@ namespace BWEB {
         /// <summary> Returns the number of air defenses associated with this Station. </summary>
         int getAirDefenseCount();
 
+        /// <summary> Returns true if the Station is a main Station. </summary>
+        bool isMain() { return main; }
+
+        /// <summary> Returns true if the Station is a natural Station. </summary>
+        bool isNatural() { return natural; }
+
+        /// <summary> Draws all the features of the Station. </summary>
+        void draw();
+
         bool operator== (Station* s) {
             return base == s->getBWEMBase();
         }
     };
 
     namespace Stations {
-
-        /// <summary> Initializes the building of every BWEB::Station on the map, call it only once per game. </summary>
-        void findStations();
-
-        /// <summary> Draws all BWEB Stations. </summary>
-        void draw();
 
         /// <summary> Returns a vector containing every BWEB::Station </summary>
         std::vector<Station>& getStations();
@@ -64,5 +70,11 @@ namespace BWEB {
 
         /// <summary> Returns the closest natural BWEB::Station to the given TilePosition. </summary>
         Station * getClosestNaturalStation(BWAPI::TilePosition);
+
+        /// <summary> Initializes the building of every BWEB::Station on the map, call it only once per game. </summary>
+        void findStations();
+
+        /// <summary> Calls the draw function for each Station that exists. </summary>
+        void draw();
     }
 }

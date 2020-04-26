@@ -12,34 +12,13 @@ namespace BWEB
         struct PathCache {
             map<pair<TilePosition, TilePosition>, list<Path>::iterator> iteratorList;
             list<Path> pathCache;
+            map<const BWEM::Area*, int> notReachableThisFrame;
         };
 
         PathCache unitPathCache;
         map<function <bool(const TilePosition&)>*, PathCache> customPathCache;
 
         int maxCacheSize = 10000;
-        map<const BWEM::Area *, int> notReachableThisFrame;
-    }
-
-    void Path::createWallPath(const Position s, const Position t, bool allowLifted, double maxDist)
-    {
-        target = TilePosition(t);
-        source = TilePosition(s);
-
-        const auto isWalkable = [&](const TilePosition tile) {
-            if (!tile.isValid()
-                //|| tile.getDistance(target) > maxDist * 4
-                || Map::isReserved(tile)
-                || !Map::isWalkable(tile)
-                || (allowLifted && Map::isUsed(tile) != UnitTypes::Terran_Barracks && Map::isUsed(tile) != UnitTypes::None)
-                || (!allowLifted && Map::isUsed(tile) != UnitTypes::None && Map::isUsed(tile) != UnitTypes::Zerg_Larva))
-                return false;
-            return true;
-        };
-
-        bfsPath(s, t, isWalkable, false);
-        //if (dist > maxDist * 2)
-        //    reachable = false;
     }
 
     void Path::createUnitPath(const Position s, const Position t)
@@ -77,7 +56,7 @@ namespace BWEB
         const auto isWalkable = [&](const int x, const int y) {
             const TilePosition tile(x, y);
             if (x > width || y > height || x < 0 || y < 0)
-                return false;
+                return false;            
             if (tile == source || tile == target)
                 return true;
             if (Map::isWalkable(tile) && Map::isUsed(tile) == UnitTypes::None)
@@ -85,8 +64,9 @@ namespace BWEB
             return false;
         };
 
+        // If not reachable based on previous paths to this area
         if (target.isValid() && Map::mapBWEM.GetArea(target) && isWalkable(source.x, source.y)) {
-            auto checkReachable = notReachableThisFrame[Map::mapBWEM.GetArea(target)];
+            auto checkReachable = unitPathCache.notReachableThisFrame[Map::mapBWEM.GetArea(target)];
             if (checkReachable >= Broodwar->getFrameCount() && Broodwar->getFrameCount() > 0) {
                 reachable = false;
                 dist = DBL_MAX;
@@ -112,7 +92,7 @@ namespace BWEB
         // If not found, set destination area as unreachable for this frame
         else if (target.isValid() && Map::mapBWEM.GetArea(target)) {
             dist = DBL_MAX;
-            notReachableThisFrame[Map::mapBWEM.GetArea(target)] = Broodwar->getFrameCount();
+            unitPathCache.notReachableThisFrame[Map::mapBWEM.GetArea(target)] = Broodwar->getFrameCount();
             reachable = false;
         }
     }
@@ -238,8 +218,9 @@ namespace BWEB
             return false;
         };
 
+        // If not reachable based on previous paths to this area
         if (target.isValid() && Map::mapBWEM.GetArea(target) && isWalkable(source.x, source.y)) {
-            auto checkReachable = notReachableThisFrame[Map::mapBWEM.GetArea(target)];
+            auto checkReachable = thisCached.notReachableThisFrame[Map::mapBWEM.GetArea(target)];
             if (checkReachable >= Broodwar->getFrameCount() && Broodwar->getFrameCount() > 0) {
                 reachable = false;
                 dist = DBL_MAX;
@@ -255,17 +236,17 @@ namespace BWEB
                 current = Position(t);
                 tiles.push_back(t);
             }
+            reachable = true;
 
             // Update cache 
             thisCached.pathCache.push_front(*this);
             thisCached.iteratorList[pathPoints] = thisCached.pathCache.begin();
-            reachable = true;
         }
 
         // If not found, set destination area as unreachable for this frame
         else if (target.isValid() && Map::mapBWEM.GetArea(target)) {
             dist = DBL_MAX;
-            notReachableThisFrame[Map::mapBWEM.GetArea(target)] = Broodwar->getFrameCount();
+            thisCached.notReachableThisFrame[Map::mapBWEM.GetArea(target)] = Broodwar->getFrameCount();
             reachable = false;
         }
     }
