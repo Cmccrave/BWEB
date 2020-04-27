@@ -626,7 +626,7 @@ namespace BWEB {
             currentLayout.clear();
             typeIterator = rawBuildings.begin();
             addNextPiece(creationStart);
-        } while (Broodwar->self()->getRace() == Races::Zerg ? next_permutation(find(rawBuildings.begin(), rawBuildings.end(), UnitTypes::Zerg_Hatchery), rawBuildings.begin())
+        } while (Broodwar->self()->getRace() == Races::Zerg ? next_permutation(find(rawBuildings.begin(), rawBuildings.end(), UnitTypes::Zerg_Hatchery), rawBuildings.end())
             : next_permutation(rawBuildings.begin(), find(rawBuildings.begin(), rawBuildings.end(), UnitTypes::Protoss_Pylon)));
 
         for (auto &[tile, type] : bestLayout) {
