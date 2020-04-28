@@ -413,7 +413,7 @@ namespace BWEB {
             || !Map::isWalkable(tile)
             || (allowLifted && Map::isUsed(tile) != UnitTypes::Terran_Barracks && Map::isUsed(tile) != UnitTypes::None)
             || (!allowLifted && Map::isUsed(tile) != UnitTypes::None && Map::isUsed(tile) != UnitTypes::Zerg_Larva)
-            || (openWall && (tile).getDistance(pathEnd) > jpsDist / 32))
+            || (openWall && (tile).getDistance(pathEnd) - 64.0 > jpsDist / 32))
             return false;
         return true;
     }
