@@ -7,35 +7,54 @@ namespace BWEB {
 
     class Station
     {
-        const BWEM::Base* base;
+        const BWEM::Base* base = nullptr;
+        const BWEM::Base * partnerBase = nullptr;
+        const BWEM::ChokePoint* choke = nullptr;
+        BWAPI::Position resourceCentroid, defenseCentroid;
+        std::set<BWAPI::TilePosition> secondaryLocations;
         std::set<BWAPI::TilePosition> defenses;
-        BWAPI::Position resourceCentroid;
         bool main, natural;
+        double defenseAngle = 0.0;
+        double baseAngle = 0.0;
+        double chokeAngle = 0.0;
+
+        void initialize();
+        void findChoke();
+        void findSecondaryLocations();
+        void findDefenses();
+        void addResourceReserves();
+        void cleanup();
 
     public:
-        Station(BWAPI::Position _resourceCentroid, std::set<BWAPI::TilePosition>& _defenses, const BWEM::Base* _base, bool _main, bool _natural)
+        Station(const BWEM::Base* _base, bool _main, bool _natural)
         {
-            resourceCentroid    = _resourceCentroid;
-            defenses            = _defenses;
             base                = _base;
             main                = _main;
             natural             = _natural;
+            resourceCentroid    = BWAPI::Position(0, 0);
+            defenseCentroid     = BWAPI::Position(0, 0);
+            initialize();
+            findChoke();
+            findSecondaryLocations();
+            findDefenses();
+            addResourceReserves();
+            cleanup();
         }
 
-        /// <summary> Returns the central position of the resources associated with this base including geysers. </summary>
+        /// <summary> Returns the central position of the resources associated with this Station including geysers. </summary>
         BWAPI::Position getResourceCentroid() { return resourceCentroid; }
 
-        /// <summary> Returns the set of defense locations associated with this base. </summary>
-        std::set<BWAPI::TilePosition>& getDefenseLocations() { return defenses; }
+        /// <summary> Returns a backup base placement in case the main is blocked or a second one is desired for walling purposes. </summary>
+        std::set<BWAPI::TilePosition> getSecondaryLocations() { return secondaryLocations; }
 
-        /// <summary> Returns the BWEM base associated with this BWEB base. </summary>
-        const BWEM::Base * getBWEMBase() { return base; }
+        /// <summary> Returns the set of defense locations associated with this Station. </summary>
+        std::set<BWAPI::TilePosition>& getDefenses() { return defenses; }
 
-        /// <summary> Returns the number of ground defenses associated with this Station. </summary>
-        int getGroundDefenseCount();
+        /// <summary> Returns the BWEM Base associated with this Station. </summary>
+        const BWEM::Base * getBase() { return base; }
 
-        /// <summary> Returns the number of air defenses associated with this Station. </summary>
-        int getAirDefenseCount();
+        /// <summary> Returns the BWEM Choke that should be used for generating a Wall at. </summmary>
+        const BWEM::ChokePoint * getChokepoint() { return choke; }
 
         /// <summary> Returns true if the Station is a main Station. </summary>
         bool isMain() { return main; }
@@ -46,8 +65,14 @@ namespace BWEB {
         /// <summary> Draws all the features of the Station. </summary>
         void draw();
 
+        ///
+        double getDefenseAngle() { return defenseAngle; }
+
         bool operator== (Station* s) {
-            return base == s->getBWEMBase();
+            return s && base == s->getBase();
+        }
+        bool operator== (Station s) {
+            return base == s.getBase();
         }
     };
 
@@ -55,12 +80,6 @@ namespace BWEB {
 
         /// <summary> Returns a vector containing every BWEB::Station </summary>
         std::vector<Station>& getStations();
-
-        /// <summary> Returns a vector containing every main BWEB::Station </summary>
-        std::vector<Station>& getMainStations();
-
-        /// <summary> Returns a vector containing every natural BWEB::Station </summary>
-        std::vector<Station>& getNaturalStations();
 
         /// <summary> Returns the closest BWEB::Station to the given TilePosition. </summary>
         Station * getClosestStation(BWAPI::TilePosition);

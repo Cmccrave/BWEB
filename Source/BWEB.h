@@ -46,19 +46,13 @@ namespace BWEB::Map
 
     /// <summary> Returns true if a BWAPI::TilePosition is fully walkable. </summary>
     /// <param name="tile"> The BWAPI::TilePosition you want to check. </param>
-    bool isWalkable(BWAPI::TilePosition tile);
+    /// <param name="type"> The BWAPI::UnitType you want to path with. </param>
+    bool isWalkable(const BWAPI::TilePosition tile, BWAPI::UnitType type = BWAPI::UnitTypes::None);
 
     /// <summary> Returns true if the given BWAPI::UnitType is placeable at the given BWAPI::TilePosition. </summary>
     /// <param name="type"> The BWAPI::UnitType of the structure you want to build. </param>
     /// <param name="tile"> The BWAPI::TilePosition you want to build on. </param>
     bool isPlaceable(BWAPI::UnitType type, BWAPI::TilePosition tile);
-
-    /// <summary> Returns how many BWAPI::TilePosition are within a BWEM::Area. </summary>
-    /// <param name="area"> The BWEM::Area to check. </param>
-    /// <param name="tile"> The BWAPI::TilePosition to check. </param>
-    /// <param name="width"> Optional: the width of BWAPI::TilePositions to check. </param>
-    /// <param name="height"> Optional: the height of BWAPI::TilePositions to check. </param>
-    int tilesWithinArea(const BWEM::Area * area, BWAPI::TilePosition tile, int width = 1, int height = 1);
 
     template <class T>
     /// <summary> Returns the estimated ground distance from one Position type to another Position type. </summary>
@@ -69,59 +63,38 @@ namespace BWEB::Map
     /// Returns the closest BWAPI::Position that makes up the geometry of a BWEM::ChokePoint to another BWAPI::Position.
     BWAPI::Position getClosestChokeTile(const BWEM::ChokePoint *, BWAPI::Position);
 
-    /// Returns a set of BWAPI::TilePositions that make up the geometry of a BWEM::ChokePoint.
-    std::set<BWAPI::TilePosition> getChokeTiles(const BWEM::ChokePoint *);
-
-    /// Returns two BWAPI::Positions representing a line of best fit for a given BWEM::ChokePoint.
-    std::pair<BWAPI::Position, BWAPI::Position> lineOfBestFit(BWEM::ChokePoint const *);
-
     /// Returns two BWAPI::Positions perpendicular to a line at a given distance away in pixels.
     std::pair<BWAPI::Position, BWAPI::Position> perpendicularLine(std::pair<BWAPI::Position, BWAPI::Position>, double);
 
     /// Returns the angle of a pair of BWAPI::Point in degrees.
     template <class T>
     double getAngle(std::pair<T, T> p) {
-        auto left = p.first.x < p.second.x ? p.first : p.second;
-        auto right = left == p.first ? p.second : p.first;
-        auto dy = (double(left.y - right.y));
-        auto dx = (double(left.x - right.x));
-        return (std::abs(dx) > 1.0 ? atan(dy / dx) * 180.0 / 3.14 : 90.0);
+        auto dy = double(p.second.y - p.first.y);
+        auto dx = double(p.second.x - p.first.x);
+        return std::abs(dx) > 1.0 ? fmod(std::atan2(dy, dx) + 6.28, 6.28) : 1.57;
     }
 
-    /// <summary> Returns the closest buildable BWAPI::TilePosition for any type of structure. </summary>
-    /// <param name="type"> The BWAPI::UnitType of the structure you want to build. </param>
-    /// <param name="tile"> The BWAPI::TilePosition you want to build closest to. </param>
-    BWAPI::TilePosition getBuildPosition(BWAPI::UnitType type, BWAPI::TilePosition tile = BWAPI::Broodwar->self()->getStartLocation());
-
-    /// <summary> Returns the closest buildable BWAPI::TilePosition for a defensive structure. </summary>
-    /// <param name="type"> The BWAPI::UnitType of the structure you want to build. </param>
-    /// <param name="tile"> The BWAPI::TilePosition you want to build closest to. </param>
-    BWAPI::TilePosition getDefBuildPosition(BWAPI::UnitType type, BWAPI::TilePosition tile = BWAPI::Broodwar->self()->getStartLocation());
-
-    /// <summary> Returns the BWEM::Area of the natural expansion. </summary>
+    /// <summary> Returns the BWEM::Area of the starting natural. </summary>
     const BWEM::Area * getNaturalArea();
 
-    /// <summary> Returns the BWEM::Area of the main. </summary>
+    /// <summary> Returns the BWEM::Area of the starting main. </summary>
     const BWEM::Area * getMainArea();
 
-    /// <summary> Returns the BWEM::Chokepoint of the natural. </summary>
+    /// <summary> Returns the BWEM::Chokepoint of the starting natural. </summary>
     const BWEM::ChokePoint * getNaturalChoke();
 
-    /// <summary> Returns the BWEM::Chokepoint of the main. </summary>
+    /// <summary> Returns the BWEM::Chokepoint of the starting main. </summary>
     const BWEM::ChokePoint * getMainChoke();
 
-    /// Returns the BWAPI::TilePosition of the natural expansion.
+    /// Returns the BWAPI::TilePosition of the starting natural.
     BWAPI::TilePosition getNaturalTile();
 
-    /// Returns the BWAPI::Position of the natural expansion.
+    /// Returns the BWAPI::Position of the starting natural.
     BWAPI::Position getNaturalPosition();
 
-    /// Returns the BWAPI::TilePosition of the main.
+    /// Returns the BWAPI::TilePosition of the starting main.
     BWAPI::TilePosition getMainTile();
 
-    /// Returns the BWAPI::Position of the main.
+    /// Returns the BWAPI::Position of the starting main.
     BWAPI::Position getMainPosition();
-
-    /// Writes to the log.txt file
-    void easyWrite(std::string);
 }

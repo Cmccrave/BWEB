@@ -10,18 +10,22 @@ namespace BWEB {
         BWAPI::UnitType tightType;
         BWAPI::Position centroid;
         BWAPI::TilePosition opening, initialPathStart, initialPathEnd, pathStart, pathEnd, creationStart;
-        std::set<BWAPI::TilePosition> defenses, smallTiles, mediumTiles, largeTiles;
+        std::set<BWAPI::TilePosition> allDefenses, smallTiles, mediumTiles, largeTiles;
+        std::map<int, std::set<BWAPI::TilePosition>> defenses;
         std::set<BWAPI::Position> notableLocations;
         std::vector<BWAPI::UnitType>::iterator typeIterator;
         std::vector<BWAPI::UnitType> rawBuildings, rawDefenses;
         std::vector<const BWEM::Area *> accessibleNeighbors;
         std::map<BWAPI::TilePosition, BWAPI::UnitType> currentLayout, bestLayout;
-        const BWEM::Area * area;
-        const BWEM::ChokePoint * choke;
-        const BWEM::Base * base;
+        const BWEM::Area * area = nullptr;
+        const BWEM::ChokePoint * choke = nullptr;
+        const BWEM::Base * base = nullptr;
         double chokeAngle, bestWallScore, jpsDist;
-        bool pylonWall, openWall, requireTight, movedStart, pylonWallPiece, allowLifted, flatRamp;
-        BWEB::Station * closestStation;
+        bool valid, pylonWall, openWall, requireTight, movedStart, pylonWallPiece, allowLifted, flatRamp, angledChoke;
+        int bestDoorCount = 25;
+        int defenseAngle = 0;
+        BWEB::Station * station = nullptr;
+        Path finalPath;
 
         BWAPI::Position findCentroid();
         BWAPI::TilePosition findOpening();
@@ -29,7 +33,7 @@ namespace BWEB {
         bool powerCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
         bool angleCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
         bool placeCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
-        bool tightCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
+        bool tightCheck(const BWAPI::UnitType, const BWAPI::TilePosition, bool visual = false);
         bool spawnCheck(const BWAPI::UnitType, const BWAPI::TilePosition);
         bool wallWalkable(const BWAPI::TilePosition&);
         void initialize();
@@ -57,6 +61,7 @@ namespace BWEB {
             currentLayout       = bestLayout;
             centroid            = findCentroid();
             opening             = findOpening();
+            valid               = (getSmallTiles().size() + getMediumTiles().size() + getLargeTiles().size()) == getRawBuildings().size();
 
             // Add defenses
             addDefenses();
@@ -66,32 +71,53 @@ namespace BWEB {
             cleanup();
         }
 
+        Wall(const BWEM::Area * _area, const BWEM::ChokePoint * _choke, std::multimap<BWAPI::UnitType, BWAPI::TilePosition> _buildings) {
+            area = _area;
+            choke = _choke;
+            valid = true;
+
+            for (auto &[type, tile] : _buildings) {
+                if (type == BWAPI::UnitTypes::Zerg_Sunken_Colony) {
+                    defenses[0].insert(tile);
+                    defenses[1].insert(tile);
+                }
+                else
+                    addToWallPieces(tile, type);
+            }
+        }
+
         /// <summary> Adds a piece at the TilePosition based on the UnitType. </summary>
         void addToWallPieces(BWAPI::TilePosition here, BWAPI::UnitType building) {
             if (building.tileWidth() >= 4)
                 largeTiles.insert(here);
             else if (building.tileWidth() >= 3)
                 mediumTiles.insert(here);
-            else if (find(rawDefenses.begin(), rawDefenses.end(), building) != rawDefenses.end())
-                defenses.insert(here);
             else if (building.tileWidth() >= 2)
                 smallTiles.insert(here);
         }
 
+        /// <summary> Returns the Station this wall is close to if one exists. </summary>
+        Station * getStation() { return station; }
+
+        /// <summary> Returns the Path out if one exists. </summary>
+        Path& getPath() { return finalPath; }
+
         /// <summary> Returns the Chokepoint associated with this Wall. </summary>
-        const BWEM::ChokePoint * getChokePoint() const { return choke; }
+        const BWEM::ChokePoint * getChokePoint() { return choke; }
 
         /// <summary> Returns the Area associated with this Wall. </summary>
-        const BWEM::Area * getArea() const { return area; }
+        const BWEM::Area * getArea() { return area; }
 
         /// <summary> Returns the defense locations associated with this Wall. </summary>
-        std::set<BWAPI::TilePosition> getDefenses() const { return defenses; }
+        std::set<BWAPI::TilePosition>& getDefenses(int row = 0) {
+            return defenses[row];
+        }
 
         /// <summary> Returns the TilePosition belonging to the opening of the wall. </summary>
-        BWAPI::TilePosition getOpening() const { return opening; }
+        BWAPI::TilePosition getOpening() { return opening; }
 
         /// <summary> Returns the TilePosition belonging to the centroid of the wall pieces. </summary>
-        BWAPI::Position getCentroid() const { return centroid; }
+        BWAPI::Position getCentroid() { return centroid; }
 
         /// <summary> Returns the TilePosition belonging to large UnitType buildings. </summary>
         std::set<BWAPI::TilePosition>& getLargeTiles() { return largeTiles; }
@@ -146,6 +172,9 @@ namespace BWEB {
         /// <param name="openWall"> (Optional) Set as true if you want an opening in the wall for unit movement. </param>
         /// <param name="requireTight"> (Optional) Set as true if you want pixel perfect placement. </param>
         Wall * createWall(std::vector<BWAPI::UnitType>& buildings, const BWEM::Area * area, const BWEM::ChokePoint * choke, BWAPI::UnitType tight = BWAPI::UnitTypes::None, const std::vector<BWAPI::UnitType>& defenses ={}, bool openWall = false, bool requireTight = false);
+
+        /// I only added this to support Alchemist because it's a trash fucking map.
+        Wall* createHardWall(std::multimap<BWAPI::UnitType, BWAPI::TilePosition>&, const BWEM::Area *, const BWEM::ChokePoint *);
 
         /// <summary><para> Creates a Forge Fast Expand at the natural. </para>
         /// <para> Places 1 Forge, 1 Gateway, 1 Pylon and 10 Cannons. </para></summary>

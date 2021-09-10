@@ -5,71 +5,51 @@
 namespace BWEB {
 
     enum class Piece {
-        Small, Medium, Large, Addon, Row
+        Small, Medium, Large, Addon, Row, Space
+    };
+    enum class BlockType {
+        None, Start, Production, Proxy, Defensive
     };
 
     class Block
     {
         int w = 0, h = 0;
         BWAPI::TilePosition tile;
+        BWAPI::Position center;
         std::set <BWAPI::TilePosition> smallTiles, mediumTiles, largeTiles;
-        bool proxy = false;
-        bool defensive = false;
+        BlockType type;
     public:
         Block() : w(0), h(0) {};
 
-        Block(BWAPI::TilePosition _tile, std::vector<Piece> _pieces, bool _proxy = false, bool _defensive = false) {
-            tile        = _tile;
-            proxy       = _proxy;
-            defensive   = _defensive;
+        Block(BWAPI::TilePosition _tile, std::multimap<BWAPI::TilePosition, Piece> _pieces, int _w, int _h, BlockType _type) {
+            tile = _tile;
+            type = _type;
+            w = _w;
+            h = _h;
+            center = BWAPI::Position(tile) + BWAPI::Position(w / 2, h / w);
 
-            // Arrange pieces
-            auto rowHeight = 0;
-            auto rowWidth = 0;
-            auto here = tile;
-            for (auto &p : _pieces) {
-                if (p == Piece::Small) {
-                    smallTiles.insert(here);
-                    here += BWAPI::TilePosition(2, 0);
-                    rowWidth += 2;
-                    rowHeight = std::max(rowHeight, 2);
+            // Store pieces
+            for (auto &[placement, piece] : _pieces) {
+                if (piece == Piece::Small) {
+                    smallTiles.insert(placement);
                 }
-                if (p == Piece::Medium) {
-                    mediumTiles.insert(here);
-                    here += BWAPI::TilePosition(3, 0);
-                    rowWidth += 3;
-                    rowHeight = std::max(rowHeight, 2);
+                if (piece == Piece::Medium) {
+                    mediumTiles.insert(placement);
                 }
-                if (p == Piece::Large) {
-                    if (BWAPI::Broodwar->self()->getRace() == BWAPI::Races::Zerg && !BWAPI::Broodwar->canBuildHere(here, BWAPI::UnitTypes::Zerg_Hatchery))
-                        continue;                    
-                    largeTiles.insert(here);
-                    here += BWAPI::TilePosition(4, 0);
-                    rowWidth += 4;
-                    rowHeight = std::max(rowHeight, 3);
+                if (piece == Piece::Large) {
+                    largeTiles.insert(placement);
                 }
-                if (p == Piece::Addon) {
-                    smallTiles.insert(here + BWAPI::TilePosition(0, 1));
-                    here += BWAPI::TilePosition(2, 0);
-                    rowWidth += 2;
-                    rowHeight = std::max(rowHeight, 2);
-                }
-                if (p == Piece::Row) {                    
-                    w = std::max(w, rowWidth);
-                    h += rowHeight;
-                    rowWidth = 0;
-                    rowHeight = 0;
-                    here = tile + BWAPI::TilePosition(0, h);
+                if (piece == Piece::Addon) {
+                    smallTiles.insert(placement);
                 }
             }
-
-            // In case there is no row piece
-            w = std::max(w, rowWidth);
-            h += rowHeight;
         }
 
         /// <summary> Returns the top left TilePosition of this Block. </summary>
         BWAPI::TilePosition getTilePosition() const { return tile; }
+
+        /// <summary> Returns the center of this Block. </summary>
+        BWAPI::Position getCenter() const { return center; }
 
         /// <summary> Returns the set of TilePositions that belong to 2x2 (small) buildings. </summary>
         std::set<BWAPI::TilePosition>& getSmallTiles() { return smallTiles; }
@@ -80,11 +60,20 @@ namespace BWEB {
         /// <summary> Returns the set of TilePositions that belong to 4x3 (large) buildings. </summary>
         std::set<BWAPI::TilePosition>& getLargeTiles() { return largeTiles; }
 
+        /// <summary> Returns the set of TilePositions needed for this UnitTypes size. </summary>
+        std::set<BWAPI::TilePosition>& getPlacements(BWAPI::UnitType type) {
+            if (type.tileWidth() == 4)
+                return largeTiles;
+            if (type.tileWidth() == 3)
+                return mediumTiles;
+            return smallTiles;
+        }
+
         /// <summary> Returns true if this Block was generated for proxy usage. </summary>
-        bool isProxy() { return proxy; }
+        bool isProxy() { return type == BlockType::Proxy; }
 
         /// <summary> Returns true if this Block was generated for defensive usage. </summary>
-        bool isDefensive() { return defensive; }
+        bool isDefensive() { return type == BlockType::Defensive; }
 
         /// <summary> Returns the width of the Block in TilePositions. </summary>
         int width() { return w; }
