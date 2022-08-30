@@ -32,7 +32,7 @@ BWEB is accessed through the BWEB namespace. Map, Stations, Walls, Blocks and Pa
 - `PathFinding` provides the ability to take advantage of BWEBs blazing fast JPS to create paths.
 
 BWEB needs to be initialized after BWEM is initialized. I would suggest including the following BWEB functions in your code:
-`BWEB::onStart()`
+`BWEB::Map::onStart()`
 `BWEB::Blocks::findBlocks()`
 
 All other BWEB functions have full comments describing their use and what parameters are required or optional. GL HF!
