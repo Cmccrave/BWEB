@@ -10,18 +10,20 @@ namespace BWEB {
         const BWEM::Base* base = nullptr;
         const BWEM::Base * partnerBase = nullptr;
         const BWEM::ChokePoint* choke = nullptr;
-        BWAPI::Position resourceCentroid, defenseCentroid;
+        BWAPI::Position resourceCentroid, defenseCentroid, anglePosition;
         std::set<BWAPI::TilePosition> secondaryLocations;
         std::set<BWAPI::TilePosition> defenses;
         bool main, natural;
         double defenseAngle = 0.0;
         double baseAngle = 0.0;
         double chokeAngle = 0.0;
+        BWAPI::TilePosition mediumPosition, smallPosition;
 
         void initialize();
         void findChoke();
         void findSecondaryLocations();
         void findDefenses();
+        void findNestedDefenses();
         void addResourceReserves();
         void cleanup();
 
@@ -36,6 +38,7 @@ namespace BWEB {
             initialize();
             findChoke();
             findSecondaryLocations();
+            //findNestedDefenses();
             findDefenses();
             addResourceReserves();
             cleanup();
@@ -49,6 +52,12 @@ namespace BWEB {
 
         /// <summary> Returns the set of defense locations associated with this Station. </summary>
         std::set<BWAPI::TilePosition>& getDefenses() { return defenses; }
+
+        /// <summary> Returns a medium placement that is useful for placing first Depot/Pool
+        BWAPI::TilePosition getMediumPosition() { return mediumPosition; }
+
+        /// <summary> Returns a small placement that is useful for placing first Spire
+        BWAPI::TilePosition getSmallPosition() { return smallPosition; }
 
         /// <summary> Returns the BWEM Base associated with this Station. </summary>
         const BWEM::Base * getBase() { return base; }

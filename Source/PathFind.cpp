@@ -119,7 +119,7 @@ namespace BWEB
 
     void Path::generateJPS(function <bool(const TilePosition&)> passedWalkable)
     {
-        auto &pathPoints = make_pair(source, target);
+        auto pathPoints = make_pair(source, target);
         auto &thisCached = pathCache[&passedWalkable];
 
         if (!target.isValid()
@@ -207,7 +207,7 @@ namespace BWEB
         if (!source.isValid() || !target.isValid())
             return;
 
-        // TODO: Add caching
+        // TODO: Add caching and collision
 
         currentId++;
         if (currentId == INT_MAX)

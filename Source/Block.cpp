@@ -148,6 +148,8 @@ namespace BWEB::Blocks
             // Protoss Block pieces
             if (Broodwar->self()->getRace() == Races::Protoss) {
                 if (height == 2) {
+                    if (width == 2)
+                        pieces ={ Piece::Small };
                     if (width == 5)
                         pieces ={ Piece::Small, Piece::Medium };
                 }
@@ -208,34 +210,16 @@ namespace BWEB::Blocks
                 if (height == 2) {
                     if (width == 3)
                         pieces ={ Piece::Medium };
-                    if (width == 6)
-                        pieces ={ Piece::Medium, Piece::Medium };
-                }
-                else if (height == 4) {
-                    if (width == 3)
-                        pieces ={ Piece::Medium, Piece::Row, Piece::Medium };
-                }
-                else if (height == 6) {
-                    if (width == 3)
-                        pieces ={ Piece::Medium, Piece::Row, Piece::Medium, Piece::Row, Piece::Medium };
                 }
                 else if (height == 3) {
                     if (width == 6)
                         pieces ={ Piece::Large, Piece::Addon };
                 }
-                else if (height == 4) {
-                    if (width == 6)
-                        pieces ={ Piece::Medium, Piece::Medium, Piece::Row, Piece::Medium, Piece::Medium };
-                    if (width == 9)
-                        pieces ={ Piece::Medium, Piece::Medium, Piece::Medium, Piece::Row, Piece::Medium, Piece::Medium, Piece::Medium };
-                }
-                else if (height == 5) {
-                    if (width == 6)
-                        pieces ={ Piece::Large, Piece::Addon, Piece::Row, Piece::Medium, Piece::Medium };
-                }
                 else if (height == 6) {
                     if (width == 6)
                         pieces ={ Piece::Large, Piece::Addon, Piece::Row, Piece::Large, Piece::Addon };
+                    if (width == 10)
+                        pieces ={ Piece::Large, Piece::Large, Piece::Addon, Piece::Row, Piece::Large, Piece::Large, Piece::Addon };
                 }
             }
             return pieces;
@@ -261,7 +245,7 @@ namespace BWEB::Blocks
         bool canAddBlock(const TilePosition here, const int width, const int height, multimap<TilePosition, Piece> pieces, BlockType type)
         {
             const auto blockWalkable = [&](const TilePosition &t) {
-                return (t.x < here.x || t.x > here.x + width || t.y < here.y || t.y > here.y + height) && !blockGrid[t.x][t.y];
+                return (t.x < here.x || t.x > here.x + width || t.y < here.y || t.y > here.y + height) && !blockGrid[t.x][t.y] && !BWEB::Map::isReserved(t);
             };
 
             const auto blockExists = [&](const TilePosition &t) {
@@ -290,30 +274,31 @@ namespace BWEB::Blocks
             }
 
             // Check if a Block of specified size would overlap any bases, resources or other blocks
-            for (auto x = here.x; x < here.x + width; x++) {
-                for (auto y = here.y; y < here.y + height; y++) {
+            auto ff = (Broodwar->self()->getRace() != Races::Zerg && type != BlockType::Supply) ? 1 : 0;
+            for (auto x = here.x - ff; x < here.x + width + ff; x++) {
+                for (auto y = here.y - ff; y < here.y + height + ff; y++) {
                     const TilePosition t(x, y);
                     if (!t.isValid() || !Map::mapBWEM.GetTile(t).Buildable() || Map::isReserved(t))
                         return false;
                 }
             }
 
-            // Check if this Block would not be reachable
-            for (auto &[tile, piece] : pieces) {
-                if (piece == Piece::Large && !productionReachable(tile))
-                    return false;
-            }
+            //// Check if this Block would not be reachable
+            //for (auto &[tile, piece] : pieces) {
+            //    if (piece == Piece::Large && !productionReachable(tile))
+            //        return false;
+            //}
 
-            // Check if placing a Block here will prevent other Blocks from being reachable
-            for (auto &block : allBlocks) {
-                if (Map::mapBWEM.GetArea(block.getTilePosition()) != Map::mapBWEM.GetArea(here))
-                    continue;
+            //// Check if placing a Block here will prevent other Blocks from being reachable
+            //for (auto &block : allBlocks) {
+            //    if (Map::mapBWEM.GetArea(block.getTilePosition()) != Map::mapBWEM.GetArea(here))
+            //        continue;
 
-                for (auto &large : block.getLargeTiles()) {
-                    if (!productionReachable(large))
-                        return false;
-                }
-            }
+            //    for (auto &large : block.getLargeTiles()) {
+            //        if (!productionReachable(large))
+            //            return false;
+            //    }
+            //}
 
             // Check if placing a Block here will prevent other Stations from being reachable
             if (type != BlockType::Proxy) {
@@ -341,7 +326,7 @@ namespace BWEB::Blocks
             for (auto &[_, piece] : pieceLayout)
                 piecePerArea[area].pieces[piece]++;
 
-            // Store pieces
+            // Store pieces - extra spaces for non Zerg buildings
             for (auto &[placement, piece] : pieceLayout) {
                 if (piece == Piece::Small) {
                     BWEB::Map::addReserve(placement, 2, 2);
@@ -350,7 +335,9 @@ namespace BWEB::Blocks
                     BWEB::Map::addReserve(placement, 3, 2);
                 }
                 if (piece == Piece::Large) {
-                    BWEB::Map::addReserve(placement, 4, 3);
+                    auto tile = (Broodwar->self()->getRace() != Races::Zerg) ? (placement - TilePosition(1, 1)) : placement;
+                    auto ff = (Broodwar->self()->getRace() != Races::Zerg) ? 2 : 0;
+                    BWEB::Map::addReserve(tile, 4 + ff, 3 + ff);
                 }
                 if (piece == Piece::Addon) {
                     BWEB::Map::addReserve(placement, 2, 2);
@@ -484,14 +471,42 @@ namespace BWEB::Blocks
         {
             // Calculate distance for each tile to our natural choke, we want to place bigger blocks closer to the chokes
             multimap<double, TilePosition> tilesByPathDist;
-            for (int x = 0; x < Broodwar->mapWidth(); x++) {
-                for (int y = 0; y < Broodwar->mapHeight(); y++) {
-                    const TilePosition t(x, y);
-                    if (t.isValid() && Broodwar->isBuildable(t) && Map::mapBWEM.GetArea(t) && !Map::mapBWEM.GetArea(t)->Bases().empty()) {
-                        const auto &base = Map::mapBWEM.GetArea(t)->Bases().front();
-                        const auto dist = Position(t).getDistance(base.Center());
-                        tilesByPathDist.emplace(make_pair(dist, t));
+            multimap<double, TilePosition> inverseTilesByPathDist;
+            for (auto &station : Stations::getStations()) {
+                for (int x = 0; x < Broodwar->mapWidth(); x++) {
+                    for (int y = 0; y < Broodwar->mapHeight(); y++) {
+                        const TilePosition t(x, y);
+                        if (t.isValid() && Broodwar->isBuildable(t) && Map::mapBWEM.GetArea(t) && Map::mapBWEM.GetArea(t) == station.getBase()->GetArea()) {
+                            const auto p = Position(t) + Position(16, 16);
+                            const auto distStation = p.getDistance(station.getBase()->Center());
+                            const auto distChoke = (station.getChokepoint() && Broodwar->self()->getRace() != Races::Zerg) ? p.getDistance(Position(station.getChokepoint()->Center())) : 1.0;
+                            tilesByPathDist.emplace(make_pair(distStation + distChoke, t));
+                            if (station.isMain())
+                                inverseTilesByPathDist.emplace(make_pair(1.0 / (distChoke), t));
+                        }
                     }
+                }
+            }
+
+            // Iterate tiles looking to add supply areas far from the main chokepoint
+            map<const BWEM::Area *, TilePosition> firstPerArea;
+            for (auto &[v, tile] : inverseTilesByPathDist) {
+                auto area = Map::mapBWEM.GetArea(tile);
+                if (!area)
+                    continue;
+
+                auto supplyWidth = Broodwar->self()->getRace() == Races::Protoss ? 2 : 3;
+                if (firstPerArea.find(area) != firstPerArea.end() && (tile.x % supplyWidth != firstPerArea[area].x % supplyWidth || tile.y % 2 != firstPerArea[area].y % 2))
+                    continue;
+
+                const vector<TilePosition> layout ={ tile };
+                const vector<Piece> pieces =  { Broodwar->self()->getRace() == Races::Protoss ? Piece::Small : Piece::Medium };
+                multimap<TilePosition, Piece> pieceLayout = generatePieceLayout(pieces, layout);
+                if (canAddBlock(tile, supplyWidth, 2, pieceLayout, BlockType::Supply)) {
+                    createBlock(tile, pieceLayout, supplyWidth, 2, BlockType::Supply);
+                    firstPerArea[area] = tile;
+                    if (piecePerArea[area].pieces[Piece::Small] >= 20 || piecePerArea[area].pieces[Piece::Medium] >= 20)
+                        break;
                 }
             }
 
@@ -508,7 +523,6 @@ namespace BWEB::Blocks
                     const auto mediumCount = countPieces(pieces, Piece::Medium);
                     const auto largeCount = countPieces(pieces, Piece::Large);
 
-                    int cnt = 0;
                     for (auto &[v, tile] : tilesByPathDist) {
 
                         auto area = Map::mapBWEM.GetArea(tile);
@@ -521,19 +535,25 @@ namespace BWEB::Blocks
                                 continue;
                             if (mediumCount > 0 && piecePerArea[area].pieces[Piece::Medium] >= 9)
                                 continue;
+                            if (smallCount > 0 && mediumCount == 0 && largeCount == 0)
+                                continue;
+                            if (largeCount > 0 && piecePerArea[area].pieces[Piece::Large] >= 12)
+                                continue;
                         }
 
                         // Zerg tech placement is limited by creep with adjacent hatchery
                         if (Broodwar->self()->getRace() == Races::Zerg) {
                             if (mediumCount + smallCount > 0/* && largeCount == 0*/)
                                 continue;
-                            if (piecePerArea[area].pieces[Piece::Large] + largeCount >= 4)
+                            if (piecePerArea[area].pieces[Piece::Large] + largeCount >= 6)
                                 continue;
                         }
 
-                        // Terran only need about 20 depot spots
+                        // Terran only need about 20 depot spots and 8 production spots
                         if (Broodwar->self()->getRace() == Races::Terran) {
-                            if (mediumCount > 0 && piecePerArea[area].pieces[Piece::Medium] >= 20)
+                            if (mediumCount > 0)
+                                continue;
+                            if (largeCount > 0 && piecePerArea[area].pieces[Piece::Large] >= 8)
                                 continue;
                         }
 
@@ -646,7 +666,7 @@ namespace BWEB::Blocks
 
     void eraseBlock(const TilePosition here)
     {
-        for (auto &it = allBlocks.begin(); it != allBlocks.end(); ++it) {
+        for (auto it = allBlocks.begin(); it != allBlocks.end(); ++it) {
             auto &block = *it;
             if (here.x >= block.getTilePosition().x && here.x < block.getTilePosition().x + block.width() && here.y >= block.getTilePosition().y && here.y < block.getTilePosition().y + block.height()) {
                 allBlocks.erase(it);
@@ -662,20 +682,13 @@ namespace BWEB::Blocks
         findMainStartBlocks();
         findProxyBlock();
         findProductionBlocks();
+        Pathfinding::clearCacheFully();
     }
 
     void draw()
     {
         for (auto &block : allBlocks)
             block.draw();
-        //for (int x = 0; x < Broodwar->mapWidth(); x++) {
-        //    for (int y = 0; y < Broodwar->mapHeight(); y++) {
-        //        if (testGrid[x][y])
-        //            //Broodwar->drawBoxMap(Position(TilePosition(x, y)), Position(TilePosition(x, y)) + Position(32, 32), Colors::Cyan);
-        //            Broodwar->drawTextMap(Position(TilePosition(x, y)), "%d", testGrid[x][y]);
-        //    }
-        //}
-
     }
 
     vector<Block>& getBlocks() {

@@ -8,7 +8,7 @@ namespace BWEB {
         Small, Medium, Large, Addon, Row, Space
     };
     enum class BlockType {
-        None, Start, Production, Proxy, Defensive
+        None, Start, Production, Proxy, Defensive, Supply
     };
 
     class Block
@@ -17,7 +17,7 @@ namespace BWEB {
         BWAPI::TilePosition tile;
         BWAPI::Position center;
         std::set <BWAPI::TilePosition> smallTiles, mediumTiles, largeTiles;
-        BlockType type;
+        BlockType type = BlockType::None;
     public:
         Block() : w(0), h(0) {};
 

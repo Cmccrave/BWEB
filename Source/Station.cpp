@@ -9,25 +9,32 @@ namespace BWEB {
         vector<Station> stations;
         vector<const BWEM::Base *> mainBases;
         vector<const BWEM::Base *> natBases;
+        vector<const BWEM::ChokePoint*> mainChokes;
+        vector<const BWEM::ChokePoint*> natChokes;
+        map<const BWEM::Mineral *, vector<TilePosition>> testTiles;
+        vector<BWEB::Path> testPaths;
+        UnitType defenseType;
     }
 
     void Station::addResourceReserves()
     {
-        const auto addReserve = [&](Unit resource) {
-            TilePosition start(resource->getPosition());
+        const auto addReserve = [&](Unit resource, TilePosition start) {
             vector<TilePosition> directions{ {1,0}, {-1,0}, {0, 1}, {0,-1} };
-            auto end = (base->Center() * 5 / 6) + (resourceCentroid / 6);
+            auto diff = (base->Center() - resourceCentroid);
+            auto end = resource->getType().isMineralField() ? base->Center() + (diff / 4) : base->Center() - (diff / 4);
 
-            // Get the starting tile
-            auto distClosest = DBL_MAX;
-            for (int x = resource->getTilePosition().x; x < resource->getTilePosition().x + resource->getType().tileWidth(); x++) {
-                for (int y = resource->getTilePosition().y; y < resource->getTilePosition().y + resource->getType().tileHeight(); y++) {
-                    auto tile = TilePosition(x, y);
-                    auto center = Position(tile) + Position(16, 16);
-                    auto dist = center.getDistance(resourceCentroid);
-                    if (dist < distClosest) {
-                        start = tile;
-                        distClosest = dist;
+            // Get the starting tile for a geyser
+            if (resource->getType().isRefinery()) {
+                auto distClosest = resource->getType().isMineralField() ? 0.0 : DBL_MAX;
+                for (int x = resource->getTilePosition().x; x < resource->getTilePosition().x + resource->getType().tileWidth(); x++) {
+                    for (int y = resource->getTilePosition().y; y < resource->getTilePosition().y + resource->getType().tileHeight(); y++) {
+                        auto tile = TilePosition(x, y);
+                        auto center = Position(tile) + Position(16, 16);
+                        auto dist = center.getDistance(resourceCentroid);
+                        if (resource->getType().isMineralField() ? dist > distClosest : dist < distClosest) {
+                            start = tile;
+                            distClosest = dist;
+                        }
                     }
                 }
             }
@@ -52,16 +59,6 @@ namespace BWEB {
 
                 if (next.isValid()) {
                     Map::addReserve(next, 1, 1);
-
-                    // Remove any defenses in the way of a geyser
-                    if (!resource->getType().isMineralField()) {
-                        for (auto &def : defenses) {
-                            if (next.x >= def.x && next.x < def.x + 2 && next.y >= def.y && next.y < def.y + 2) {
-                                defenses.erase(def);
-                                break;
-                            }
-                        }
-                    }
                 }
             }
         };
@@ -69,11 +66,12 @@ namespace BWEB {
         // Add reserved tiles
         for (auto &m : base->Minerals()) {
             Map::addReserve(m->TopLeft(), 2, 1);
-            addReserve(m->Unit());
+            addReserve(m->Unit(), m->Unit()->getTilePosition());
+            addReserve(m->Unit(), m->Unit()->getTilePosition() + TilePosition(1, 0));
         }
         for (auto &g : base->Geysers()) {
             Map::addReserve(g->TopLeft(), 4, 2);
-            addReserve(g->Unit());
+            addReserve(g->Unit(), g->Unit()->getTilePosition());
         }
     }
 
@@ -99,18 +97,25 @@ namespace BWEB {
         if (cnt > 0)
             resourceCentroid = resourceCentroid / cnt;
         Map::addUsed(base->Location(), Broodwar->self()->getRace().getResourceDepot());
+
+        if (Broodwar->self()->getRace() == Races::Protoss)
+            defenseType = UnitTypes::Protoss_Photon_Cannon;
+        if (Broodwar->self()->getRace() == Races::Terran)
+            defenseType = UnitTypes::Terran_Missile_Turret;
+        if (Broodwar->self()->getRace() == Races::Zerg)
+            defenseType = UnitTypes::Zerg_Creep_Colony;
     }
 
     void Station::findChoke()
     {
         // Only find a Chokepoint for mains or naturals
-        if (!main && !natural)
+        if (!main && !natural && base->GetArea()->ChokePoints().size() > 1)
             return;
 
         // Get closest partner base
         auto distBest = DBL_MAX;
         for (auto &potentialPartner : (main ? natBases : mainBases)) {
-            auto dist = potentialPartner->Center().getDistance(base->Center());
+            auto dist = Map::getGroundDistance(potentialPartner->Center(), base->Center());
             if (dist < distBest) {
                 partnerBase = potentialPartner;
                 distBest = dist;
@@ -119,14 +124,18 @@ namespace BWEB {
         if (!partnerBase)
             return;
 
-
-        if (main && !Map::mapBWEM.GetPath(partnerBase->Center(), base->Center()).empty()) {
-            choke = Map::mapBWEM.GetPath(partnerBase->Center(), base->Center()).front();
+        // Get partner choke
+        const BWEM::ChokePoint * partnerChoke = nullptr;
+        if (!Map::mapBWEM.GetPath(partnerBase->Center(), base->Center()).empty()) {
+            partnerChoke = Map::mapBWEM.GetPath(partnerBase->Center(), base->Center()).front();
 
             // Partner only has one chokepoint means we have a shared choke with this path
             if (partnerBase->GetArea()->ChokePoints().size() == 1)
-                choke = Map::mapBWEM.GetPath(partnerBase->Center(), base->Center()).back();
+                partnerChoke = Map::mapBWEM.GetPath(partnerBase->Center(), base->Center()).back();
         }
+
+        if (main && partnerChoke)
+            choke = partnerChoke;
 
         else {
 
@@ -165,8 +174,8 @@ namespace BWEB {
 
             distBest = DBL_MAX;
             for (auto &c : base->GetArea()->ChokePoints()) {
-                if (c->Center() == BWEB::Map::getMainChoke()->Center()
-                    || c->Blocked()
+                if (c->Blocked()
+                    || find(mainChokes.begin(), mainChokes.end(), c) != mainChokes.end()
                     || c->Geometry().size() <= 3
                     || (c->GetAreas().first != second && c->GetAreas().second != second))
                     continue;
@@ -181,13 +190,123 @@ namespace BWEB {
 
         if (choke && !main)
             defenseCentroid = Position(choke->Center());
+        if (choke)
+            main ? mainChokes.push_back(choke) : natChokes.push_back(choke);
 
+        // Create angles that dictate a lot about how the station is formed
+        if (choke) {
+            anglePosition = Position(choke->Center()) + Position(4, 4);
+            auto dist = min(640.0, getBase()->Center().getDistance(anglePosition));
+            if (main) {
+                BWEB::Path newPath(getBase()->Center(), anglePosition, UnitTypes::Protoss_Dragoon, true, false);
+                newPath.generateBFS([&](auto &t) { return newPath.terrainWalkable(t); });
+                for (auto &tile : newPath.getTiles()) {
+                    auto center = Position(tile) + Position(16, 16);
+                    if (center.getDistance(getBase()->Center()) > 320.0) {
+                        anglePosition = center;
+                        break;
+                    }
+                }
+            }
+
+            baseAngle = Map::getAngle(make_pair(getBase()->Center(), anglePosition));
+            chokeAngle = Map::getAngle(make_pair(Position(choke->Pos(choke->end1)), Position(choke->Pos(choke->end2))));
+            defenseAngle = max(0.0, (baseAngle  * (dist / 640.0)) + (chokeAngle * (640.0 - dist) / 640.0));
+        }
     }
 
     void Station::findSecondaryLocations()
     {
         if (Broodwar->self()->getRace() != Races::Zerg)
             return;
+
+        vector<pair<TilePosition, TilePosition>> tryOrder;
+
+        // Determine some standard positions
+        auto mineralsLeft = resourceCentroid.x < base->Center().x;
+        for (auto &geyser : base->Geysers()) {
+
+            // Geyser west of hatchery
+            if (geyser->TopLeft() == base->Location() + TilePosition(-7, 1)) {
+
+                // North
+                if (baseAngle < 2.355 && baseAngle >= 0.785) {
+                    tryOrder ={
+                    { base->Location() + TilePosition(-3, -2), base->Location() + TilePosition(-5, -1) }
+                    };
+                }
+            }
+
+            // Geyser north of hatchery
+            if (geyser->TopLeft() == base->Location() + TilePosition(0, -5)) {
+
+                // North
+                if (baseAngle < 2.355 && baseAngle >= 0.785) {
+                    if (mineralsLeft) {
+                        tryOrder ={
+                        { base->Location() + TilePosition(-3, -4), base->Location() + TilePosition(4, -4) },
+                        { base->Location() + TilePosition(4, -4), base->Location() + TilePosition(-2, -4) }
+                        };
+                    }
+                    else {
+                        tryOrder ={
+                        { base->Location() + TilePosition(4, -4), base->Location() + TilePosition(-2, -4) },
+                        { base->Location() + TilePosition(-3, -4), base->Location() + TilePosition(4, -4) }
+                        };
+                    }
+                }
+
+                // West
+                else if (baseAngle < 3.925 && baseAngle >= 2.355) {
+                    if (mineralsLeft) {
+
+                    }
+                    else {
+                        tryOrder ={
+                        { base->Location() + TilePosition(-3, -4), base->Location() + TilePosition(-2, -2) }
+                        };
+                    }
+                }
+
+                // South
+                else if (baseAngle < 5.495 && baseAngle >= 3.925) {
+                    if (mineralsLeft) {
+                        tryOrder ={
+                        { base->Location() + TilePosition(-3, 5), base->Location() + TilePosition(0, 3) },
+                        { base->Location() + TilePosition(-2, 5), base->Location() + TilePosition(0, 3) }
+                        };
+                    }
+                    else {
+                        tryOrder ={
+                        { base->Location() + TilePosition(4, 5), base->Location() + TilePosition(2, 3) },
+                        { base->Location() + TilePosition(3, 5), base->Location() + TilePosition(1, 3) },
+                        { base->Location() + TilePosition(2, 5), base->Location() + TilePosition(1, 3) },
+                        { base->Location() + TilePosition(1, 5), base->Location() + TilePosition(1, 3) }
+                        };
+                    }
+                }
+
+                else {
+                    if (mineralsLeft) {
+                        tryOrder ={
+                        { base->Location() + TilePosition(4, -4), base->Location() + TilePosition(4, -2) }
+                        };
+                    }
+                }
+            }
+
+            // For each pair, we try to place the best positions first
+            for (auto &[medium, small] : tryOrder) {
+                if (Map::isPlaceable(UnitTypes::Zerg_Spawning_Pool, medium) && Map::isPlaceable(UnitTypes::Zerg_Spire, small)) {
+                    mediumPosition = medium;
+                    smallPosition = small;
+                    Map::addUsed(smallPosition, UnitTypes::Zerg_Spire);
+                    Map::addUsed(mediumPosition, UnitTypes::Zerg_Spawning_Pool);
+                    break;
+                }
+            }
+            tryOrder.clear();
+        }
 
         auto cnt = 0;
         if (main)
@@ -217,29 +336,100 @@ namespace BWEB {
         }
     }
 
+    void Station::findNestedDefenses()
+    {
+        vector<TilePosition> placements;
+        for (auto &mineral : base->Minerals()) {
+            vector<TilePosition>& tiles = testTiles[mineral];
+
+            for (int x = -2; x < 3; x++) {
+                for (int y = -2; y < 2; y++) {
+                    auto tile = mineral->TopLeft() + TilePosition(x, y);
+                    auto pos = Position(tile) + Position(16, 16);
+                    if (tile.isValid() && find(placements.begin(), placements.end(), tile) == placements.end() && pos.getDistance(base->Center()) < mineral->Pos().getDistance(base->Center()))
+                        placements.push_back(tile);
+                }
+            }
+
+            for (int x = -1; x < 3; x++) {
+                for (int y = -1; y < 2; y++) {
+                    auto tile = mineral->TopLeft() + TilePosition(x, y);
+                    if (tile.isValid() && find(tiles.begin(), tiles.end(), tile) == tiles.end())
+                        tiles.push_back(tile);
+                }
+            }
+
+            // Sort tiles by closest to base
+            sort(tiles.begin(), tiles.end(), [&](auto &l, auto &r) {
+                auto pl = Position(l) + Position(16, 16);
+                auto pr = Position(r) + Position(16, 16);
+                return pl.getDistance(base->Center()) < pr.getDistance(base->Center());
+            });
+
+            // Resize to 3
+            tiles.resize(3);
+
+            // Narrow down to only walkable
+            tiles.erase(remove_if(tiles.begin(), tiles.end(), [&](auto &t) {
+                return BWEB::Map::isUsed(t).isMineralField();
+            }), tiles.end());
+        }
+
+        if (choke) {
+            auto chokeCenter = Position(choke->Center());
+            sort(placements.begin(), placements.end(), [&](auto &l, auto &r) {
+                auto pl = Position(l) + Position(16, 16);
+                auto pr = Position(r) + Position(16, 16);
+                return pl.getDistance(chokeCenter) < pr.getDistance(chokeCenter);
+            });
+        }
+
+        // Iterate all placements and verify that each mineral has a guaranteed reasonable path to the hatchery
+        for (auto &placement : placements) {
+            if (BWEB::Map::isPlaceable(defenseType, placement)) {
+                auto buildable = true;
+                auto pathable = true;
+                Map::addUsed(placement, defenseType);
+                for (auto &mineral : base->Minerals()) {
+                    vector<TilePosition>& tiles = testTiles[mineral];
+                    auto count = count_if(tiles.begin(), tiles.end(), [&](auto &t) {
+                        return t.x >= placement.x && t.x < placement.x + 2 && t.y >= placement.y && t.y < placement.y + 2;
+                    });
+                    if (count >= int(tiles.size())) {
+                        buildable = false;
+                    }
+
+                    count = 0;
+                    for (auto &tile : tiles) {
+                        BWEB::Path newPath(base->Center(), Position(tile) + Position(16, 16), UnitTypes::Zerg_Drone, false, false);
+                        newPath.generateBFS([&](auto &t) { return newPath.unitWalkable(t) || BWEB::Map::isUsed(t).isResourceDepot(); });
+                        if (newPath.isReachable() && newPath.getDistance() < 320.0) {
+                            count++;
+                            break;
+                        }
+                    }
+                    BWEB::Pathfinding::clearCacheFully();
+                    if (count == 0)
+                        pathable = false;
+                }
+
+                Map::removeUsed(placement, 2, 2);
+                if (buildable && pathable) {
+                    defenses.insert(placement);
+                    Map::addUsed(placement, defenseType);
+                }
+            }
+        }
+    }
+
     void Station::findDefenses()
     {
         vector<TilePosition> basePlacements;
         vector<TilePosition> geyserPlacements ={ {-2, -2}, {-2, 0}, {-2, 2}, {0, -2}, {0, 2}, {2, -2}, {2, 2}, {4, -2}, {4, 0}, {4, 2} };
         auto here = base->Location();
-        auto defenseType = UnitTypes::None;
-        if (Broodwar->self()->getRace() == Races::Protoss)
-            defenseType = UnitTypes::Protoss_Photon_Cannon;
-        if (Broodwar->self()->getRace() == Races::Terran)
-            defenseType = UnitTypes::Terran_Missile_Turret;
-        if (Broodwar->self()->getRace() == Races::Zerg)
-            defenseType = UnitTypes::Zerg_Creep_Colony;
 
         // Get angle of chokepoint
         if (choke && base && (main || natural)) {
-            auto dist = min(480.0, getBase()->Center().getDistance(Position(choke->Center())));
-            baseAngle = fmod(Map::getAngle(make_pair(getBase()->Center(), Position(choke->Center()) + Position(4, 4))), 3.14);
-            chokeAngle = fmod(Map::getAngle(make_pair(Position(choke->Pos(choke->end1)), Position(choke->Pos(choke->end2)))), 3.14);
-
-            auto diff = baseAngle - chokeAngle;
-            diff > 0.7 ? baseAngle -= 1.57 : baseAngle += 1.57;
-            defenseAngle = max(0.0, (baseAngle  * (dist / 480.0)) + (chokeAngle * (480.0 - dist) / 480.0));
-
             if (base->GetArea()->ChokePoints().size() >= 3) {
                 const BWEM::ChokePoint * validSecondChoke = nullptr;
                 for (auto &otherChoke : base->GetArea()->ChokePoints()) {
@@ -260,9 +450,9 @@ namespace BWEB {
             defenseAngle = fmod(Map::getAngle(make_pair(Position(getBase()->Center()), defenseCentroid)), 3.14) + 1.57;
         }
 
-        // Round to nearest pi/8 rads
-        auto nearestEight = int(round(defenseAngle / 0.3926991));
-        auto angle = nearestEight % 8;
+        // Round to nearest pi/4 rads
+        auto nearestFourth = int(round(defenseAngle / 0.785));
+        auto angle = nearestFourth % 4;
 
         // Generate defenses
         if (main)
@@ -270,13 +460,13 @@ namespace BWEB {
         else {
             if (angle == 0)
                 basePlacements ={ {-2, 2}, {-2, 0}, {-2, -2}, {0, 3}, {0, -2}, {2, -2}, {4, -2}, {4, 0}, {4, 2} };   // 0/8                
-            if (angle == 1 || angle == 7)
-                basePlacements ={ {-2, 3}, {-2, 1}, {-2, -1}, {0, -2}, {1, 3}, {2, -2}, {4, -1}, {4, 1}, };  // pi/8                
-            if (angle == 2 || angle == 6)
+            //if (angle == 1 || angle == 7)
+            //    basePlacements ={ {-2, 3}, {-2, 1}, {-2, -1}, {0, -2}, {1, 3}, {2, -2}, {4, -1}, {4, 1}, };  // pi/8                
+            if (angle == 1 || angle == 3)
                 basePlacements ={ {-2, 2}, {-2, 0}, {0, 3}, {0, -2}, {2, -2}, {4, -2}, {4, 0} };   // pi/4                
-            if (angle == 3 || angle == 5)
-                basePlacements ={ {-2, 2}, {-2, 0}, {-1, -2}, {0, 3}, {1, -2}, {2, 3}, {3, -2}, {4, 0} };  // 3pi/8                
-            if (angle == 4)
+            //if (angle == 3 || angle == 5)
+            //    basePlacements ={ {-2, 2}, {-2, 0}, {-1, -2}, {0, 3}, {1, -2}, {2, 3}, {3, -2}, {4, 0} };  // 3pi/8                
+            if (angle == 2)
                 basePlacements ={ {-2, 2}, {-2, 0}, {-2, -2}, {0, 3}, {0, -2}, {2, 3}, {2, -2}, {4, 3}, {4, -2} };   // pi/2
         }
 
@@ -306,20 +496,16 @@ namespace BWEB {
             }
         }
 
-        // Add geyser defenses
-        if (main) {
-            for (auto &geyser : base->Geysers()) {
-                for (auto &placement : geyserPlacements) {
-                    auto tile = geyser->TopLeft() + placement;
-                    auto center = Position(tile) + Position(16, 16);
-                    if (center.getDistance(base->Center()) > geyser->Pos().getDistance(base->Center()) && Map::isPlaceable(defenseType, tile)) {
-                        defenses.insert(tile);
-                        Map::addUsed(tile, defenseType);
-                    }
+        // Try to fit more defenses with secondary positions
+        for (auto secondary : secondaryLocations) {
+            for (auto placement : basePlacements) {
+                auto tile = secondary + placement;
+                if (Map::isPlaceable(defenseType, tile)) {
+                    defenses.insert(tile);
+                    Map::addUsed(tile, defenseType);
                 }
             }
         }
-
     }
 
     void Station::draw()
@@ -355,20 +541,26 @@ namespace BWEB {
             }
 
             Broodwar->drawLineMap(Position(choke->Pos(choke->end1)), Position(choke->Pos(choke->end2)), Colors::Grey);
-            Broodwar->drawLineMap(base->Center(), Position(choke->Center()), Colors::Grey);
+            Broodwar->drawLineMap(base->Center(), anglePosition, Colors::Grey);
         }
 
         // Label angle
-        Broodwar->drawTextMap(base->Center() - Position(0, 16), "%c%.2f", Text::White, baseAngle);
-        Broodwar->drawTextMap(base->Center(), "%c%.2f", Text::White, chokeAngle);
-        Broodwar->drawTextMap(base->Center() + Position(0, 16), "%c%.2f", Text::White, defenseAngle);
+        Broodwar->drawTextMap(base->Center() - Position(0, 16), "BA: %c%.2f", Text::White, baseAngle);
+        Broodwar->drawTextMap(base->Center(), "CA: %c%.2f", Text::White, chokeAngle);
+        Broodwar->drawTextMap(base->Center() + Position(0, 16), "DA: %c%.2f", Text::White, defenseAngle);
 
         Broodwar->drawBoxMap(Position(base->Location()), Position(base->Location()) + Position(129, 97), color);
         Broodwar->drawTextMap(Position(base->Location()) + Position(4, 84), "%cS", textColor);
+
+        // Draw secondary locations
         for (auto &location : secondaryLocations) {
             Broodwar->drawBoxMap(Position(location), Position(location) + Position(129, 97), color);
             Broodwar->drawTextMap(Position(location) + Position(4, 84), "%cS", textColor);
         }
+        Broodwar->drawBoxMap(Position(mediumPosition), Position(mediumPosition) + Position(97, 65), color);
+        Broodwar->drawTextMap(Position(mediumPosition) + Position(4, 52), "%cS", textColor);
+        Broodwar->drawBoxMap(Position(smallPosition), Position(smallPosition) + Position(65, 65), color);
+        Broodwar->drawTextMap(Position(smallPosition) + Position(4, 52), "%cS", textColor);
     }
 
     void Station::cleanup()
@@ -385,9 +577,13 @@ namespace BWEB {
             Map::addReserve(tile, 4, 3);
         }
 
-        // Remove used on main location
+        // Remove used on base location
         Map::removeUsed(getBase()->Location(), 4, 3);
         Map::addReserve(getBase()->Location(), 4, 3);
+        Map::removeUsed(mediumPosition, 3, 2);
+        Map::addReserve(mediumPosition, 3, 2);
+        Map::removeUsed(smallPosition, 2, 2);
+        Map::addReserve(smallPosition, 2, 2);
     }
 }
 
@@ -403,11 +599,12 @@ namespace BWEB::Stations {
             }
         }
 
-        // Find all natural bases        
+        // Find all natural bases
         for (auto &main : mainBases) {
 
             const BWEM::Base * baseBest = nullptr;
             auto distBest = DBL_MAX;
+
             for (auto &area : Map::mapBWEM.Areas()) {
                 for (auto &base : area.Bases()) {
 
@@ -419,7 +616,7 @@ namespace BWEB::Stations {
                         continue;
 
                     const auto dist = Map::getGroundDistance(base.Center(), main->Center());
-                    if (dist < distBest) {
+                    if (dist < distBest && dist < 1600.0) {
                         distBest = dist;
                         baseBest = &base;
                     }
@@ -429,17 +626,47 @@ namespace BWEB::Stations {
             // Store any natural we found
             if (baseBest)
                 natBases.push_back(baseBest);
+
+            // Refuse to not have a natural for each main, try again but less strict
+            else {
+                for (auto &area : Map::mapBWEM.Areas()) {
+                    for (auto &base : area.Bases()) {
+                        if (base.Starting())
+                            continue;
+
+                        const auto dist = Map::getGroundDistance(main->Center(), base.Center());
+                        if (dist < distBest) {
+                            distBest = dist;
+                            baseBest = &base;
+                        }
+                    }
+                }
+
+                // Store any natural we found
+                if (baseBest)
+                    natBases.push_back(baseBest);
+            }
         }
 
-        // Create Stations
+        // Create main stations
+        for (auto &main : mainBases) {
+            Station newStation(main, true, false);
+            stations.push_back(newStation);
+        }
+
+        // Create natural stations
+        for (auto &nat : natBases) {
+            Station newStation(nat, false, true);
+            stations.push_back(newStation);
+        }
+
+        // Create remaining stations
         for (auto &area : Map::mapBWEM.Areas()) {
             for (auto &base : area.Bases()) {
+                if (find(natBases.begin(), natBases.end(), &base) != natBases.end() || find(mainBases.begin(), mainBases.end(), &base) != mainBases.end())
+                    continue;
 
-                auto isMain = find(mainBases.begin(), mainBases.end(), &base) != mainBases.end();
-                auto isNatural = find(natBases.begin(), natBases.end(), &base) != natBases.end();
-
-                // Add to our station lists
-                Station newStation(&base, isMain, isNatural);
+                Station newStation(&base, false, false);
                 stations.push_back(newStation);
             }
         }
