@@ -480,6 +480,8 @@ namespace BWEB::Map
         return make_pair(direction1, direction2);
     }
 
+    const BWEB::Station * getNaturalStation() { return natStation; }
+    const BWEB::Station * getMainStation() { return mainStation; }
     const BWEM::Area * getNaturalArea() { return natStation->getBase()->GetArea(); }
     const BWEM::Area * getMainArea() { return mainStation->getBase()->GetArea(); }
     const BWEM::ChokePoint * getNaturalChoke() { return natStation->getChokepoint(); }

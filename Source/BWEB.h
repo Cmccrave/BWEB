@@ -72,6 +72,12 @@ namespace BWEB::Map
         auto dx = double(p.second.x - p.first.x);
         return std::abs(dx) > 1.0 ? fmod(std::atan2(-dy, dx) + 6.18, 6.18) : 1.57;
     }
+    
+    // <summary> Returns the BWEB::Station of the starting natural. </summary>
+    const BWEB::Station * getNaturalStation();
+    
+    // <summary> Returns the BWEB::Station of the starting main. </summary>
+    const BWEB::Station * getMainStation();
 
     /// <summary> Returns the BWEM::Area of the starting natural. </summary>
     const BWEM::Area * getNaturalArea();
