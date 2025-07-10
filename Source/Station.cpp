@@ -508,7 +508,7 @@ namespace BWEB {
         }
     }
 
-    void Station::draw()
+    void Station::draw() const
     {
         int color = Broodwar->self()->getColor();
         int textColor = color == 185 ? textColor = Text::DarkGreen : Broodwar->self()->getTextColor();

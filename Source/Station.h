@@ -72,7 +72,7 @@ namespace BWEB {
         bool isNatural() { return natural; }
 
         /// <summary> Draws all the features of the Station. </summary>
-        void draw();
+        void draw() const;
 
         ///
         double getDefenseAngle() { return defenseAngle; }
