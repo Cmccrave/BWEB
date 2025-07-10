@@ -51,7 +51,7 @@ namespace BWEB {
         std::set<BWAPI::TilePosition> getSecondaryLocations() const { return secondaryLocations; }
 
         /// <summary> Returns the set of defense locations associated with this Station. </summary>
-        std::set<BWAPI::TilePosition>& getDefenses() { return defenses; }
+        const std::set<BWAPI::TilePosition>& getDefenses() const { return defenses; }
 
         /// <summary> Returns a medium placement that is useful for placing first Depot/Pool
         BWAPI::TilePosition getMediumPosition() const { return mediumPosition; }
