@@ -45,31 +45,31 @@ namespace BWEB {
         }
 
         /// <summary> Returns the central position of the resources associated with this Station including geysers. </summary>
-        BWAPI::Position getResourceCentroid() { return resourceCentroid; }
+        BWAPI::Position getResourceCentroid() const { return resourceCentroid; }
 
         /// <summary> Returns a backup base placement in case the main is blocked or a second one is desired for walling purposes. </summary>
-        std::set<BWAPI::TilePosition> getSecondaryLocations() { return secondaryLocations; }
+        std::set<BWAPI::TilePosition> getSecondaryLocations() const { return secondaryLocations; }
 
         /// <summary> Returns the set of defense locations associated with this Station. </summary>
-        std::set<BWAPI::TilePosition>& getDefenses() { return defenses; }
+        std::set<BWAPI::TilePosition>& getDefenses() const { return defenses; }
 
         /// <summary> Returns a medium placement that is useful for placing first Depot/Pool
-        BWAPI::TilePosition getMediumPosition() { return mediumPosition; }
+        BWAPI::TilePosition getMediumPosition() const { return mediumPosition; }
 
         /// <summary> Returns a small placement that is useful for placing first Spire
-        BWAPI::TilePosition getSmallPosition() { return smallPosition; }
+        BWAPI::TilePosition getSmallPosition() const { return smallPosition; }
 
         /// <summary> Returns the BWEM Base associated with this Station. </summary>
-        const BWEM::Base * getBase() { return base; }
+        const BWEM::Base * getBase() const { return base; }
 
         /// <summary> Returns the BWEM Choke that should be used for generating a Wall at. </summmary>
-        const BWEM::ChokePoint * getChokepoint() { return choke; }
+        const BWEM::ChokePoint * getChokepoint() const { return choke; }
 
         /// <summary> Returns true if the Station is a main Station. </summary>
-        bool isMain() { return main; }
+        bool isMain() const { return main; }
 
         /// <summary> Returns true if the Station is a natural Station. </summary>
-        bool isNatural() { return natural; }
+        bool isNatural() const { return natural; }
 
         /// <summary> Draws all the features of the Station. </summary>
         void draw() const;
