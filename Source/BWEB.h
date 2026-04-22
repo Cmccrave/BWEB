@@ -1,15 +1,21 @@
 #pragma once
 #include <BWAPI.h>
+
 #include <bwem.h>
+
 #include "Block.h"
 #include "PathFind.h"
 #include "Station.h"
 #include "Wall.h"
 
-namespace BWEB::Map
-{
+#define M_PI_D4 0.78539816339744830961
+#define M_PI_D2 1.57079632679489661923
+#define M_PI 3.14159265358979323846
+#define M_PI_T2 6.28318530717958647692
+
+namespace BWEB::Map {
     /// <summary> Global access of BWEM for BWEB. </summary>
-    inline BWEM::Map& mapBWEM = BWEM::Map::Instance();
+    inline BWEM::Map &mapBWEM = BWEM::Map::Instance();
 
     /// <summary> Draws all BWEB::Walls, BWEB::Stations, and BWEB::Blocks when called. Call this every frame if you need debugging information. </summary>
     void draw();
@@ -42,7 +48,7 @@ namespace BWEB::Map
     void removeUsed(BWAPI::TilePosition tile, int width, int height);
 
     /// <summary> Returns the first UnitType found in a section of BWAPI::TilePositions, if it is within BWEBs used grid. </summary>
-    BWAPI::UnitType isUsed(const BWAPI::TilePosition& here, const int& width = 1, const int& height = 1);
+    BWAPI::UnitType isUsed(const BWAPI::TilePosition &here, const int &width = 1, const int &height = 1);
 
     /// <summary> Returns true if a BWAPI::TilePosition is fully walkable. </summary>
     /// <param name="tile"> The BWAPI::TilePosition you want to check. </param>
@@ -60,40 +66,26 @@ namespace BWEB::Map
     double getGroundDistance(BWAPI::Position start, BWAPI::Position end);
 
     /// Returns the closest BWAPI::Position that makes up the geometry of a BWEM::ChokePoint to another BWAPI::Position.
-    BWAPI::Position getClosestChokeTile(const BWEM::ChokePoint *, BWAPI::Position);
+    BWAPI::Position getClosestChokeTile(const BWEM::ChokePoint *const, BWAPI::Position);
 
     /// Returns two BWAPI::Positions perpendicular to a line at a given distance away in pixels.
     std::pair<BWAPI::Position, BWAPI::Position> perpendicularLine(std::pair<BWAPI::Position, BWAPI::Position>, double);
 
     /// Returns the angle of a pair of BWAPI::Point in degrees.
-    template <class T>
-    double getAngle(std::pair<T, T> p) {
-        auto dy = double(p.second.y - p.first.y);
-        auto dx = double(p.second.x - p.first.x);
-        return std::abs(dx) > 1.0 ? fmod(std::atan2(-dy, dx) + 6.18, 6.18) : 1.57;
+    template <class T> //
+    double getAngle(std::pair<T, T> p)
+    {
+        return getAngle(p.first, p.second);
     }
 
-    /// <summary> Returns the BWEM::Area of the starting natural. </summary>
-    const BWEM::Area * getNaturalArea();
-
-    /// <summary> Returns the BWEM::Area of the starting main. </summary>
-    const BWEM::Area * getMainArea();
-
-    /// <summary> Returns the BWEM::Chokepoint of the starting natural. </summary>
-    const BWEM::ChokePoint * getNaturalChoke();
-
-    /// <summary> Returns the BWEM::Chokepoint of the starting main. </summary>
-    const BWEM::ChokePoint * getMainChoke();
-
-    /// Returns the BWAPI::TilePosition of the starting natural.
-    BWAPI::TilePosition getNaturalTile();
-
-    /// Returns the BWAPI::Position of the starting natural.
-    BWAPI::Position getNaturalPosition();
-
-    /// Returns the BWAPI::TilePosition of the starting main.
-    BWAPI::TilePosition getMainTile();
-
-    /// Returns the BWAPI::Position of the starting main.
-    BWAPI::Position getMainPosition();
-}
+    template <class T> //
+    double getAngle(T p1, T p2)
+    {
+        double dy    = double(p2.y - p1.y);
+        double dx    = double(p2.x - p1.x);
+        double angle = std::atan2(-dy, dx);
+        if (angle < 0)
+            angle += M_PI_T2;
+        return angle;
+    }
+} // namespace BWEB::Map

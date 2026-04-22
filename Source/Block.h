@@ -5,10 +5,10 @@
 namespace BWEB {
 
     enum class Piece {
-        Small, Medium, Large, Addon, Row, Space
+        Small, Medium, Large, Wide, Addon, Row, Space
     };
     enum class BlockType {
-        None, Start, Production, Proxy, Defensive, Supply
+        None, Start, Production, Proxy, Defensive, Supply, Tech
     };
 
     class Block
@@ -16,7 +16,7 @@ namespace BWEB {
         int w = 0, h = 0;
         BWAPI::TilePosition tile;
         BWAPI::Position center;
-        std::set <BWAPI::TilePosition> smallTiles, mediumTiles, largeTiles;
+        std::set <BWAPI::TilePosition> smallTiles, mediumTiles, largeTiles, wideTiles;
         BlockType type = BlockType::None;
     public:
         Block() : w(0), h(0) {};
@@ -42,6 +42,9 @@ namespace BWEB {
                 if (piece == Piece::Addon) {
                     smallTiles.insert(placement);
                 }
+                if (piece == Piece::Wide) {
+                    wideTiles.insert(placement);
+                }
             }
         }
 
@@ -60,10 +63,16 @@ namespace BWEB {
         /// <summary> Returns the set of TilePositions that belong to 4x3 (large) buildings. </summary>
         std::set<BWAPI::TilePosition>& getLargeTiles() { return largeTiles; }
 
+        /// <summary> Returns the set of TilePositions that belong to 4x2 (wide) buildings. </summary>
+        std::set<BWAPI::TilePosition>& getWideTiles() { return wideTiles; }
+
         /// <summary> Returns the set of TilePositions needed for this UnitTypes size. </summary>
         std::set<BWAPI::TilePosition>& getPlacements(BWAPI::UnitType type) {
-            if (type.tileWidth() == 4)
+            if (type.tileWidth() == 4) {
+                if (type.tileHeight() == 2)
+                    return wideTiles;
                 return largeTiles;
+            }
             if (type.tileWidth() == 3)
                 return mediumTiles;
             return smallTiles;
@@ -89,6 +98,9 @@ namespace BWEB {
 
         /// <summary> Inserts a 4x3 (large) building at this location. </summary>
         void insertLarge(const BWAPI::TilePosition here) { largeTiles.insert(here); }
+
+        /// <summary> Inserts a 4x3 (large) building at this location. </summary>
+        void insertWide(const BWAPI::TilePosition here) { wideTiles.insert(here); }
 
         /// <summary> Draws all the features of the Block. </summary>
         void draw();

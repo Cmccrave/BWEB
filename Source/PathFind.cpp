@@ -1,158 +1,49 @@
 #include "PathFind.h"
+
 #include "BWEB.h"
 #include "JPS.h"
 
 using namespace std;
 using namespace BWAPI;
 
-namespace BWEB
-{
+namespace BWEB {
+    vector<TilePosition> fourDir{{0, 1}, {1, 0}, {-1, 0}, {0, -1}};
+    vector<TilePosition> eightDir{{0, 1}, {1, 0}, {-1, 0}, {0, -1}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
+
     namespace {
 
         struct Node {
-            TilePosition tile, parent;
-            double f, g, h;
-            int id = 0;
-
-            Node(TilePosition _tile, TilePosition _parent, double _f, double _g, double _h, int _id) {
-                tile = _tile;
-                parent = _parent;
-                f = _f;
-                g = _g;
-                h = _h;
-                id = _id;
-            }
-
-            Node() {
-                tile = TilePosition(-1, -1);
-            };
-
-            bool operator <(const Node &rhs) const {
-                return f > rhs.f;
-            }
-
-            bool operator ==(const Node &rhs) const {
-                return tile == rhs.tile;
-            }
+            TilePosition tile{-1, -1};
+            double f = 0;
+            bool operator>(const Node &rhs) const { return f > rhs.f; }
         };
 
-        int oneDim(TilePosition tile) {
-            return (tile.y * Broodwar->mapWidth()) + tile.x;
-        }
-
-        struct PathCache {
-            map<pair<TilePosition, TilePosition>, list<Path>::iterator> iteratorList;
-            list<Path> pathCache;
-            map<pair<TilePosition, TilePosition>, int> notReachableThisFrame;
+        struct TileData {
+            TilePosition parent;
+            double g;
+            int lastVisitedId = 0;
+            bool isClosed     = false;
         };
 
-        map<function <bool(const TilePosition&)>*, PathCache> pathCache;
-        int maxCacheSize = 10000;
+        std::set<TilePosition> notReachable;
+        bool expectReachable(TilePosition source, TilePosition target) { return (notReachable.find(source) == notReachable.end()) || (notReachable.find(target) == notReachable.end()); }
+
+        int oneDim(TilePosition tile) { return (tile.y * Broodwar->mapWidth()) + tile.x; }
         int currentId = 0;
-        Node closedSet[65536];
-    }
+        TileData tileData[65536];
+    } // namespace
 
-    void Path::generateBFS(function <bool(const TilePosition&)> isWalkable)
+    void Path::generateJPS(function<bool(const TilePosition &)> passedWalkable)
     {
-        if (!source.isValid() || !target.isValid())
+        static const auto width  = Broodwar->mapWidth();
+        static const auto height = Broodwar->mapHeight();
+
+        dist      = 0.0;
+        reachable = false;
+        tiles.clear();
+        if (!expectReachable(source, target)) {
             return;
-
-        // TODO: Add caching
-
-        currentId++;
-        if (currentId == INT_MAX)
-            currentId = 0;
-
-        queue<Node> openSet;
-        vector<TilePosition> direction{ { 0, 1 },{ 1, 0 },{ -1, 0 },{ 0, -1 } };
-        openSet.push(Node(target, target, 1.0, 1.0, 1.0, currentId));
-
-        if (diagonal)
-            direction.insert(direction.end(), { { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } });
-
-        // Create the path
-        const auto createPath = [&](Node& current) {
-            while (current.tile != target) {
-                dist += Position(current.tile).getDistance(Position(current.parent));
-                tiles.push_back(current.tile);
-                current = closedSet[oneDim(current.parent)];
-            }
-            if (current.tile == target) {
-                reachable = true;
-                tiles.push_back(target);
-            }
-        };
-
-        // Iterate the open set
-        while (!openSet.empty()) {
-            Node parent = openSet.front();
-            openSet.pop();
-            closedSet[oneDim(parent.tile)] = parent;
-
-            if (parent.tile == source) {
-                createPath(parent);
-                return;
-            }
-
-            for (const auto &d : direction) {
-                const auto t = parent.tile + d;
-
-                if (!t.isValid() || !isWalkable(t))
-                    continue;
-
-                Node &cs = closedSet[oneDim(t)];
-
-                // Closed Node has been queued or closed
-                if (cs.tile != TilePosition(-1, -1) && cs.id == currentId)
-                    continue;
-
-                // Check diagonal collisions where necessary
-                if (d.x != 0 && d.y != 0 && (!isWalkable(t + TilePosition(d.x, 0)) || !isWalkable(t + TilePosition(0, d.y))))
-                    continue;
-
-                openSet.push(Node(t, parent.tile, 0, 0, 0, currentId));
-                cs.tile = t;
-                cs.id = currentId;
-            }
         }
-    }
-
-    void Path::generateJPS(function <bool(const TilePosition&)> passedWalkable)
-    {
-        auto pathPoints = make_pair(source, target);
-        auto &thisCached = pathCache[&passedWalkable];
-
-        if (!target.isValid()
-            || !source.isValid())
-            return;
-
-        // If this path does not exist in cache, remove last path and erase reference
-        if (cached) {
-            if (thisCached.iteratorList.find(pathPoints) == thisCached.iteratorList.end()) {
-                if (thisCached.pathCache.size() == maxCacheSize) {
-                    auto last = thisCached.pathCache.back();
-                    thisCached.pathCache.pop_back();
-                    thisCached.iteratorList.erase(make_pair(last.getSource(), last.getTarget()));
-                }
-            }
-
-            // If it does exist, set this path as cached version, update reference and push cached path to the front
-            else {
-                auto &oldPath = thisCached.iteratorList[pathPoints];
-                dist = oldPath->getDistance();
-                tiles = oldPath->getTiles();
-                reachable = oldPath->isReachable();
-
-                thisCached.pathCache.erase(thisCached.iteratorList[pathPoints]);
-                thisCached.pathCache.push_front(*this);
-                thisCached.iteratorList[pathPoints] = thisCached.pathCache.begin();
-                return;
-            }
-        }
-
-        vector<TilePosition> newJPSPath;
-        const auto width = Broodwar->mapWidth();
-        const auto height = Broodwar->mapHeight();
 
         const auto isWalkable = [&](const int x, const int y) {
             const TilePosition tile(x, y);
@@ -165,17 +56,7 @@ namespace BWEB
             return false;
         };
 
-        // If not reachable based on previous paths to this pair
-        if (cached) {
-            auto checkReachable = thisCached.notReachableThisFrame[make_pair(source, target)];
-            if (checkReachable >= Broodwar->getFrameCount() && Broodwar->getFrameCount() > 0) {
-                reachable = false;
-                dist = DBL_MAX;
-                return;
-            }
-        }
-
-        // If we found a path, store what was found
+        vector<TilePosition> newJPSPath;
         if (JPS::findPath(newJPSPath, isWalkable, source.x, source.y, target.x, target.y)) {
             Position current = Position(source);
             tiles.push_back(source);
@@ -185,82 +66,100 @@ namespace BWEB
                 tiles.push_back(t);
             }
             reachable = true;
+            if (reverse)
+                std::reverse(tiles.begin(), tiles.end());
         }
-
-        // If not found, set destination pair as unreachable for this frame
         else {
-            dist = DBL_MAX;
-            reachable = false;
-            if (cached)
-                thisCached.notReachableThisFrame[make_pair(source, target)] = Broodwar->getFrameCount();
-        }
-
-        // Update cache
-        if (cached) {
-            thisCached.pathCache.push_front(*this);
-            thisCached.iteratorList[pathPoints] = thisCached.pathCache.begin();
+            notReachable.insert(source);
+            notReachable.insert(target);
         }
     }
 
-    void Path::generateAS(function <double(const TilePosition&)> passedHeuristic)
+    void Path::generateAS(function<double(const TilePosition &)> passedHeuristic, function<bool(const TilePosition &)> isWalkable)
     {
-        if (!source.isValid() || !target.isValid())
+        if (!source.isValid() || !target.isValid() || !expectReachable(source, target))
             return;
 
-        // TODO: Add caching and collision
-
+        // Reset IDs
         currentId++;
-        if (currentId == INT_MAX)
-            currentId = 0;
+        if (currentId == INT_MAX) {
+            currentId = 1;
+            memset(tileData, 0, sizeof(tileData));
+        }
 
-        priority_queue <Node> openSet;
-        vector<TilePosition> direction{ { 0, 1 },{ 1, 0 },{ -1, 0 },{ 0, -1 } };
-        openSet.push(Node(target, target, 1.0, 1.0, 1.0, currentId));
+        priority_queue<Node, vector<Node>, greater<Node>> openQueue;
 
-        if (diagonal)
-            direction.insert(direction.end(), { { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } });
+        // Clear in case path was re-used for some reason
+        dist      = 0.0;
+        reachable = false;
+        tiles.clear();
 
-        const auto createPath = [&](Node& current) {
-            while (current.tile != target) {
-                tiles.push_back(current.tile);
-                current = closedSet[oneDim(current.parent)];
-            }
-            if (current.tile == target) {
-                reachable = true;
+        // Start at the target
+        int startIdx                     = oneDim(target);
+        tileData[startIdx].g             = 0;
+        tileData[startIdx].lastVisitedId = currentId;
+        tileData[startIdx].isClosed      = false;
+        tileData[startIdx].parent        = target;
+
+        auto h = double(source.getApproxDistance(target));
+        openQueue.push({target, h});
+
+        while (!openQueue.empty()) {
+            Node current = openQueue.top();
+            openQueue.pop();
+
+            int currIdx = oneDim(current.tile);
+
+            // Check if visited already
+            if (tileData[currIdx].isClosed && tileData[currIdx].lastVisitedId == currentId)
+                continue;
+
+            // Create a path if at source
+            if (current.tile == source) {
+                reachable         = true;
+                TilePosition step = current.tile;
+                while (step != target) {
+                    tiles.push_back(step);
+                    step = tileData[oneDim(step)].parent;
+                }
                 tiles.push_back(target);
-            }
-        };
-
-        while (!openSet.empty()) {
-            Node parent = openSet.top();
-            openSet.pop();
-            closedSet[oneDim(parent.tile)] = parent;
-
-            if (parent.tile == source) {
-                createPath(parent);
+                if (reverse)
+                    std::reverse(tiles.begin(), tiles.end());
                 return;
             }
 
-            for (const auto &d : direction) {
-                const auto t = parent.tile + d;
+            tileData[currIdx].isClosed = true;
 
-                if (!t.isValid())
+            for (const auto &d : eightDir) {
+                TilePosition next = current.tile + d;
+                if (!next.isValid())
                     continue;
 
-                auto g = parent.g + passedHeuristic(t);
-                auto h = source.getDistance(t) + ((d.x != 0 && d.y != 0) ? 1.414 : 1.0);
-                auto f = g + h;
-                Node &cs = closedSet[oneDim(t)];
+                // Costs calcs
+                double moveCost = ((d.x != 0 && d.y != 0) ? 45.248 : 32.0) + passedHeuristic(next);
+                double currG    = tileData[currIdx].g + moveCost;
+                auto &nextData = tileData[oneDim(next)];
 
-                // Closed Node has been queued or closed
-                if (cs.tile != TilePosition(-1, -1) && cs.id == currentId)
+                // Walkability checks
+                if (!isWalkable(next))
                     continue;
+                if (d.x != 0 && d.y != 0) {
+                    if (!isWalkable({current.tile.x + d.x, current.tile.y}) || !isWalkable({current.tile.x, current.tile.y + d.y}))
+                        continue;
+                }
 
-                openSet.push(Node(t, parent.tile, f, g, h, currentId));
-                cs.tile = t;
-                cs.id = currentId;
+                // Check if visited or lower score
+                if (nextData.lastVisitedId != currentId || currG < nextData.g) {
+                    nextData  = {current.tile, currG, currentId, false};
+                    auto nextH = double(source.getApproxDistance(next));
+                    openQueue.push({next, currG + nextH});
+                }
             }
         }
+
+        // Must not be reachable if we are here
+        notReachable.insert(source);
+        notReachable.insert(target);
     }
 
     bool Path::terrainWalkable(const TilePosition &tile)
@@ -272,29 +171,21 @@ namespace BWEB
 
     bool Path::unitWalkable(const TilePosition &tile)
     {
-        if (Map::isWalkable(tile, type) && Map::isUsed(tile) == UnitTypes::None)
+        if (tile == source || (Map::isWalkable(tile, type) && Map::isUsed(tile) == UnitTypes::None))
             return true;
         return false;
     }
 
     namespace Pathfinding {
-        void clearCacheFully()
+        void clearCacheFully() { notReachable.clear(); }
+
+        void clearCache(function<bool(const TilePosition &)> passedWalkable) {}
+
+        void testCache()
         {
-            pathCache.clear();
-        }
-
-        void clearCache(function <bool(const TilePosition&)> passedWalkable) {
-            pathCache[&passedWalkable].iteratorList.clear();
-            pathCache[&passedWalkable].pathCache.clear();
-        }
-
-        void testCache() {
-            for (auto &[_, cache] : pathCache) {
-                for (auto &[tile, frame] : cache.notReachableThisFrame) {
-                    if (frame >= Broodwar->getFrameCount() - 10)
-                        Broodwar->drawLineMap(Position(tile.first), Position(tile.second), Colors::Red);
-                }
+            for (auto &tile : notReachable) {
+                Broodwar->drawCircleMap(Position(tile), 4, Colors::Blue);
             }
         }
-    }
-}
+    } // namespace Pathfinding
+} // namespace BWEB
